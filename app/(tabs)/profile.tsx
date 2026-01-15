@@ -72,14 +72,14 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/edit')}>
             <View style={styles.menuItemLeft}>
               <User size={20} color="#333" />
               <Text style={styles.menuItemText}>Edit Profile</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/settings')}>
             <View style={styles.menuItemLeft}>
               <Settings size={20} color="#333" />
               <Text style={styles.menuItemText}>Settings</Text>
@@ -91,24 +91,33 @@ export default function ProfileScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Supplier</Text>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/supplier/dashboard')}
+            >
+              <View style={styles.menuItemLeft}>
+                <FileText size={20} color="#333" />
+                <Text style={styles.menuItemText}>Supplier Dashboard</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/supplier/products')}
+            >
               <View style={styles.menuItemLeft}>
                 <Store size={20} color="#333" />
                 <Text style={styles.menuItemText}>Manage Products</Text>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/supplier/orders')}
+            >
               <View style={styles.menuItemLeft}>
                 <Truck size={20} color="#333" />
                 <Text style={styles.menuItemText}>Manage Orders</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.menuItem}>
-              <View style={styles.menuItemLeft}>
-                <FileText size={20} color="#333" />
-                <Text style={styles.menuItemText}>KYC Verification</Text>
               </View>
             </TouchableOpacity>
           </View>

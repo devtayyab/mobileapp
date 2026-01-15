@@ -1,67 +1,97 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Trash2, Plus, Minus } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react-native';
 
 type CartItem = {
   id: string;
   product_id: string;
   quantity: number;
-  price: number;
-  product: {
+  products: {
+    id: string;
     name: string;
+    b2c_price: number;
+    b2b_price: number | null;
     currency: string;
     stock_quantity: number;
+    product_images: Array<{
+      image_url: string;
+      is_primary: boolean;
+    }>;
   };
 };
 
 export default function CartScreen() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchCart();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const fetchCart = async () => {
     setLoading(true);
 
-    const { data: cart } = await supabase
-      .from('carts')
-      .select('id')
-      .eq('user_id', user?.id)
-      .maybeSingle();
-
-    if (cart) {
-      const { data: items } = await supabase
+    try {
+      const { data: items, error } = await supabase
         .from('cart_items')
         .select(`
           id,
           product_id,
           quantity,
-          price,
-          product:products (
+          products (
+            id,
             name,
+            b2c_price,
+            b2b_price,
             currency,
-            stock_quantity
+            stock_quantity,
+            product_images (
+              image_url,
+              is_primary,
+              display_order
+            )
           )
         `)
-        .eq('cart_id', cart.id);
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
 
       if (items) {
         setCartItems(items as any);
       }
+    } catch (error) {
+      console.error('Error fetching cart:', error);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
+  const getPrice = (item: CartItem) => {
+    if (profile?.role === 'b2b' && item.products.b2b_price) {
+      return item.products.b2b_price;
+    }
+    return item.products.b2c_price;
+  };
+
+  const getProductImage = (item: CartItem) => {
+    const primaryImage = item.products.product_images?.find(img => img.is_primary);
+    return primaryImage?.image_url || item.products.product_images?.[0]?.image_url;
+  };
+
+  const updateQuantity = async (itemId: string, newQuantity: number, maxStock: number) => {
     if (newQuantity < 1) return;
+    if (newQuantity > maxStock) {
+      Alert.alert('Stock Limit', `Only ${maxStock} units available`);
+      return;
+    }
 
     const { error } = await supabase
       .from('cart_items')
@@ -100,45 +130,65 @@ export default function CartScreen() {
   };
 
   const calculateTotal = () => {
-    return cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return cartItems.reduce((sum, item) => sum + (getPrice(item) * item.quantity), 0);
   };
 
-  const renderCartItem = ({ item }: { item: CartItem }) => (
-    <View style={styles.cartItem}>
-      <View style={styles.itemImagePlaceholder}>
-        <Text style={styles.placeholderText}>IMG</Text>
-      </View>
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemName} numberOfLines={2}>
-          {item.product.name}
-        </Text>
-        <Text style={styles.itemPrice}>
-          {item.product.currency} {item.price.toFixed(2)}
-        </Text>
-        <View style={styles.quantityContainer}>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => updateQuantity(item.id, item.quantity - 1)}
-          >
-            <Minus size={16} color="#333" />
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{item.quantity}</Text>
-          <TouchableOpacity
-            style={styles.quantityButton}
-            onPress={() => updateQuantity(item.id, item.quantity + 1)}
-          >
-            <Plus size={16} color="#333" />
-          </TouchableOpacity>
+  const handleCheckout = () => {
+    router.push('/checkout');
+  };
+
+  const renderCartItem = ({ item }: { item: CartItem }) => {
+    const imageUrl = getProductImage(item);
+    const price = getPrice(item);
+
+    return (
+      <View style={styles.cartItem}>
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.itemImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.itemImagePlaceholder}>
+            <Text style={styles.placeholderText}>No Image</Text>
+          </View>
+        )}
+        <View style={styles.itemDetails}>
+          <Text style={styles.itemName} numberOfLines={2}>
+            {item.products.name}
+          </Text>
+          <Text style={styles.itemPrice}>
+            {item.products.currency} {price.toFixed(2)}
+          </Text>
+          <Text style={styles.itemSubtotal}>
+            Subtotal: {item.products.currency} {(price * item.quantity).toFixed(2)}
+          </Text>
+          <View style={styles.quantityContainer}>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => updateQuantity(item.id, item.quantity - 1, item.products.stock_quantity)}
+            >
+              <Minus size={16} color="#333" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <TouchableOpacity
+              style={styles.quantityButton}
+              onPress={() => updateQuantity(item.id, item.quantity + 1, item.products.stock_quantity)}
+            >
+              <Plus size={16} color="#333" />
+            </TouchableOpacity>
+          </View>
         </View>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => removeItem(item.id)}
+        >
+          <Trash2 size={20} color="#FF5722" />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => removeItem(item.id)}
-      >
-        <Trash2 size={20} color="#FF5722" />
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -167,10 +217,10 @@ export default function CartScreen() {
             <View style={styles.totalContainer}>
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalAmount}>
-                {cartItems[0]?.product.currency || 'USD'} {calculateTotal().toFixed(2)}
+                {cartItems[0]?.products.currency || 'USD'} {calculateTotal().toFixed(2)}
               </Text>
             </View>
-            <TouchableOpacity style={styles.checkoutButton}>
+            <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
               <Text style={styles.checkoutButtonText}>Proceed to Checkout</Text>
             </TouchableOpacity>
           </View>
@@ -229,6 +279,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  itemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    backgroundColor: '#e0e0e0',
+    marginRight: 12,
+  },
   itemImagePlaceholder: {
     width: 80,
     height: 80,
@@ -256,6 +313,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#4CAF50',
+    marginBottom: 4,
+  },
+  itemSubtotal: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 8,
   },
   quantityContainer: {
