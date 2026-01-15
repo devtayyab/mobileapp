@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   section: {
     marginTop: 24,
-    paddingHorizontal: 20,
+    // paddingHorizontal: 20,
   },
   sectionTitle: {
     fontSize: 20,

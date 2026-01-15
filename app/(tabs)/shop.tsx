@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Star, ShoppingCart } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 type Product = {
   id: string;
@@ -32,6 +33,7 @@ export default function ShopScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetchCategories();
@@ -97,7 +99,7 @@ export default function ShopScreen() {
     const imageUrl = getProductImage(item);
 
     return (
-      <TouchableOpacity style={styles.productCard}>
+      <TouchableOpacity style={styles.productCard}   onPress={() => router.push(`/product/${item.id}`)}>
         <View style={styles.productImageContainer}>
           {imageUrl ? (
             <Image
