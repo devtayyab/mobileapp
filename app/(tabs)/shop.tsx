@@ -13,24 +13,51 @@ type Product = {
   currency: string;
   stock_quantity: number;
   is_featured: boolean;
+  category_id: string;
   product_images: Array<{
     image_url: string;
     is_primary: boolean;
   }>;
 };
 
+type Category = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 export default function ShopScreen() {
   const { profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchCategories();
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    fetchProducts();
+  }, [selectedCategory]);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('categories')
+      .select('id, name, slug')
+      .eq('is_active', true)
+      .is('parent_id', null)
+      .order('display_order');
+
+    if (data) {
+      setCategories(data);
+    }
+  };
+
   const fetchProducts = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from('products')
       .select(`
         *,
@@ -40,8 +67,13 @@ export default function ShopScreen() {
           display_order
         )
       `)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .eq('is_active', true);
+
+    if (selectedCategory !== 'all') {
+      query = query.eq('category_id', selectedCategory);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
 
     if (data) {
       setProducts(data as any);
@@ -129,6 +161,28 @@ export default function ShopScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>All Products</Text>
         <Text style={styles.subtitle}>{products.length} products available</Text>
+      </View>
+
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterChip, selectedCategory === 'all' && styles.filterChipActive]}
+          onPress={() => setSelectedCategory('all')}
+        >
+          <Text style={[styles.filterChipText, selectedCategory === 'all' && styles.filterChipTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[styles.filterChip, selectedCategory === category.id && styles.filterChipActive]}
+            onPress={() => setSelectedCategory(category.id)}
+          >
+            <Text style={[styles.filterChipText, selectedCategory === category.id && styles.filterChipTextActive]}>
+              {category.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {products.length > 0 ? (
@@ -301,5 +355,35 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#999',
+  },
+  filterContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  filterChipActive: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
   },
 });

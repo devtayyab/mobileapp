@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { router } from 'expo-router';
 import { Package, Clock, CheckCircle, XCircle } from 'lucide-react-native';
 
 type Order = {
@@ -25,6 +26,8 @@ export default function OrdersScreen() {
   useEffect(() => {
     if (user) {
       fetchOrders();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -133,6 +136,27 @@ export default function OrdersScreen() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Orders</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Package size={64} color="#D1D5DB" />
+          <Text style={styles.emptyText}>Sign in to view your orders</Text>
+          <Text style={styles.emptySubtext}>Login to track your purchases</Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <Text style={styles.loginButtonText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -286,5 +310,17 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#999',
+    marginBottom: 24,
+  },
+  loginButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

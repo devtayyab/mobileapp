@@ -60,6 +60,13 @@ export default function WelcomeScreen() {
             >
               <Text style={styles.secondaryButtonText}>Create Account</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.guestButton}
+              onPress={() => router.push('/(tabs)')}
+            >
+              <Text style={styles.guestButtonText}>Browse as Guest</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.footer}>
@@ -154,6 +161,17 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: '#4CAF50',
     fontSize: 18,
+    fontWeight: '600',
+  },
+  guestButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  guestButtonText: {
+    color: '#e0e0e0',
+    fontSize: 16,
     fontWeight: '600',
   },
   footer: {

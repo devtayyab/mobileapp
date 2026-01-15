@@ -162,7 +162,10 @@ export default function SupplierProducts() {
           <ArrowLeft size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Manage Products</Text>
-        <TouchableOpacity style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push('/supplier/add-product')}
+        >
           <Plus size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
@@ -179,7 +182,10 @@ export default function SupplierProducts() {
           <Package size={48} color="#D1D5DB" />
           <Text style={styles.emptyText}>No products yet</Text>
           <Text style={styles.emptySubtext}>Add your first product to get started</Text>
-          <TouchableOpacity style={styles.addProductButton}>
+          <TouchableOpacity
+            style={styles.addProductButton}
+            onPress={() => router.push('/supplier/add-product')}
+          >
             <Plus size={20} color="#FFF" />
             <Text style={styles.addProductButtonText}>Add Product</Text>
           </TouchableOpacity>

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Settings, FileText, Circle as HelpCircle, LogOut, Store, Truck } from 'lucide-react-native';
 
 export default function ProfileScreen() {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const router = useRouter();
 
   const handleSignOut = () => {
@@ -50,6 +50,41 @@ export default function ProfileScreen() {
         return 'Customer';
     }
   };
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <User size={32} color="#ffffff" />
+            </View>
+          </View>
+          <Text style={styles.name}>Guest User</Text>
+          <Text style={styles.email}>Not signed in</Text>
+        </View>
+
+        <View style={styles.guestContainer}>
+          <Text style={styles.guestTitle}>Sign in to access your profile</Text>
+          <Text style={styles.guestSubtext}>Create an account or sign in to manage your profile and preferences</Text>
+
+          <TouchableOpacity
+            style={styles.signInButton}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <Text style={styles.signInButtonText}>Sign In</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.createAccountButton}
+            onPress={() => router.push('/(auth)/register')}
+          >
+            <Text style={styles.createAccountButtonText}>Create Account</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -263,5 +298,54 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 12,
     color: '#999',
+  },
+  guestContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  guestTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  guestSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 20,
+  },
+  signInButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 48,
+    paddingVertical: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  signInButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  createAccountButton: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 48,
+    paddingVertical: 16,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
+  createAccountButtonText: {
+    color: '#4CAF50',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

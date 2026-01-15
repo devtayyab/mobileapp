@@ -13,9 +13,9 @@ export default function Index() {
 
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (!user && !inAuthGroup) {
-      router.replace('/(auth)/welcome');
-    } else if (user && inAuthGroup) {
+    if (user && inAuthGroup) {
+      router.replace('/(tabs)');
+    } else if (!inAuthGroup) {
       router.replace('/(tabs)');
     }
   }, [user, loading, segments]);

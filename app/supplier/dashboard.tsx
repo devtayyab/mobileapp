@@ -124,51 +124,72 @@ export default function SupplierDashboard() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.welcomeSection}>
+          <Text style={styles.welcomeText}>Welcome to your Supplier Portal</Text>
+          <Text style={styles.welcomeSubtext}>Manage your products and orders efficiently</Text>
+        </View>
+
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, styles.revenueCard]}>
-            <DollarSign size={24} color="#10B981" />
+            <View style={styles.statIconContainer}>
+              <DollarSign size={28} color="#10B981" />
+            </View>
             <Text style={styles.statValue}>${data.totalRevenue.toFixed(2)}</Text>
             <Text style={styles.statLabel}>Total Revenue</Text>
           </View>
 
           <View style={[styles.statCard, styles.ordersCard]}>
-            <ShoppingCart size={24} color="#007AFF" />
+            <View style={styles.statIconContainer}>
+              <ShoppingCart size={28} color="#007AFF" />
+            </View>
             <Text style={styles.statValue}>{data.totalOrders}</Text>
             <Text style={styles.statLabel}>Total Orders</Text>
           </View>
 
           <View style={[styles.statCard, styles.productsCard]}>
-            <Package size={24} color="#FF9800" />
+            <View style={styles.statIconContainer}>
+              <Package size={28} color="#FF9800" />
+            </View>
             <Text style={styles.statValue}>{data.totalProducts}</Text>
             <Text style={styles.statLabel}>Active Products</Text>
           </View>
 
           <View style={[styles.statCard, styles.pendingCard]}>
-            <TrendingUp size={24} color="#9C27B0" />
+            <View style={styles.statIconContainer}>
+              <TrendingUp size={28} color="#9C27B0" />
+            </View>
             <Text style={styles.statValue}>{data.pendingOrders}</Text>
             <Text style={styles.statLabel}>Pending Orders</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-          </View>
+        <View style={styles.actionsSection}>
+          <Text style={styles.actionsSectionTitle}>Quick Actions</Text>
 
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.primaryActionButton}
             onPress={() => router.push('/supplier/products')}
           >
-            <Package size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Manage Products</Text>
+            <View style={styles.actionIconWrapper}>
+              <Package size={24} color="#FFF" />
+            </View>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.primaryActionTitle}>Manage Products</Text>
+              <Text style={styles.primaryActionSubtitle}>Add, edit, or remove products</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionButton}
+            style={styles.primaryActionButton}
             onPress={() => router.push('/supplier/orders')}
           >
-            <ShoppingCart size={20} color="#007AFF" />
-            <Text style={styles.actionButtonText}>Manage Orders</Text>
+            <View style={styles.actionIconWrapper}>
+              <ShoppingCart size={24} color="#FFF" />
+            </View>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.primaryActionTitle}>Manage Orders</Text>
+              <Text style={styles.primaryActionSubtitle}>View and process customer orders</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -243,6 +264,22 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  welcomeSection: {
+    backgroundColor: '#007AFF',
+    padding: 24,
+    marginBottom: 8,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 6,
+  },
+  welcomeSubtext: {
+    fontSize: 14,
+    color: '#FFF',
+    opacity: 0.9,
+  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -252,70 +289,103 @@ const styles = StyleSheet.create({
   statCard: {
     width: '48%',
     backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  statIconContainer: {
+    marginBottom: 12,
   },
   revenueCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
+    borderTopWidth: 3,
+    borderTopColor: '#10B981',
   },
   ordersCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    borderTopWidth: 3,
+    borderTopColor: '#007AFF',
   },
   productsCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
+    borderTopWidth: 3,
+    borderTopColor: '#FF9800',
   },
   pendingCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#9C27B0',
+    borderTopWidth: 3,
+    borderTopColor: '#9C27B0',
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#111827',
-    marginTop: 8,
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 4,
+    fontWeight: '600',
     textAlign: 'center',
+  },
+  actionsSection: {
+    padding: 20,
+    backgroundColor: '#FFF',
+    marginTop: 8,
+  },
+  actionsSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 20,
+  },
+  primaryActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  actionIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  actionTextContainer: {
+    flex: 1,
+  },
+  primaryActionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  primaryActionSubtitle: {
+    fontSize: 13,
+    color: '#FFF',
+    opacity: 0.9,
   },
   section: {
     backgroundColor: '#FFF',
     padding: 20,
     marginTop: 12,
   },
-  sectionHeader: {
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 16,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 12,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
   },
   orderCard: {
     padding: 16,

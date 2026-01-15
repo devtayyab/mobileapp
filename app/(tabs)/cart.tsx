@@ -198,6 +198,27 @@ export default function CartScreen() {
     );
   }
 
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Shopping Cart</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <ShoppingBag size={64} color="#D1D5DB" />
+          <Text style={styles.emptyText}>Sign in to view your cart</Text>
+          <Text style={styles.emptySubtext}>Login to add items and checkout</Text>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <Text style={styles.loginButtonText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -393,5 +414,17 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#999',
+    marginBottom: 24,
+  },
+  loginButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
