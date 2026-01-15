@@ -1,20 +1,26 @@
 import { Tabs } from 'expo-router';
 import { Hop as Home, Store, Grid2x2 as Grid, ShoppingCart, Package, User } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: '#888',
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.text.secondary,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: Colors.background.primary,
           borderTopWidth: 1,
-          borderTopColor: '#e0e0e0',
+          borderTopColor: Colors.border.light,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
+          shadowColor: Colors.shadow.medium,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 8,
         },
         tabBarLabelStyle: {
           fontSize: 11,

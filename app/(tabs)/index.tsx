@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Search, Star } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type Product = {
   id: string;
@@ -35,8 +36,12 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (profile?.role === 'supplier') {
+      router.replace('/supplier/dashboard');
+    } else {
+      fetchData();
+    }
+  }, [profile]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -151,7 +156,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
@@ -159,7 +164,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.greeting}>Hello,</Text>
           <Text style={styles.userName}>
             {profile?.full_name || 'Guest'}
@@ -170,7 +175,7 @@ export default function HomeScreen() {
           style={styles.searchButton}
           onPress={() => router.push('/search')}
         >
-          <Search size={24} color="#333" />
+          <Search size={22} color={Colors.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -214,40 +219,49 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: Colors.background.secondary,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: Colors.background.secondary,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.background.primary,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: Colors.border.light,
+    shadowColor: Colors.shadow.medium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  headerLeft: {
+    flex: 1,
   },
   greeting: {
     fontSize: 14,
-    color: '#666',
+    color: Colors.text.secondary,
+    fontWeight: '500',
   },
   userName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#333',
+    color: Colors.text.primary,
     marginTop: 4,
   },
   searchButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: Colors.background.tertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -258,12 +272,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: Colors.text.primary,
     marginBottom: 16,
+    paddingHorizontal: 20,
   },
   emptyText: {
     fontSize: 14,
-    color: '#999',
+    color: Colors.text.tertiary,
     textAlign: 'center',
     paddingVertical: 20,
   },
@@ -278,7 +293,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 35,
-    backgroundColor: '#4CAF50',
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -286,22 +301,23 @@ const styles = StyleSheet.create({
   categoryPlaceholderText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#ffffff',
+    color: Colors.text.inverse,
   },
   categoryName: {
     fontSize: 12,
-    color: '#333',
+    color: Colors.text.primary,
     textAlign: 'center',
   },
   productsContainer: {
     gap: 16,
+    paddingHorizontal: 20,
   },
   productCard: {
     width: 180,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.background.primary,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: Colors.shadow.medium,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -339,7 +355,7 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.text.primary,
     marginBottom: 8,
     height: 40,
   },
@@ -351,10 +367,10 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: Colors.primary,
   },
   b2bBadge: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Colors.secondary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -362,11 +378,11 @@ const styles = StyleSheet.create({
   b2bBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#ffffff',
+    color: Colors.text.inverse,
   },
   lowStockText: {
     fontSize: 11,
-    color: '#FF5722',
+    color: Colors.error,
     marginTop: 4,
   },
 });
