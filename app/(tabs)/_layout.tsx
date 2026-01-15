@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Home, Store, Grid, ShoppingCart, Package, User } from 'lucide-react-native';
+import { Hop as Home, Store, Grid2x2 as Grid, ShoppingCart, Package, User } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (

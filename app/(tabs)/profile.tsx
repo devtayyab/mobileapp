@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Settings, FileText, HelpCircle, LogOut, Store, Truck } from 'lucide-react-native';
+import { User, Settings, FileText, Circle as HelpCircle, LogOut, Store, Truck } from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { profile, signOut } = useAuth();
