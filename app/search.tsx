@@ -82,7 +82,7 @@ export default function SearchScreen() {
     const imageUrl = getProductImage(item);
 
     return (
-      <TouchableOpacity style={styles.productCard}>
+      <TouchableOpacity style={styles.productCard} onPress={() => router.push(`/product/${item.id}`)}>
         <View style={styles.productImageContainer}>
           {imageUrl ? (
             <Image

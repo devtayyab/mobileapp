@@ -120,6 +120,7 @@ export default function ProductDetail() {
             user_id: user.id,
             product_id: id,
             quantity: quantity,
+            price : getPrice(),
           });
 
         if (error) throw error;
