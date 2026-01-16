@@ -37,7 +37,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (profile?.role === 'supplier') {
-      router.replace('/supplier/dashboard');
+      // router.replace('/supplier/dashboard');
+      fetchData();
     } else {
       fetchData();
     }
