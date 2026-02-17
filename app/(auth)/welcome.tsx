@@ -1,8 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '@/components/Logo';
-import { ShoppingBag, Truck, Shield, Star } from 'lucide-react-native';
+import { ShoppingBag, Truck, Shield, ArrowRight, User } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -10,55 +12,75 @@ export default function WelcomeScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1a1a2e', '#0f3460', '#16213e']}
-        style={styles.gradient}
+        colors={['#0F172A', '#1E293B', '#111827']}
+        style={styles.background}
       >
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <Logo size="large" variant="light" />
-            <Text style={styles.subtitle}>Your Multi-Vendor Shopping Destination</Text>
+        {/* Dynamic Background Circles */}
+        <View style={[styles.bgCircle, styles.bgCircle1]} />
+        <View style={[styles.bgCircle, styles.bgCircle2]} />
 
-            <View style={styles.featuresContainer}>
-              <View style={styles.feature}>
-                <View style={styles.featureIcon}>
-                  <ShoppingBag size={20} color="#4CAF50" />
-                </View>
-                <Text style={styles.featureText}>Thousands of Products</Text>
+        <View style={styles.content}>
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.logoWrapper}>
+              <Logo size="large" variant="light" />
+            </View>
+            <Text style={styles.tagline}>
+              Empowering Your Business,{'\n'}Connecting Markets.
+            </Text>
+            <Text style={styles.subtitle}>
+              Discover a seamless multi-vendor marketplace designed for efficiency and growth.
+            </Text>
+          </View>
+
+          {/* Features Illustration */}
+          <View style={styles.featuresContainer}>
+            <View style={styles.featureItem}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
+                <ShoppingBag size={24} color="#60A5FA" />
               </View>
-              <View style={styles.feature}>
-                <View style={styles.featureIcon}>
-                  <Truck size={20} color="#4CAF50" />
-                </View>
-                <Text style={styles.featureText}>Fast Delivery</Text>
+              <Text style={styles.featureTitle}>Global Reach</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.featureItem}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
+                <Truck size={24} color="#34D399" />
               </View>
-              <View style={styles.feature}>
-                <View style={styles.featureIcon}>
-                  <Shield size={20} color="#4CAF50" />
-                </View>
-                <Text style={styles.featureText}>Secure Payment</Text>
+              <Text style={styles.featureTitle}>Fast Delivery</Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.featureItem}>
+              <View style={[styles.iconBox, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
+                <Shield size={24} color="#A78BFA" />
               </View>
-              <View style={styles.feature}>
-                <View style={styles.featureIcon}>
-                  <Star size={20} color="#4CAF50" />
-                </View>
-                <Text style={styles.featureText}>Top Quality</Text>
-              </View>
+              <Text style={styles.featureTitle}>Secure Trade</Text>
             </View>
           </View>
 
-          <View style={styles.buttonContainer}>
+          {/* Actions Section */}
+          <View style={styles.actions}>
             <TouchableOpacity
               style={styles.primaryButton}
+              activeOpacity={0.8}
               onPress={() => router.push('/(auth)/login')}
             >
-              <Text style={styles.primaryButtonText}>Sign In</Text>
+              <LinearGradient
+                colors={['#4F46E5', '#4338CA']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.primaryButtonText}>Get Started</Text>
+                <ArrowRight size={20} color="#FFF" />
+              </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.secondaryButton}
+              activeOpacity={0.7}
               onPress={() => router.push('/(auth)/register')}
             >
-              <Text style={styles.secondaryButtonText}>Create Account</Text>
+              <Text style={styles.secondaryButtonText}>Create an Account</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -69,9 +91,10 @@ export default function WelcomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              By continuing, you agree to our Terms of Service and Privacy Policy
+              By continuing, you handle our <Text style={styles.linkText}>Terms</Text> & <Text style={styles.linkText}>Privacy Policy</Text>
             </Text>
           </View>
         </View>
@@ -84,103 +107,160 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
+  background: {
     flex: 1,
+    overflow: 'hidden', // This is key to fix side scrolling
+  },
+  bgCircle: {
+    position: 'absolute',
+    borderRadius: 1000,
+    opacity: 0.1,
+  },
+  bgCircle1: {
+    width: width, // Reduced from width * 1.2 to be safer
+    height: width,
+    backgroundColor: '#4F46E5',
+    top: -width * 0.4,
+    left: -width * 0.1,
+  },
+  bgCircle2: {
+    width: width * 0.8,
+    height: width * 0.8,
+    backgroundColor: '#06B6D4',
+    bottom: -width * 0.1,
+    right: -width * 0.1,
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingTop: 100,
-    paddingBottom: 50,
+    paddingTop: 60,
+    paddingBottom: 30,
+    justifyContent: 'space-between',
   },
   header: {
     alignItems: 'center',
+    gap: 12,
+  },
+  logoWrapper: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  tagline: {
+    fontSize: 24,
+    fontFamily: 'System',
+    fontWeight: '800',
+    color: '#F8FAFC',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 32,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#e0e0e0',
+    fontSize: 14,
+    color: '#94A3B8',
     textAlign: 'center',
-    lineHeight: 24,
-    marginTop: 16,
-    marginBottom: 40,
+    paddingHorizontal: 10,
+    lineHeight: 20,
   },
   featuresContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 5,
-  },
-  feature: {
-    alignItems: 'center',
-    width: 150,
-  },
-  featureIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginVertical: 20,
+    paddingVertical: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  featureText: {
-    fontSize: 13,
-    color: '#e0e0e0',
-    textAlign: 'center',
-    fontWeight: '500',
+  featureItem: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
-  buttonContainer: {
-    gap: 16,
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  featureTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#CBD5E1',
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  actions: {
+    width: '100%',
+    gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
+    width: '100%',
+    height: 50,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  gradientButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
   primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
   },
   secondaryButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 16,
-    borderRadius: 12,
+    width: '100%',
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
   },
   secondaryButtonText: {
-    color: '#4CAF50',
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
+    color: '#FFF',
   },
   guestButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   guestButtonText: {
-    color: '#e0e0e0',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
   },
   footer: {
+    marginTop: 10,
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 12,
-    color: '#b0b0b0',
+    fontSize: 11,
+    color: '#475569',
     textAlign: 'center',
-    lineHeight: 18,
+  },
+  linkText: {
+    color: '#64748B',
+    textDecorationLine: 'underline',
   },
 });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { ChevronLeft } from 'lucide-react-native';
 
 export default function LoginScreen() {
@@ -18,13 +19,27 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { data, error } = await signIn(email, password);
     setLoading(false);
 
     if (error) {
       Alert.alert('Login Failed', error.message);
-    } else {
-      router.replace('/(tabs)');
+    } else if (data.user) {
+      // Fetch profile to check role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile?.role === 'supplier') {
+        router.replace('/supplier/dashboard');
+      } else if (profile?.role === 'admin') {
+        // Assuming there is an admin dashboard, otherwise redirect to tabs
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(tabs)');
+      }
     }
   };
 
