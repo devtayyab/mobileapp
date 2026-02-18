@@ -71,7 +71,7 @@ export default function HomeScreen() {
         .limit(6),
     ]);
 
-    console.log("productsResult" , productsResult)
+    console.log("productsResult", productsResult)
     if (productsResult.data) {
       setFeaturedProducts(productsResult.data);
     }
@@ -238,10 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.light,
-    shadowColor: Colors.shadow.medium,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   headerLeft: {
@@ -318,10 +315,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: Colors.shadow.medium,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
     elevation: 3,
   },
   productImageContainer: {

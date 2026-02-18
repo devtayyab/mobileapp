@@ -31,10 +31,12 @@ export default function SupplierProducts() {
 
   const loadSupplierProducts = async () => {
     try {
+      if (!user?.id) return;
+
       const { data: supplier } = await supabase
         .from('suppliers')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (!supplier) {
@@ -235,10 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderRadius: 12,
     padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
     elevation: 2,
   },
   productContent: {

@@ -9,7 +9,7 @@ type AuthContextType = {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
   signUp: (email: string, password: string, role?: 'customer' | 'b2b' | 'supplier') => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -51,14 +51,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (data) {
-      setProfile(data);
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // Profile not found, this might happen immediately after signup before trigger runs
+          // We can retry or just wait.
+          setProfile(null);
+        } else {
+          console.error('Error fetching profile:', error);
+        }
+      }
+
+      if (data) {
+        setProfile(data);
+      }
+    } catch (e) {
+      console.error('Exception fetching profile:', e);
     }
   };
 
@@ -69,11 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    return { error };
+    return { data, error };
   };
 
   const signUp = async (email: string, password: string, role: 'customer' | 'b2b' | 'supplier' = 'customer') => {
@@ -93,10 +107,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setSession(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error signing out:', error);
+    } finally {
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+    }
   };
 
   return (

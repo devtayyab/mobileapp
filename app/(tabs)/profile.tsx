@@ -17,8 +17,14 @@ export default function ProfileScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/welcome');
+            // 1. Force navigation first to avoid UI flickering or stuck state
+            router.navigate('/(auth)/welcome');
+
+            // 2. Clear state and call Supabase logout in background
+            // We use a small timeout to let the navigation start
+            setTimeout(async () => {
+              await signOut();
+            }, 50);
           },
         },
       ]
