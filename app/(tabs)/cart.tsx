@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Alert, Image
+  ActivityIndicator, Image
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -74,16 +74,8 @@ export default function CartScreen() {
   };
 
   const removeItem = async (itemId: string) => {
-    Alert.alert('Remove Item', 'Remove this item from your cart?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove', style: 'destructive',
-        onPress: async () => {
-          const { error } = await supabase.from('cart_items').delete().eq('id', itemId);
-          if (!error) setCartItems(cartItems.filter(i => i.id !== itemId));
-        },
-      },
-    ]);
+    const { error } = await supabase.from('cart_items').delete().eq('id', itemId);
+    if (!error) setCartItems(prev => prev.filter(i => i.id !== itemId));
   };
 
   const calculateTotal = () =>

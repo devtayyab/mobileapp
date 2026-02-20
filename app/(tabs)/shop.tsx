@@ -6,7 +6,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Star, ShoppingCart, Search, SlidersHorizontal, Zap } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 type Product = {
   id: string;
@@ -30,12 +30,17 @@ type Category = {
 
 export default function ShopScreen() {
   const { profile } = useAuth();
+  const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'all');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    if (categoryParam) setSelectedCategory(categoryParam);
+  }, [categoryParam]);
 
   useEffect(() => {
     fetchCategories();

@@ -75,7 +75,7 @@ export default function CategoriesScreen() {
     return (
       <TouchableOpacity
         style={[styles.categoryCard, isLarge && styles.categoryCardLarge]}
-        onPress={() => router.push('/(tabs)/shop')}
+        onPress={() => router.push({ pathname: '/(tabs)/shop', params: { category: item.id } })}
         activeOpacity={0.88}
       >
         {imageUrl ? (
