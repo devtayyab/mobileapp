@@ -1,357 +1,240 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, Settings, FileText, Circle as HelpCircle, LogOut, Store, Truck } from 'lucide-react-native';
+import {
+  User, Settings, FileText, CircleHelp, LogOut,
+  Store, Truck, ChevronRight, ShieldCheck,
+  Package, LayoutDashboard, ArrowRight
+} from 'lucide-react-native';
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            // 1. Force navigation first to avoid UI flickering or stuck state
-            router.navigate('/(auth)/welcome');
-
-            // 2. Clear state and call Supabase logout in background
-            // We use a small timeout to let the navigation start
-            setTimeout(async () => {
-              await signOut();
-            }, 50);
-          },
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: () => {
+          router.navigate('/(auth)/welcome');
+          setTimeout(async () => { await signOut(); }, 50);
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const getRoleConfig = (role: string) => {
     switch (role) {
-      case 'b2b':
-        return '#2196F3';
-      case 'supplier':
-        return '#FF9800';
-      case 'admin':
-        return '#9C27B0';
-      default:
-        return '#4CAF50';
+      case 'b2b': return { label: 'Wholesale Customer', bg: '#EFF6FF', color: '#1D4ED8' };
+      case 'supplier': return { label: 'Supplier', bg: '#FFFBEB', color: '#D97706' };
+      case 'admin': return { label: 'Administrator', bg: '#FEF2F2', color: '#DC2626' };
+      default: return { label: 'Customer', bg: '#ECFDF5', color: '#059669' };
     }
   };
 
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'b2b':
-        return 'Wholesale Customer';
-      case 'supplier':
-        return 'Supplier';
-      case 'admin':
-        return 'Administrator';
-      default:
-        return 'Customer';
-    }
+  const getInitials = () => {
+    const name = profile?.full_name || '';
+    return name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
   };
+
+  const AVATAR_COLORS = ['#1D4ED8', '#059669', '#D97706', '#DC2626', '#7C3AED'];
+  const avatarColor = AVATAR_COLORS[(profile?.full_name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
   if (!user) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <User size={32} color="#ffffff" />
+          <View style={styles.headerGradient}>
+            <View style={[styles.avatarCircle, { backgroundColor: '#475569' }]}>
+              <User size={36} color="#FFF" />
             </View>
+            <Text style={styles.guestName}>Guest User</Text>
+            <Text style={styles.guestSub}>Not signed in</Text>
           </View>
-          <Text style={styles.name}>Guest User</Text>
-          <Text style={styles.email}>Not signed in</Text>
         </View>
-
-        <View style={styles.guestContainer}>
-          <Text style={styles.guestTitle}>Sign in to access your profile</Text>
-          <Text style={styles.guestSubtext}>Create an account or sign in to manage your profile and preferences</Text>
-
-          <TouchableOpacity
-            style={styles.signInButton}
-            onPress={() => router.push('/(auth)/login')}
-          >
-            <Text style={styles.signInButtonText}>Sign In</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.createAccountButton}
-            onPress={() => router.push('/(auth)/register')}
-          >
-            <Text style={styles.createAccountButtonText}>Create Account</Text>
-          </TouchableOpacity>
+        <View style={styles.guestContent}>
+          <View style={styles.guestCard}>
+            <Text style={styles.guestCardTitle}>Join the Marketplace</Text>
+            <Text style={styles.guestCardSub}>
+              Sign in to access your orders, wishlist, and personalized experience
+            </Text>
+            <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/(auth)/login')}>
+              <Text style={styles.signInBtnText}>Sign In</Text>
+              <ArrowRight size={18} color="#FFF" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/(auth)/register')}>
+              <Text style={styles.createBtnText}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   }
 
+  const roleConfig = getRoleConfig(profile?.role || 'customer');
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <User size={32} color="#ffffff" />
+        <View style={styles.headerGradient}>
+          <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
+            <Text style={styles.avatarInitials}>{getInitials()}</Text>
+          </View>
+          <Text style={styles.headerName}>{profile?.full_name || 'User'}</Text>
+          <Text style={styles.headerEmail}>{profile?.email}</Text>
+          <View style={[styles.roleBadge, { backgroundColor: roleConfig.bg }]}>
+            <Text style={[styles.roleBadgeText, { color: roleConfig.color }]}>{roleConfig.label}</Text>
           </View>
         </View>
-        <Text style={styles.name}>{profile?.full_name || 'Guest User'}</Text>
-        <Text style={styles.email}>{profile?.email}</Text>
-        {profile?.role && (
-          <View style={[styles.roleBadge, { backgroundColor: getRoleBadgeColor(profile.role) }]}>
-            <Text style={styles.roleBadgeText}>{getRoleLabel(profile.role)}</Text>
-          </View>
-        )}
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/edit')}>
-            <View style={styles.menuItemLeft}>
-              <User size={20} color="#333" />
-              <Text style={styles.menuItemText}>Edit Profile</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/settings')}>
-            <View style={styles.menuItemLeft}>
-              <Settings size={20} color="#333" />
-              <Text style={styles.menuItemText}>Settings</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.menuGroup}>
+            <MenuItem icon={<User size={20} color="#1D4ED8" />} iconBg="#EFF6FF" label="Edit Profile" onPress={() => router.push('/profile/edit')} />
+            <MenuItem icon={<Settings size={20} color="#059669" />} iconBg="#ECFDF5" label="Settings" onPress={() => router.push('/profile/settings')} border />
+          </View>
         </View>
 
         {(profile?.role === 'supplier' || profile?.role === 'admin') && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Supplier</Text>
+            <Text style={styles.sectionTitle}>Supplier Tools</Text>
+            <View style={styles.menuGroup}>
+              <MenuItem icon={<LayoutDashboard size={20} color="#D97706" />} iconBg="#FFFBEB" label="Supplier Dashboard" onPress={() => router.push('/supplier/dashboard')} />
+              <MenuItem icon={<Package size={20} color="#7C3AED" />} iconBg="#F5F3FF" label="Manage Products" onPress={() => router.push('/supplier/products')} border />
+              <MenuItem icon={<Truck size={20} color="#059669" />} iconBg="#ECFDF5" label="Manage Orders" onPress={() => router.push('/supplier/orders')} border />
+              <MenuItem icon={<ShieldCheck size={20} color="#DC2626" />} iconBg="#FEF2F2" label="KYC Verification" onPress={() => router.push('/supplier/kyc')} border />
+            </View>
+          </View>
+        )}
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => router.push('/supplier/dashboard')}
-            >
-              <View style={styles.menuItemLeft}>
-                <FileText size={20} color="#333" />
-                <Text style={styles.menuItemText}>Supplier Dashboard</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => router.push('/supplier/products')}
-            >
-              <View style={styles.menuItemLeft}>
-                <Store size={20} color="#333" />
-                <Text style={styles.menuItemText}>Manage Products</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => router.push('/supplier/orders')}
-            >
-              <View style={styles.menuItemLeft}>
-                <Truck size={20} color="#333" />
-                <Text style={styles.menuItemText}>Manage Orders</Text>
-              </View>
-            </TouchableOpacity>
+        {profile?.role === 'admin' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin</Text>
+            <View style={styles.menuGroup}>
+              <MenuItem icon={<LayoutDashboard size={20} color="#DC2626" />} iconBg="#FEF2F2" label="Admin Dashboard" onPress={() => router.push('/admin')} />
+            </View>
           </View>
         )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <HelpCircle size={20} color="#333" />
-              <Text style={styles.menuItemText}>Help Center</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <FileText size={20} color="#333" />
-              <Text style={styles.menuItemText}>Terms & Conditions</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <FileText size={20} color="#333" />
-              <Text style={styles.menuItemText}>Privacy Policy</Text>
-            </View>
-          </TouchableOpacity>
+          <View style={styles.menuGroup}>
+            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label="Help Center" onPress={() => {}} />
+            <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label="Terms & Conditions" onPress={() => {}} border />
+            <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label="Privacy Policy" onPress={() => {}} border />
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <LogOut size={20} color="#FF5722" />
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+          <LogOut size={18} color="#EF4444" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Version 1.0.0</Text>
-        </View>
+        <Text style={styles.versionText}>Version 1.0.0</Text>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
+function MenuItem({
+  icon, iconBg, label, onPress, border
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  onPress: () => void;
+  border?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.menuItem, border && styles.menuItemBorder]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.menuIconWrap, { backgroundColor: iconBg }]}>
+        {icon}
+      </View>
+      <Text style={styles.menuLabel}>{label}</Text>
+      <ChevronRight size={18} color="#CBD5E1" />
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f8f8',
-  },
-  header: {
-    backgroundColor: '#ffffff',
-    paddingTop: 60,
-    paddingBottom: 30,
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  header: { backgroundColor: '#1E293B' },
+  headerGradient: {
+    paddingTop: 64,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    gap: 6,
   },
-  avatarContainer: {
-    marginBottom: 16,
+  avatarCircle: {
+    width: 80, height: 80, borderRadius: 40,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.2)',
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
+  avatarInitials: { fontSize: 28, fontWeight: '800', color: '#FFF' },
+  headerName: { fontSize: 22, fontWeight: '800', color: '#F8FAFC', letterSpacing: -0.3 },
+  headerEmail: { fontSize: 14, color: '#94A3B8' },
   roleBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
+    marginTop: 6, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
   },
-  roleBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#ffffff',
+  roleBadgeText: { fontSize: 12, fontWeight: '700' },
+  guestName: { fontSize: 22, fontWeight: '700', color: '#F8FAFC' },
+  guestSub: { fontSize: 14, color: '#94A3B8' },
+  guestContent: { flex: 1, padding: 20 },
+  guestCard: {
+    backgroundColor: '#FFF', borderRadius: 20, padding: 24,
+    alignItems: 'center', gap: 8,
+    borderWidth: 1, borderColor: '#F1F5F9', marginTop: 8,
   },
-  content: {
-    flex: 1,
+  guestCardTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  guestCardSub: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 20, marginBottom: 8 },
+  signInBtn: {
+    backgroundColor: '#1D4ED8', paddingVertical: 14,
+    paddingHorizontal: 32, borderRadius: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    width: '100%', justifyContent: 'center', marginTop: 8,
   },
-  section: {
-    marginTop: 24,
-    paddingHorizontal: 20,
+  signInBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  createBtn: {
+    paddingVertical: 14, paddingHorizontal: 32, borderRadius: 14,
+    borderWidth: 1.5, borderColor: '#E2E8F0', width: '100%',
+    alignItems: 'center',
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
+  createBtnText: { color: '#374151', fontSize: 16, fontWeight: '600' },
+  content: { flex: 1 },
+  section: { paddingHorizontal: 20, marginTop: 24 },
+  sectionTitle: { fontSize: 12, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 },
+  menuGroup: {
+    backgroundColor: '#FFF', borderRadius: 16,
+    borderWidth: 1, borderColor: '#F1F5F9', overflow: 'hidden',
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  menuItemBorder: {
+    borderTopWidth: 1, borderTopColor: '#F8FAFC',
   },
-  menuItemText: {
-    fontSize: 15,
-    color: '#333',
-    fontWeight: '500',
+  menuIconWrap: {
+    width: 38, height: 38, borderRadius: 11,
+    justifyContent: 'center', alignItems: 'center',
   },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginTop: 24,
-    borderWidth: 1,
-    borderColor: '#FF5722',
+  menuLabel: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
+  signOutBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#FFF', marginHorizontal: 20, marginTop: 24,
+    padding: 14, borderRadius: 14, borderWidth: 1.5, borderColor: '#FEE2E2',
   },
-  signOutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF5722',
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 30,
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#999',
-  },
-  guestContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  guestTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  guestSubtext: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 20,
-  },
-  signInButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  signInButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  createAccountButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-  createAccountButtonText: {
-    color: '#4CAF50',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  signOutText: { fontSize: 15, fontWeight: '700', color: '#EF4444' },
+  versionText: { textAlign: 'center', marginTop: 20, fontSize: 12, color: '#CBD5E1' },
 });

@@ -1,9 +1,12 @@
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View, Text, StyleSheet, ScrollView, Image,
+  TouchableOpacity, ActivityIndicator
+} from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, ShoppingCart, Store, MapPin, Star } from 'lucide-react-native';
+import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag } from 'lucide-react-native';
 
 interface Product {
   id: string;
@@ -15,20 +18,13 @@ interface Product {
   stock_quantity: number;
   category_id: string;
   supplier_id: string;
-  categories: {
-    name: string;
-  };
+  categories: { name: string };
   suppliers: {
     business_name: string;
     user_id: string;
-    profiles: {
-      address: any;
-    };
+    profiles: { address: any };
   };
-  product_images: Array<{
-    image_url: string;
-    is_primary: boolean;
-  }>;
+  product_images: Array<{ image_url: string; is_primary: boolean }>;
 }
 
 export default function ProductDetail() {
@@ -38,6 +34,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
 
   useEffect(() => {
     loadProduct();
@@ -50,26 +47,14 @@ export default function ProductDetail() {
         .select(`
           *,
           categories(name),
-          suppliers(
-            business_name,
-            user_id,
-            profiles(address)
-          ),
-          product_images(
-            image_url,
-            is_primary,
-            display_order
-          )
+          suppliers(business_name, user_id, profiles(address)),
+          product_images(image_url, is_primary, display_order)
         `)
         .eq('id', id)
         .maybeSingle();
-
       if (error) throw error;
       setProduct(data);
-
-      if (data) {
-        setQuantity(1);
-      }
+      if (data) setQuantity(1);
     } catch (error) {
       console.error('Error loading product:', error);
     } finally {
@@ -79,16 +64,16 @@ export default function ProductDetail() {
 
   const getPrice = () => {
     if (!product) return 0;
-    if (profile?.role === 'b2b' && product.b2b_price) {
-      return product.b2b_price;
-    }
+    if (profile?.role === 'b2b' && product.b2b_price) return product.b2b_price;
     return product.b2c_price;
   };
 
-  const getProductImage = () => {
-    if (!product) return null;
-    const primaryImage = product.product_images?.find(img => img.is_primary);
-    return primaryImage?.image_url || product.product_images?.[0]?.image_url;
+  const getImages = () => {
+    if (!product?.product_images?.length) return [];
+    const sorted = [...product.product_images].sort((a, b) =>
+      a.is_primary ? -1 : b.is_primary ? 1 : 0
+    );
+    return sorted;
   };
 
   const handleAddToCart = async () => {
@@ -96,36 +81,21 @@ export default function ProductDetail() {
       router.push('/(auth)/login');
       return;
     }
-
     setAddingToCart(true);
     try {
       const { data: existingItem } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('product_id', id)
-        .maybeSingle();
+        .from('cart_items').select('*')
+        .eq('user_id', user.id).eq('product_id', id).maybeSingle();
 
       if (existingItem) {
-        const { error } = await supabase
-          .from('cart_items')
+        await supabase.from('cart_items')
           .update({ quantity: existingItem.quantity + quantity })
           .eq('id', existingItem.id);
-
-        if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('cart_items')
-          .insert({
-            user_id: user.id,
-            product_id: id,
-            quantity: quantity,
-            price : getPrice(),
-          });
-
-        if (error) throw error;
+        await supabase.from('cart_items').insert({
+          user_id: user.id, product_id: id, quantity, price: getPrice(),
+        });
       }
-
       router.push('/(tabs)/cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -137,113 +107,190 @@ export default function ProductDetail() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#1D4ED8" />
       </View>
     );
   }
 
   if (!product) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Product not found</Text>
+      <View style={styles.loadingContainer}>
+        <Package size={48} color="#CBD5E1" />
+        <Text style={styles.notFoundText}>Product not found</Text>
       </View>
     );
   }
 
+  const images = getImages();
+  const price = getPrice();
+  const isB2B = profile?.role === 'b2b' && product.b2b_price;
+  const isLowStock = product.stock_quantity > 0 && product.stock_quantity < 10;
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#000" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/(tabs)/cart')} style={styles.cartButton}>
-          <ShoppingCart size={24} color="#000" />
+        <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/cart')} style={styles.headerBtn}>
+          <ShoppingCart size={22} color="#111827" />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {getProductImage() && (
-          <Image
-            source={{ uri: getProductImage()! }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        )}
-
-        <View style={styles.details}>
-          <Text style={styles.category}>{product.categories?.name}</Text>
-          <Text style={styles.name}>{product.name}</Text>
-          <Text style={styles.price}>
-            {product.currency} {getPrice().toFixed(2)}
-            {profile?.role === 'b2b' && product.b2b_price && (
-              <Text style={styles.priceBadge}> Wholesale Price</Text>
-            )}
-          </Text>
-
-          <View style={styles.supplierCard}>
-            <View style={styles.supplierHeader}>
-              <Store size={20} color="#666" />
-              <Text style={styles.supplierName}>{product.suppliers?.business_name}</Text>
+        <View style={styles.imageSection}>
+          {images.length > 0 ? (
+            <Image
+              source={{ uri: images[selectedImageIdx]?.image_url }}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              <Package size={64} color="#CBD5E1" />
             </View>
-            {product.suppliers?.profiles?.address?.street && (
-              <View style={styles.supplierLocation}>
-                <MapPin size={16} color="#999" />
-                <Text style={styles.supplierAddress}>
-                  {product.suppliers.profiles.address.street}, {product.suppliers.profiles.address.city}
-                </Text>
+          )}
+          {images.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbScroll} contentContainerStyle={styles.thumbContent}>
+              {images.map((img, idx) => (
+                <TouchableOpacity key={idx} onPress={() => setSelectedImageIdx(idx)} style={[styles.thumb, idx === selectedImageIdx && styles.thumbActive]}>
+                  <Image source={{ uri: img.image_url }} style={styles.thumbImage} resizeMode="cover" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+
+        <View style={styles.detailsContainer}>
+          <View style={styles.categoryRow}>
+            <View style={styles.categoryPill}>
+              <Text style={styles.categoryPillText}>{product.categories?.name}</Text>
+            </View>
+            {isLowStock && (
+              <View style={styles.lowStockPill}>
+                <Text style={styles.lowStockPillText}>Only {product.stock_quantity} left</Text>
+              </View>
+            )}
+            {product.stock_quantity === 0 && (
+              <View style={styles.outOfStockPill}>
+                <Text style={styles.outOfStockPillText}>Out of Stock</Text>
               </View>
             )}
           </View>
 
-          <View style={styles.infoRow}>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>In Stock</Text>
-              <Text style={styles.infoValue}>{product.stock_quantity} units</Text>
+          <Text style={styles.productName}>{product.name}</Text>
+
+          <View style={styles.priceRow}>
+            <Text style={[styles.mainPrice, isB2B && styles.mainPriceB2B]}>
+              ${price.toFixed(2)}
+            </Text>
+            {isB2B && (
+              <View style={styles.wholesaleTag}>
+                <Tag size={12} color="#059669" />
+                <Text style={styles.wholesaleTagText}>Wholesale Price</Text>
+              </View>
+            )}
+            {isB2B && product.b2b_price && (
+              <Text style={styles.originalPrice}>
+                ${product.b2c_price.toFixed(2)}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.supplierCard}>
+            <View style={styles.supplierHeader}>
+              <View style={styles.supplierIconWrap}>
+                <Store size={18} color="#1D4ED8" />
+              </View>
+              <View style={styles.supplierInfo}>
+                <Text style={styles.supplierName}>{product.suppliers?.business_name}</Text>
+                {product.suppliers?.profiles?.address?.city && (
+                  <View style={styles.locationRow}>
+                    <MapPin size={12} color="#94A3B8" />
+                    <Text style={styles.locationText}>
+                      {product.suppliers.profiles.address.city}
+                      {product.suppliers.profiles.address.country ? `, ${product.suppliers.profiles.address.country}` : ''}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{product.description || 'No description available'}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Package size={16} color="#1D4ED8" />
+              <Text style={styles.statValue}>{product.stock_quantity}</Text>
+              <Text style={styles.statLabel}>In Stock</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Star size={16} color="#F59E0B" fill="#F59E0B" />
+              <Text style={styles.statValue}>4.8</Text>
+              <Text style={styles.statLabel}>Rating</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <ShoppingCart size={16} color="#059669" />
+              <Text style={styles.statValue}>120+</Text>
+              <Text style={styles.statLabel}>Sold</Text>
+            </View>
+          </View>
 
-          <View style={styles.quantityContainer}>
-            <Text style={styles.quantityLabel}>Quantity</Text>
-            <View style={styles.quantityControls}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Description</Text>
+            <Text style={styles.description}>
+              {product.description || 'No description available for this product.'}
+            </Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Quantity</Text>
+            <View style={styles.qtyRow}>
               <TouchableOpacity
+                style={[styles.qtyBtn, quantity <= 1 && styles.qtyBtnDisabled]}
                 onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                style={styles.quantityButton}
+                disabled={quantity <= 1}
               >
-                <Text style={styles.quantityButtonText}>-</Text>
+                <Minus size={18} color={quantity <= 1 ? '#CBD5E1' : '#111827'} />
               </TouchableOpacity>
-              <Text style={styles.quantityValue}>{quantity}</Text>
+              <View style={styles.qtyDisplay}>
+                <Text style={styles.qtyValue}>{quantity}</Text>
+              </View>
               <TouchableOpacity
+                style={[styles.qtyBtn, quantity >= product.stock_quantity && styles.qtyBtnDisabled]}
                 onPress={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
-                style={styles.quantityButton}
+                disabled={quantity >= product.stock_quantity}
               >
-                <Text style={styles.quantityButtonText}>+</Text>
+                <Plus size={18} color={quantity >= product.stock_quantity ? '#CBD5E1' : '#111827'} />
               </TouchableOpacity>
+              <Text style={styles.qtyMax}>of {product.stock_quantity} available</Text>
             </View>
           </View>
         </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalPrice}>
-            {product.currency} {(getPrice() * quantity).toFixed(2)}
-          </Text>
+        <View style={styles.footerTotal}>
+          <Text style={styles.footerTotalLabel}>Total</Text>
+          <Text style={styles.footerTotalAmount}>${(price * quantity).toFixed(2)}</Text>
         </View>
         <TouchableOpacity
+          style={[styles.addToCartBtn, (addingToCart || product.stock_quantity === 0) && styles.addToCartBtnDisabled]}
           onPress={handleAddToCart}
-          style={[styles.addButton, addingToCart && styles.addButtonDisabled]}
-          disabled={addingToCart}
+          disabled={addingToCart || product.stock_quantity === 0}
         >
           {addingToCart ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color="#FFF" size="small" />
           ) : (
             <>
               <ShoppingCart size={20} color="#FFF" />
-              <Text style={styles.addButtonText}>Add to Cart</Text>
+              <Text style={styles.addToCartBtnText}>
+                {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -253,211 +300,116 @@ export default function ProductDetail() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  notFoundText: { fontSize: 16, color: '#94A3B8', fontWeight: '500' },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFF',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingTop: 58, paddingBottom: 14,
+    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    gap: 10,
   },
-  backButton: {
-    padding: 8,
+  headerBtn: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8FAFC',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#E2E8F0',
   },
-  cartButton: {
-    padding: 8,
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827', textAlign: 'center' },
+  content: { flex: 1 },
+  imageSection: { backgroundColor: '#FFF' },
+  mainImage: { width: '100%', height: 320, backgroundColor: '#F1F5F9' },
+  imagePlaceholder: {
+    width: '100%', height: 320, backgroundColor: '#F1F5F9',
+    justifyContent: 'center', alignItems: 'center',
   },
-  content: {
-    flex: 1,
+  thumbScroll: { backgroundColor: '#FFF', maxHeight: 70 },
+  thumbContent: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
+  thumb: {
+    width: 56, height: 56, borderRadius: 10, overflow: 'hidden',
+    borderWidth: 2, borderColor: 'transparent',
   },
-  image: {
-    width: '100%',
-    height: 300,
-    backgroundColor: '#E5E7EB',
+  thumbActive: { borderColor: '#1D4ED8' },
+  thumbImage: { width: '100%', height: '100%' },
+  detailsContainer: { padding: 20 },
+  categoryRow: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  categoryPill: {
+    backgroundColor: '#EFF6FF', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#DBEAFE',
   },
-  details: {
-    padding: 20,
+  categoryPillText: { fontSize: 12, fontWeight: '600', color: '#1D4ED8' },
+  lowStockPill: {
+    backgroundColor: '#FFFBEB', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#FDE68A',
   },
-  category: {
-    fontSize: 14,
-    color: '#007AFF',
-    fontWeight: '600',
-    marginBottom: 8,
+  lowStockPillText: { fontSize: 12, fontWeight: '600', color: '#D97706' },
+  outOfStockPill: {
+    backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#FECACA',
   },
-  name: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
+  outOfStockPillText: { fontSize: 12, fontWeight: '600', color: '#DC2626' },
+  productName: { fontSize: 22, fontWeight: '800', color: '#111827', letterSpacing: -0.3, marginBottom: 12, lineHeight: 28 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16 },
+  mainPrice: { fontSize: 30, fontWeight: '800', color: '#1D4ED8' },
+  mainPriceB2B: { color: '#059669' },
+  wholesaleTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#ECFDF5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
   },
-  price: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#10B981',
-    marginBottom: 20,
-  },
-  priceBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#007AFF',
-  },
+  wholesaleTagText: { fontSize: 11, fontWeight: '700', color: '#059669' },
+  originalPrice: { fontSize: 16, color: '#94A3B8', textDecorationLine: 'line-through' },
   supplierCard: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: '#FFF', borderRadius: 14, padding: 14, marginBottom: 16,
+    borderWidth: 1, borderColor: '#F1F5F9',
   },
-  supplierHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  supplierHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  supplierIconWrap: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center',
   },
-  supplierName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginLeft: 8,
+  supplierInfo: { flex: 1 },
+  supplierName: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  locationText: { fontSize: 12, color: '#94A3B8' },
+  statsRow: {
+    flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 14,
+    padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#F1F5F9',
+    justifyContent: 'space-around',
   },
-  supplierLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  statItem: { alignItems: 'center', gap: 4 },
+  statValue: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  statLabel: { fontSize: 11, color: '#94A3B8' },
+  statDivider: { width: 1, backgroundColor: '#F1F5F9' },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 10 },
+  description: { fontSize: 15, lineHeight: 24, color: '#4B5563' },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  qtyBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#E2E8F0',
   },
-  supplierAddress: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginLeft: 6,
+  qtyBtnDisabled: { borderColor: '#F1F5F9', backgroundColor: '#F8FAFC' },
+  qtyDisplay: {
+    width: 56, height: 44, borderRadius: 12,
+    backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#DBEAFE',
   },
-  infoRow: {
-    flexDirection: 'row',
-    marginBottom: 24,
-  },
-  infoItem: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#4B5563',
-    marginBottom: 24,
-  },
-  quantityContainer: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  quantityLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quantityButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityButtonText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  quantityValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    marginHorizontal: 32,
-  },
+  qtyValue: { fontSize: 18, fontWeight: '800', color: '#1D4ED8' },
+  qtyMax: { fontSize: 12, color: '#94A3B8', flex: 1 },
   footer: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    paddingBottom: 34,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#FFF', paddingHorizontal: 20, paddingVertical: 16,
+    paddingBottom: 30, borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    flexDirection: 'row', alignItems: 'center', gap: 16,
   },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+  footerTotal: { gap: 2 },
+  footerTotalLabel: { fontSize: 12, color: '#94A3B8' },
+  footerTotalAmount: { fontSize: 22, fontWeight: '800', color: '#111827' },
+  addToCartBtn: {
+    flex: 1, backgroundColor: '#1D4ED8',
+    paddingVertical: 16, borderRadius: 14,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
   },
-  totalLabel: {
-    fontSize: 16,
-    color: '#6B7280',
-  },
-  totalPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  addButtonDisabled: {
-    opacity: 0.6,
-  },
-  addButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  addToCartBtnDisabled: { backgroundColor: '#94A3B8' },
+  addToCartBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

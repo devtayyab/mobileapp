@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, ScrollView } from 'react-native';
+import {
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  ActivityIndicator, Image, ScrollView, TextInput
+} from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Star, ShoppingCart } from 'lucide-react-native';
+import { Star, ShoppingCart, Search, SlidersHorizontal, Zap } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '@/constants/Colors';
 
 type Product = {
   id: string;
@@ -16,10 +18,7 @@ type Product = {
   stock_quantity: number;
   is_featured: boolean;
   category_id: string;
-  product_images: Array<{
-    image_url: string;
-    is_primary: boolean;
-  }>;
+  product_images: Array<{ image_url: string; is_primary: boolean }>;
 };
 
 type Category = {
@@ -34,6 +33,7 @@ export default function ShopScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -52,125 +52,120 @@ export default function ShopScreen() {
       .eq('is_active', true)
       .is('parent_id', null)
       .order('display_order');
-
-    if (data) {
-      setCategories(data);
-    }
+    if (data) setCategories(data);
   };
 
   const fetchProducts = async () => {
     setLoading(true);
     let query = supabase
       .from('products')
-      .select(`
-        *,
-        product_images (
-          image_url,
-          is_primary,
-          display_order
-        )
-      `)
+      .select('*, product_images(image_url, is_primary, display_order)')
       .eq('is_active', true);
-
-    if (selectedCategory !== 'all') {
-      query = query.eq('category_id', selectedCategory);
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (data) {
-      setProducts(data as any);
-    }
+    if (selectedCategory !== 'all') query = query.eq('category_id', selectedCategory);
+    const { data } = await query.order('created_at', { ascending: false });
+    if (data) setProducts(data as any);
     setLoading(false);
   };
 
   const getPrice = (product: Product) => {
-    if (profile?.role === 'b2b' && product.b2b_price) {
-      return product.b2b_price;
-    }
+    if (profile?.role === 'b2b' && product.b2b_price) return product.b2b_price;
     return product.b2c_price;
   };
 
   const getProductImage = (product: Product) => {
-    const primaryImage = product.product_images?.find(img => img.is_primary);
-    return primaryImage?.image_url || product.product_images?.[0]?.image_url;
+    const primary = product.product_images?.find(img => img.is_primary);
+    return primary?.image_url || product.product_images?.[0]?.image_url;
   };
+
+  const filtered = products.filter(p =>
+    p.name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   const renderProduct = ({ item }: { item: Product }) => {
     const imageUrl = getProductImage(item);
+    const price = getPrice(item);
+    const isB2B = profile?.role === 'b2b' && item.b2b_price;
 
     return (
-      <TouchableOpacity style={styles.productCard} onPress={() => router.push(`/product/${item.id}`)}>
-        <View style={styles.productImageContainer}>
+      <TouchableOpacity
+        style={styles.productCard}
+        onPress={() => router.push(`/product/${item.id}`)}
+        activeOpacity={0.92}
+      >
+        <View style={styles.productImageWrap}>
           {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="cover" />
           ) : (
             <View style={styles.productImagePlaceholder}>
-              <Text style={styles.placeholderText}>No Image</Text>
+              <ShoppingCart size={28} color="#CBD5E1" />
             </View>
           )}
           {item.is_featured && (
             <View style={styles.featuredBadge}>
-              <Star size={12} color="#FFD700" fill="#FFD700" />
+              <Star size={10} color="#F59E0B" fill="#F59E0B" />
+              <Text style={styles.featuredText}>Top Pick</Text>
             </View>
           )}
           {item.stock_quantity === 0 && (
             <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>Out of Stock</Text>
+              <Text style={styles.outOfStockText}>Sold Out</Text>
+            </View>
+          )}
+          {item.stock_quantity > 0 && item.stock_quantity < 10 && (
+            <View style={styles.lowStockBadge}>
+              <Zap size={9} color="#EF4444" />
+              <Text style={styles.lowStockBadgeText}>Only {item.stock_quantity}</Text>
             </View>
           )}
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>
-            {item.name}
-          </Text>
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
           <View style={styles.priceRow}>
-            <View style={styles.priceContainer}>
-              <Text style={styles.productPrice}>
-                {item.currency} {getPrice(item).toFixed(2)}
-              </Text>
-              {profile?.role === 'b2b' && item.b2b_price && (
-                <View style={styles.b2bBadge}>
-                  <Text style={styles.b2bBadgeText}>Wholesale</Text>
-                </View>
-              )}
-            </View>
-            <TouchableOpacity style={styles.addToCartButton}>
-              <ShoppingCart size={16} color={Colors.primary} />
-            </TouchableOpacity>
+            <Text style={[styles.productPrice, isB2B && styles.b2bPrice]}>
+              ${price.toFixed(2)}
+            </Text>
+            {isB2B && (
+              <View style={styles.wholesaleBadge}>
+                <Text style={styles.wholesaleBadgeText}>Wholesale</Text>
+              </View>
+            )}
           </View>
-          {item.stock_quantity < 10 && item.stock_quantity > 0 && (
-            <Text style={styles.lowStockText}>Only {item.stock_quantity} left</Text>
-          )}
         </View>
       </TouchableOpacity>
     );
   };
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Shop</Text>
-        <Text style={styles.subtitle}>{products.length} products</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>Shop</Text>
+            <Text style={styles.headerSub}>{filtered.length} products</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.filterBtn}>
+              <SlidersHorizontal size={18} color="#1D4ED8" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={styles.searchBar}>
+          <Search size={16} color="#94A3B8" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products..."
+            placeholderTextColor="#94A3B8"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
       </View>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={styles.filterScrollView}
-        contentContainerStyle={styles.filterContainer}
+        style={styles.filterScroll}
+        contentContainerStyle={styles.filterContent}
       >
         <TouchableOpacity
           style={[styles.filterChip, selectedCategory === 'all' && styles.filterChipActive]}
@@ -180,31 +175,39 @@ export default function ShopScreen() {
             All
           </Text>
         </TouchableOpacity>
-        {categories.map((category) => (
+        {categories.map((cat) => (
           <TouchableOpacity
-            key={category.id}
-            style={[styles.filterChip, selectedCategory === category.id && styles.filterChipActive]}
-            onPress={() => setSelectedCategory(category.id)}
+            key={cat.id}
+            style={[styles.filterChip, selectedCategory === cat.id && styles.filterChipActive]}
+            onPress={() => setSelectedCategory(cat.id)}
           >
-            <Text style={[styles.filterChipText, selectedCategory === category.id && styles.filterChipTextActive]}>
-              {category.name}
+            <Text style={[styles.filterChipText, selectedCategory === cat.id && styles.filterChipTextActive]}>
+              {cat.name}
             </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {products.length > 0 ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1D4ED8" />
+          <Text style={styles.loadingText}>Loading products...</Text>
+        </View>
+      ) : filtered.length > 0 ? (
         <FlatList
-          data={products}
+          data={filtered}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.listContainer}
           columnWrapperStyle={styles.columnWrapper}
+          showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No products available</Text>
+          <ShoppingCart size={56} color="#CBD5E1" />
+          <Text style={styles.emptyTitle}>No products found</Text>
+          <Text style={styles.emptySub}>Try a different category or search</Text>
         </View>
       )}
     </View>
@@ -212,184 +215,91 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.secondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background.secondary,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   header: {
-    backgroundColor: Colors.background.primary,
+    backgroundColor: '#FFF',
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
-    boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
+    borderBottomColor: '#F1F5F9',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: Colors.text.primary,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  filterScrollView: {
-    backgroundColor: Colors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
-  },
-  filterContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: Colors.background.tertiary,
-    borderWidth: 1,
-    borderColor: Colors.border.medium,
-  },
-  filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-  },
-  filterChipTextActive: {
-    color: Colors.text.inverse,
-  },
-  listContainer: {
-    padding: 16,
-  },
-  columnWrapper: {
-    gap: 12,
-    marginBottom: 12,
-  },
-  productCard: {
-    flex: 1,
-    backgroundColor: Colors.background.primary,
-    borderRadius: 12,
-    overflow: 'hidden',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.1)',
-    elevation: 3,
-  },
-  productImageContainer: {
-    position: 'relative',
-  },
-  productImage: {
-    width: '100%',
-    height: 160,
-  },
-  productImagePlaceholder: {
-    width: '100%',
-    height: 160,
-    backgroundColor: Colors.border.light,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    fontSize: 12,
-    color: Colors.text.tertiary,
-  },
-  featuredBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: Colors.background.primary,
-    borderRadius: 12,
-    padding: 6,
-    boxShadow: '0px 0px 4px rgba(0, 0, 0, 0.2)',
-    elevation: 2,
-  },
-  outOfStockOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  outOfStockText: {
-    color: Colors.text.inverse,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  productInfo: {
-    padding: 12,
-  },
-  productName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 8,
-    height: 36,
-  },
-  priceRow: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 14,
   },
-  priceContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
+  headerTitle: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 },
+  headerSub: { fontSize: 13, color: '#94A3B8', marginTop: 2, fontWeight: '500' },
+  headerRight: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  filterBtn: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#DBEAFE',
   },
-  productPrice: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.primary,
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#F8FAFC', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#E2E8F0',
   },
-  b2bBadge: {
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
+  searchInput: { flex: 1, fontSize: 14, color: '#0F172A' },
+  filterScroll: { backgroundColor: '#FFF', maxHeight: 52 },
+  filterContent: { paddingHorizontal: 20, paddingVertical: 10, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
+    backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0',
   },
-  b2bBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: Colors.text.inverse,
+  filterChipActive: { backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  filterChipTextActive: { color: '#FFF' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: '#94A3B8' },
+  listContainer: { padding: 16, paddingBottom: 32 },
+  columnWrapper: { gap: 12, marginBottom: 12 },
+  productCard: {
+    flex: 1, backgroundColor: '#FFF', borderRadius: 16,
+    overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9',
   },
-  addToCartButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primaryLight + '40',
-    justifyContent: 'center',
-    alignItems: 'center',
+  productImageWrap: { position: 'relative' },
+  productImage: { width: '100%', height: 170 },
+  productImagePlaceholder: {
+    width: '100%', height: 170, backgroundColor: '#F8FAFC',
+    justifyContent: 'center', alignItems: 'center',
   },
-  lowStockText: {
-    fontSize: 11,
-    color: Colors.error,
-    marginTop: 4,
+  featuredBadge: {
+    position: 'absolute', top: 10, left: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#FFFBEB', paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#FDE68A',
   },
+  featuredText: { fontSize: 10, fontWeight: '700', color: '#92400E' },
+  outOfStockOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center',
+  },
+  outOfStockText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
+  lowStockBadge: {
+    position: 'absolute', bottom: 8, right: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#FEF2F2', paddingHorizontal: 7, paddingVertical: 3,
+    borderRadius: 10, borderWidth: 1, borderColor: '#FECACA',
+  },
+  lowStockBadgeText: { fontSize: 9, fontWeight: '700', color: '#EF4444' },
+  productInfo: { padding: 12, gap: 6 },
+  productName: { fontSize: 13, fontWeight: '600', color: '#111827', lineHeight: 18 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  productPrice: { fontSize: 16, fontWeight: '800', color: '#1D4ED8' },
+  b2bPrice: { color: '#059669' },
+  wholesaleBadge: {
+    backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+  },
+  wholesaleBadgeText: { fontSize: 9, fontWeight: '700', color: '#059669' },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 40, gap: 10,
   },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.text.tertiary,
-  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151' },
+  emptySub: { fontSize: 14, color: '#94A3B8', textAlign: 'center' },
 });
