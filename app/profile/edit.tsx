@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Save } from 'lucide-react-native';
 
 export default function EditProfileScreen() {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -59,6 +59,8 @@ export default function EditProfileScreen() {
         .eq('id', user?.id);
 
       if (error) throw error;
+
+      await refreshProfile();
 
       Alert.alert('Success', 'Profile updated successfully!', [
         {

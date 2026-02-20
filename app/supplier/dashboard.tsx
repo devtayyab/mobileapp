@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Dimensions, Image, Modal, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
@@ -37,9 +38,11 @@ export default function SupplierDashboard() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuAnim = useRef(new Animated.Value(-width * 0.8)).current;
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboardData();
+    }, [user?.id])
+  );
 
   const toggleMenu = () => {
     if (isMenuOpen) {
@@ -295,7 +298,7 @@ export default function SupplierDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => { /* Navigate to settings */ }}
+            onPress={() => router.push('/supplier/business-settings')}
           >
             <View style={[styles.actionIcon, { backgroundColor: '#F3F4F6' }]}>
               <Settings size={24} color="#4B5563" />
@@ -403,18 +406,20 @@ export default function SupplierDashboard() {
           <View style={styles.menuDivider} />
 
           <Text style={styles.menuSectionTitle}>Settings</Text>
-          <TouchableOpacity style={styles.menuRow}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/profile/edit'); }}>
             <View style={styles.menuRowLeft}>
               <User size={20} color="#4B5563" />
               <Text style={styles.menuRowText}>Profile</Text>
             </View>
+            <ChevronRight size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuRow}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/supplier/business-settings'); }}>
             <View style={styles.menuRowLeft}>
               <Settings size={20} color="#4B5563" />
               <Text style={styles.menuRowText}>Business Settings</Text>
             </View>
+            <ChevronRight size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />

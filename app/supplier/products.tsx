@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Switch } from 'react-native';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, Edit, Package } from 'lucide-react-native';
@@ -25,9 +26,11 @@ export default function SupplierProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [supplierId, setSupplierId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadSupplierProducts();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadSupplierProducts();
+    }, [user?.id])
+  );
 
   const loadSupplierProducts = async () => {
     try {
@@ -140,7 +143,10 @@ export default function SupplierProducts() {
               trackColor={{ false: '#D1D5DB', true: '#10B981' }}
               thumbColor="#FFF"
             />
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => router.push(`/supplier/edit-product?id=${item.id}`)}
+            >
               <Edit size={20} color="#007AFF" />
             </TouchableOpacity>
           </View>

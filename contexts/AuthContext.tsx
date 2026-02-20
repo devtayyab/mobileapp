@@ -101,6 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .update({ role })
         .eq('id', data.user.id);
+
+      await supabase.auth.signOut();
     }
 
     return { error };
