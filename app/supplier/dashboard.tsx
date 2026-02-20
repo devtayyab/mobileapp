@@ -3,7 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText } from 'lucide-react-native';
+import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
+
+type KycStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | null;
 
 const { width } = Dimensions.get('window');
 
@@ -31,6 +33,7 @@ export default function SupplierDashboard() {
     pendingOrders: 0,
     recentOrders: [],
   });
+  const [kycStatus, setKycStatus] = useState<KycStatus>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuAnim = useRef(new Animated.Value(-width * 0.8)).current;
 
@@ -61,7 +64,7 @@ export default function SupplierDashboard() {
 
       const { data: supplier } = await supabase
         .from('suppliers')
-        .select('id')
+        .select('id, kyc_status')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -69,6 +72,8 @@ export default function SupplierDashboard() {
         setLoading(false);
         return;
       }
+
+      setKycStatus(supplier.kyc_status as KycStatus);
 
       const [productsResult, orderItemsResult, recentOrdersResult] = await Promise.all([
         supabase
@@ -166,6 +171,45 @@ export default function SupplierDashboard() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* KYC Status Banner */}
+        {kycStatus !== 'approved' && (
+          <TouchableOpacity
+            style={[
+              styles.kycBanner,
+              kycStatus === 'rejected' && styles.kycBannerRejected,
+              kycStatus === 'under_review' && styles.kycBannerReview,
+            ]}
+            onPress={() => router.push('/supplier/kyc')}
+          >
+            {kycStatus === 'approved' ? (
+              <ShieldCheck size={20} color="#065F46" />
+            ) : kycStatus === 'under_review' ? (
+              <Clock size={20} color="#1E40AF" />
+            ) : kycStatus === 'rejected' ? (
+              <AlertCircle size={20} color="#991B1B" />
+            ) : (
+              <AlertCircle size={20} color="#92400E" />
+            )}
+            <View style={styles.kycBannerText}>
+              <Text style={[
+                styles.kycBannerTitle,
+                kycStatus === 'rejected' && { color: '#991B1B' },
+                kycStatus === 'under_review' && { color: '#1E40AF' },
+              ]}>
+                {kycStatus === 'under_review' ? 'KYC Under Review' : kycStatus === 'rejected' ? 'KYC Rejected — Resubmit' : 'Complete KYC Verification'}
+              </Text>
+              <Text style={[
+                styles.kycBannerSub,
+                kycStatus === 'rejected' && { color: '#991B1B' + 'AA' },
+                kycStatus === 'under_review' && { color: '#1E40AFAA' },
+              ]}>
+                {kycStatus === 'under_review' ? 'Your documents are being reviewed' : kycStatus === 'rejected' ? 'Tap to view rejection reason and resubmit' : 'Upload documents to activate your account'}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={kycStatus === 'rejected' ? '#991B1B' : kycStatus === 'under_review' ? '#1E40AF' : '#92400E'} />
+          </TouchableOpacity>
+        )}
+
         {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeInfo}>
@@ -341,6 +385,19 @@ export default function SupplierDashboard() {
               <Text style={styles.menuRowText}>Orders</Text>
             </View>
             <ChevronRight size={16} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/supplier/kyc'); }}>
+            <View style={styles.menuRowLeft}>
+              <ShieldCheck size={20} color={kycStatus === 'approved' ? '#10B981' : kycStatus === 'rejected' ? '#EF4444' : '#4B5563'} />
+              <Text style={styles.menuRowText}>KYC Verification</Text>
+            </View>
+            <View style={styles.menuRowRight}>
+              {kycStatus !== 'approved' && kycStatus !== 'under_review' && (
+                <View style={styles.kycBadge} />
+              )}
+              <ChevronRight size={16} color="#9CA3AF" />
+            </View>
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -718,5 +775,48 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#EF4444',
+  },
+  menuRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  kycBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  kycBannerRejected: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  kycBannerReview: {
+    backgroundColor: '#DBEAFE',
+    borderColor: '#93C5FD',
+  },
+  kycBannerText: {
+    flex: 1,
+  },
+  kycBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  kycBannerSub: {
+    fontSize: 12,
+    color: '#92400EAA',
+    marginTop: 2,
+  },
+  kycBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
   },
 });

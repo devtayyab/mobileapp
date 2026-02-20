@@ -35,8 +35,7 @@ export default function LoginScreen() {
       if (profile?.role === 'supplier') {
         router.replace('/supplier/dashboard');
       } else if (profile?.role === 'admin') {
-        // Assuming there is an admin dashboard, otherwise redirect to tabs
-        router.replace('/(tabs)');
+        router.replace('/admin');
       } else {
         router.replace('/(tabs)');
       }
