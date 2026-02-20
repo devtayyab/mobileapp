@@ -16,6 +16,7 @@ interface Product {
   b2b_price: number | null;
   currency: string;
   stock_quantity: number;
+  moq: number;
   category_id: string;
   supplier_id: string;
   categories: { name: string };
@@ -54,7 +55,10 @@ export default function ProductDetail() {
         .maybeSingle();
       if (error) throw error;
       setProduct(data);
-      if (data) setQuantity(1);
+      if (data) {
+        const isB2BUser = profile?.role === 'b2b' && data.b2b_price;
+        setQuantity(isB2BUser ? (data.moq || 1) : 1);
+      }
     } catch (error) {
       console.error('Error loading product:', error);
     } finally {
@@ -125,6 +129,7 @@ export default function ProductDetail() {
   const price = getPrice();
   const isB2B = profile?.role === 'b2b' && product.b2b_price;
   const isLowStock = product.stock_quantity > 0 && product.stock_quantity < 10;
+  const effectiveMOQ = isB2B ? (product.moq || 1) : 1;
 
   return (
     <View style={styles.container}>
@@ -247,13 +252,19 @@ export default function ProductDetail() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quantity</Text>
+            {isB2B && effectiveMOQ > 1 && (
+              <View style={styles.moqBanner}>
+                <Tag size={13} color="#1D4ED8" />
+                <Text style={styles.moqBannerText}>Minimum order quantity: {effectiveMOQ} units</Text>
+              </View>
+            )}
             <View style={styles.qtyRow}>
               <TouchableOpacity
-                style={[styles.qtyBtn, quantity <= 1 && styles.qtyBtnDisabled]}
-                onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                disabled={quantity <= 1}
+                style={[styles.qtyBtn, quantity <= effectiveMOQ && styles.qtyBtnDisabled]}
+                onPress={() => setQuantity(Math.max(effectiveMOQ, quantity - 1))}
+                disabled={quantity <= effectiveMOQ}
               >
-                <Minus size={18} color={quantity <= 1 ? '#CBD5E1' : '#111827'} />
+                <Minus size={18} color={quantity <= effectiveMOQ ? '#CBD5E1' : '#111827'} />
               </TouchableOpacity>
               <View style={styles.qtyDisplay}>
                 <Text style={styles.qtyValue}>{quantity}</Text>
@@ -396,6 +407,12 @@ const styles = StyleSheet.create({
   },
   qtyValue: { fontSize: 18, fontWeight: '800', color: '#1D4ED8' },
   qtyMax: { fontSize: 12, color: '#94A3B8', flex: 1 },
+  moqBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#EFF6FF', borderRadius: 8, padding: 10, marginBottom: 10,
+    borderWidth: 1, borderColor: '#DBEAFE',
+  },
+  moqBannerText: { fontSize: 12, fontWeight: '600', color: '#1D4ED8', flex: 1 },
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: '#FFF', paddingHorizontal: 20, paddingVertical: 16,

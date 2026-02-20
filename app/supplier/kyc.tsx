@@ -25,7 +25,7 @@ type SupplierInfo = {
   kyc_status: string;
   rejection_reason: string | null;
   business_name: string;
-  registration_number: string | null;
+  business_registration_number: string | null;
 };
 
 const DOC_TYPES = [
@@ -42,7 +42,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any; labe
 };
 
 export default function SupplierKycScreen() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [supplier, setSupplier] = useState<SupplierInfo | null>(null);
   const [documents, setDocuments] = useState<KycDocument[]>([]);
@@ -52,21 +52,37 @@ export default function SupplierKycScreen() {
 
   useEffect(() => {
     loadKycData();
-  }, []);
+  }, [user?.id]);
 
   const loadKycData = async () => {
     if (!user?.id) return;
     setLoading(true);
 
-    const { data: supplierData } = await supabase
+    let { data: supplierData } = await supabase
       .from('suppliers')
-      .select('id, kyc_status, rejection_reason, business_name, registration_number')
+      .select('id, kyc_status, rejection_reason, business_name, business_registration_number')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (!supplierData) {
-      setLoading(false);
-      return;
+      const businessName = profile?.company_name || profile?.full_name || profile?.email?.split('@')[0] || 'My Business';
+      const { data: newSupplier } = await supabase
+        .from('suppliers')
+        .insert({
+          user_id: user.id,
+          business_name: businessName,
+          kyc_status: 'pending',
+          is_active: true,
+          commission_rate: 10,
+        })
+        .select('id, kyc_status, rejection_reason, business_name, business_registration_number')
+        .single();
+
+      if (!newSupplier) {
+        setLoading(false);
+        return;
+      }
+      supplierData = newSupplier;
     }
 
     setSupplier(supplierData);

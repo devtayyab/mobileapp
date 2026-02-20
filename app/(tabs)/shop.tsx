@@ -18,6 +18,7 @@ type Product = {
   stock_quantity: number;
   is_featured: boolean;
   category_id: string;
+  moq: number;
   product_images: Array<{ image_url: string; is_primary: boolean }>;
 };
 
@@ -38,11 +39,10 @@ export default function ShopScreen() {
 
   useEffect(() => {
     fetchCategories();
-    fetchProducts();
   }, []);
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(selectedCategory);
   }, [selectedCategory]);
 
   const fetchCategories = async () => {
@@ -55,13 +55,13 @@ export default function ShopScreen() {
     if (data) setCategories(data);
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (categoryId: string) => {
     setLoading(true);
     let query = supabase
       .from('products')
       .select('*, product_images(image_url, is_primary, display_order)')
       .eq('is_active', true);
-    if (selectedCategory !== 'all') query = query.eq('category_id', selectedCategory);
+    if (categoryId !== 'all') query = query.eq('category_id', categoryId);
     const { data } = await query.order('created_at', { ascending: false });
     if (data) setProducts(data as any);
     setLoading(false);
@@ -130,6 +130,9 @@ export default function ShopScreen() {
               </View>
             )}
           </View>
+          {isB2B && item.moq > 1 && (
+            <Text style={styles.moqText}>Min. order: {item.moq} units</Text>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -296,6 +299,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
   },
   wholesaleBadgeText: { fontSize: 9, fontWeight: '700', color: '#059669' },
+  moqText: { fontSize: 10, color: '#94A3B8', marginTop: 2 },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
     paddingHorizontal: 40, gap: 10,
