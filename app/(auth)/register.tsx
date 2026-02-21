@@ -46,7 +46,7 @@ export default function RegisterScreen() {
     if (error) {
       Alert.alert('Registration Failed', error.message);
     } else {
-      router.push('/(auth)/register')
+      router.push('/(auth)/login')
       Alert.alert('Success', 'Account created! Please sign in.', [
         { text: 'OK', onPress: () => router.replace('/(auth)/login') },
       ]);
