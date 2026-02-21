@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, TextInput, ScrollView, Switch, Alert
+  ActivityIndicator, TextInput, ScrollView, Alert, RefreshControl
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Search, Package, Star, Eye, EyeOff } from 'lucide-react-native';
+import { ArrowLeft, Search, Package, Star, Eye, EyeOff, RefreshCw, TrendingDown } from 'lucide-react-native';
 
 type Product = {
   id: string;
@@ -21,17 +22,14 @@ type Product = {
 };
 
 export default function AdminProductsScreen() {
+  const insets = useSafeAreaInsets();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
 
-  useEffect(() => {
-    fetchProducts();
-  }, [filter]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
+  const fetchProducts = useCallback(async () => {
     let query = supabase
       .from('products')
       .select(`
@@ -50,7 +48,15 @@ export default function AdminProductsScreen() {
     const { data } = await query;
     setProducts((data as any) || []);
     setLoading(false);
-  };
+    setRefreshing(false);
+  }, [filter]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const onRefresh = () => { setRefreshing(true); fetchProducts(); };
 
   const toggleActive = async (product: Product) => {
     const { error } = await supabase
@@ -95,12 +101,14 @@ export default function AdminProductsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={24} color="#111827" />
+          <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Product Catalog</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={onRefresh} style={styles.backBtn}>
+          <RefreshCw size={18} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchBar}>
@@ -128,13 +136,21 @@ export default function AdminProductsScreen() {
       </ScrollView>
 
       {loading ? (
-        <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#1E40AF" />
+        <View style={styles.centerLoader}>
+          <ActivityIndicator size="large" color="#1E40AF" />
+        </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.emptyText}>No products found</Text>}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Package size={40} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No products found</Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
@@ -187,13 +203,15 @@ export default function AdminProductsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
+  centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 12 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
+    paddingHorizontal: 16, paddingBottom: 12,
     backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  backBtn: { width: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#FFF', marginHorizontal: 20, marginVertical: 12,

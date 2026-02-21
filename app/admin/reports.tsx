@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl
 } from 'react-native';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, DollarSign, TrendingUp, ShoppingBag, Users, Percent } from 'lucide-react-native';
+import { ArrowLeft, DollarSign, TrendingUp, ShoppingBag, Users, Percent, RefreshCw } from 'lucide-react-native';
 
 type ReportData = {
   totalRevenue: number;
@@ -18,14 +19,12 @@ type ReportData = {
 };
 
 export default function AdminReportsScreen() {
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
 
-  useEffect(() => {
-    loadReports();
-  }, []);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     try {
       const [orderItemsRes, ordersRes, suppliersRes] = await Promise.all([
         supabase.from('order_items').select('supplier_id, unit_price, quantity, commission, supplier_amount, order_id'),
@@ -91,8 +90,13 @@ export default function AdminReportsScreen() {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => { loadReports(); }, [loadReports]);
+
+  const onRefresh = () => { setRefreshing(true); loadReports(); };
 
   if (loading) {
     return (
@@ -111,15 +115,17 @@ export default function AdminReportsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={24} color="#111827" />
+          <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Revenue Reports</Text>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity onPress={onRefresh} style={styles.backBtn}>
+          <RefreshCw size={18} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />}>
         <View style={styles.statsGrid}>
           <View style={styles.bigStatCard}>
             <DollarSign size={24} color="#1E40AF" />
@@ -220,11 +226,11 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
+    paddingHorizontal: 16, paddingBottom: 12,
     backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  backBtn: { width: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
   content: { flex: 1, padding: 20 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   bigStatCard: {
