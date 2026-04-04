@@ -5,17 +5,13 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Briefcase, Store } from 'lucide-react-native';
 
 type UserRole = 'customer' | 'b2b' | 'supplier';
 
-const ROLES: Array<{ key: UserRole; label: string; sub: string; icon: any; color: string; bg: string }> = [
-  { key: 'customer', label: 'Customer', sub: 'Shop & buy products', icon: ShoppingBag, color: '#059669', bg: '#ECFDF5' },
-  { key: 'b2b', label: 'Wholesale', sub: 'Bulk & B2B pricing', icon: Briefcase, color: '#1D4ED8', bg: '#EFF6FF' },
-  { key: 'supplier', label: 'Supplier', sub: 'Sell your products', icon: Store, color: '#D97706', bg: '#FFFBEB' },
-];
-
 export default function RegisterScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,27 +20,38 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
+  const { t, language } = useLanguage();
+
+  const ROLES: Array<{ key: UserRole; label: string; sub: string; icon: any; color: string; bg: string }> = [
+    { key: 'customer', label: t.customerRole, sub: t.customerSub, icon: ShoppingBag, color: '#059669', bg: '#ECFDF5' },
+    { key: 'b2b', label: t.wholesaleRole, sub: t.wholesaleSub, icon: Briefcase, color: '#1D4ED8', bg: '#EFF6FF' },
+    { key: 'supplier', label: t.supplierRole, sub: t.supplierSub, icon: Store, color: '#D97706', bg: '#FFFBEB' },
+  ];
 
   const handleRegister = async () => {
+    if (!name.trim()) {
+      Alert.alert(t.error, t.nameRequired);
+      return;
+    }
     if (!email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t.error, t.fillAllFields);
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert(t.error, t.passwordsDoNotMatch);
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t.error, t.passwordLength);
       return;
     }
 
     setLoading(true);
-    const { error } = await signUp(email, password, role);
+    const { error } = await signUp(email, password, role, name.trim());
     setLoading(false);
 
     if (error) {
-      Alert.alert('Registration Failed', error.message);
+      Alert.alert(t.registrationFailed, error.message);
     } else {
       router.push('/(auth)/login')
     }
@@ -52,26 +59,26 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, language.rtl && { direction: 'rtl' }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topSection}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={22} color="#FFF" />
+            <ArrowLeft size={22} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
           <View style={styles.topContent}>
             <View style={styles.iconWrap}>
               <User size={28} color="#FFF" />
             </View>
-            <Text style={styles.welcomeTitle}>Create Account</Text>
-            <Text style={styles.welcomeSub}>Join our marketplace today</Text>
+            <Text style={styles.welcomeTitle}>{t.createAccount}</Text>
+            <Text style={styles.welcomeSub}>{t.joinMarketplace}</Text>
           </View>
         </View>
 
         <View style={styles.formCard}>
           <View style={styles.roleSection}>
-            <Text style={styles.label}>Account Type</Text>
+            <Text style={styles.label}>{t.accountType}</Text>
             <View style={styles.roleGrid}>
               {ROLES.map(({ key, label, sub, icon: Icon, color, bg }) => (
                 <TouchableOpacity
@@ -91,11 +98,27 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>{t.fullName} <Text style={{ color: '#EF4444' }}>*</Text></Text>
+            <View style={styles.inputRow}>
+              <User size={18} color="#94A3B8" />
+              <TextInput
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.enterFullName}
+                placeholderTextColor="#94A3B8"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.emailAddress}</Text>
             <View style={styles.inputRow}>
               <Mail size={18} color="#94A3B8" />
               <TextInput
-                style={styles.input}
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
                 placeholder="your@email.com"
                 placeholderTextColor="#94A3B8"
                 value={email}
@@ -108,12 +131,12 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t.password}</Text>
             <View style={styles.inputRow}>
               <Lock size={18} color="#94A3B8" />
               <TextInput
-                style={styles.input}
-                placeholder="At least 6 characters"
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.atLeast6Chars}
                 placeholderTextColor="#94A3B8"
                 value={password}
                 onChangeText={setPassword}
@@ -127,12 +150,12 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
+            <Text style={styles.label}>{t.confirmPassword}</Text>
             <View style={styles.inputRow}>
               <Lock size={18} color="#94A3B8" />
               <TextInput
-                style={styles.input}
-                placeholder="Re-enter your password"
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.reEnterPassword}
                 placeholderTextColor="#94A3B8"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
@@ -151,25 +174,25 @@ export default function RegisterScreen() {
               <ActivityIndicator color="#FFF" />
             ) : (
               <>
-                <Text style={styles.createBtnText}>Create Account</Text>
-                <ArrowRight size={18} color="#FFF" />
+                <Text style={styles.createBtnText}>{t.createAccount}</Text>
+                <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
               </>
             )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerText}>{t.alreadyHaveAccount} </Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.linkText}>Sign In</Text>
+              <Text style={styles.linkText}>{t.signIn}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <Text style={styles.termsText}>
-          By creating an account, you agree to our{' '}
-          <Text style={styles.termsLink}>Terms of Service</Text>
-          {' '}and{' '}
-          <Text style={styles.termsLink}>Privacy Policy</Text>
+          {t.termsAgreement}{' '}
+          <Text style={styles.termsLink}>{t.termsOfService}</Text>
+          {' '}{t.and}{' '}
+          <Text style={styles.termsLink}>{t.privacyPolicy}</Text>
         </Text>
         <View style={{ height: 32 }} />
       </ScrollView>

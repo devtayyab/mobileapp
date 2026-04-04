@@ -7,6 +7,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Star, ShoppingCart, Search, SlidersHorizontal, Zap } from 'lucide-react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 type Product = {
   id: string;
@@ -30,6 +32,8 @@ type Category = {
 
 export default function ShopScreen() {
   const { profile } = useAuth();
+  const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -108,35 +112,37 @@ export default function ShopScreen() {
           {item.is_featured && (
             <View style={styles.featuredBadge}>
               <Star size={10} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.featuredText}>Top Pick</Text>
+              <Text style={styles.featuredText}>{t.topPick}</Text>
             </View>
           )}
           {item.stock_quantity === 0 && (
             <View style={styles.outOfStockOverlay}>
-              <Text style={styles.outOfStockText}>Sold Out</Text>
+              <Text style={styles.outOfStockText}>{t.soldOut}</Text>
             </View>
           )}
           {item.stock_quantity > 0 && item.stock_quantity < 10 && (
             <View style={styles.lowStockBadge}>
               <Zap size={9} color="#EF4444" />
-              <Text style={styles.lowStockBadgeText}>Only {item.stock_quantity}</Text>
+              <Text style={styles.lowStockBadgeText}>{t.onlyLeft.replace('{count}', item.stock_quantity.toString())}</Text>
             </View>
           )}
         </View>
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-          <View style={styles.priceRow}>
-            <Text style={[styles.productPrice, isB2B && styles.b2bPrice]}>
-              ${price.toFixed(2)}
+          <Text style={[styles.productName, language.rtl && { textAlign: 'right' }]} numberOfLines={2}>
+            {t[item.slug as keyof typeof t] || t[item.name as keyof typeof t] || item.name}
+          </Text>
+          <View style={[styles.priceRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+            <Text style={[styles.productPrice, !!isB2B ? styles.b2bPrice : null]}>
+              {formatPrice(price)}
             </Text>
-            {isB2B && (
+            {!!isB2B && (
               <View style={styles.wholesaleBadge}>
-                <Text style={styles.wholesaleBadgeText}>Wholesale</Text>
+                <Text style={styles.wholesaleBadgeText}>{t.wholesaleRole}</Text>
               </View>
             )}
           </View>
-          {isB2B && item.moq > 1 && (
-            <Text style={styles.moqText}>Min. order: {item.moq} units</Text>
+          {!!isB2B && item.moq > 1 && (
+            <Text style={[styles.moqText, language.rtl && { textAlign: 'right' }]}>{t.minOrder.replace('{count}', item.moq.toString())}</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -144,12 +150,12 @@ export default function ShopScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Shop</Text>
-            <Text style={styles.headerSub}>{filtered.length} products</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle} numberOfLines={1}>{t.shop}</Text>
+            <Text style={styles.headerSub}>{filtered.length} {t.products.toLowerCase()}</Text>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.filterBtn}>
@@ -160,8 +166,8 @@ export default function ShopScreen() {
         <View style={styles.searchBar}>
           <Search size={16} color="#94A3B8" />
           <TextInput
-            style={styles.searchInput}
-            placeholder="Search products..."
+            style={[styles.searchInput, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.searchPlaceholder}
             placeholderTextColor="#94A3B8"
             value={search}
             onChangeText={setSearch}
@@ -180,7 +186,7 @@ export default function ShopScreen() {
           onPress={() => setSelectedCategory('all')}
         >
           <Text style={[styles.filterChipText, selectedCategory === 'all' && styles.filterChipTextActive]}>
-            All
+            {t.all}
           </Text>
         </TouchableOpacity>
         {categories.map((cat) => (
@@ -190,7 +196,7 @@ export default function ShopScreen() {
             onPress={() => setSelectedCategory(cat.id)}
           >
             <Text style={[styles.filterChipText, selectedCategory === cat.id && styles.filterChipTextActive]}>
-              {cat.name}
+              {t[cat.slug as keyof typeof t] || cat.name}
             </Text>
           </TouchableOpacity>
         ))}
@@ -199,7 +205,7 @@ export default function ShopScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#1D4ED8" />
-          <Text style={styles.loadingText}>Loading products...</Text>
+          <Text style={styles.loadingText}>{t.loadingProducts}</Text>
         </View>
       ) : filtered.length > 0 ? (
         <FlatList
@@ -208,13 +214,13 @@ export default function ShopScreen() {
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.listContainer}
-          columnWrapperStyle={styles.columnWrapper}
+          columnWrapperStyle={[styles.columnWrapper, language.rtl && { flexDirection: 'row-reverse' }]}
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <View style={styles.emptyContainer}>
           <ShoppingCart size={56} color="#CBD5E1" />
-          <Text style={styles.emptyTitle}>No products found</Text>
+          <Text style={styles.emptyTitle}>{t.noProductsFound}</Text>
           <Text style={styles.emptySub}>Try a different category or search</Text>
         </View>
       )}
@@ -252,9 +258,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1, borderColor: '#E2E8F0',
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#0F172A' },
-  filterScroll: { backgroundColor: '#FFF', maxHeight: 52 },
-  filterContent: { paddingHorizontal: 20, paddingVertical: 10, gap: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: '#0F172A', textAlignVertical: 'center' },
+  filterScroll: { backgroundColor: '#FFF', maxHeight: 60, minHeight: 60 },
+  filterContent: { paddingHorizontal: 20, paddingVertical: 12, gap: 10, alignItems: 'center' },
   filterChip: {
     paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
     backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0',

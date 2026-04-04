@@ -1,6 +1,11 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useState } from 'react';
+import {
+  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Alert, I18nManager, Modal, Pressable
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   User, Settings, FileText, CircleHelp, LogOut,
   Store, Truck, ChevronRight, ShieldCheck,
@@ -9,28 +14,27 @@ import {
 
 export default function ProfileScreen() {
   const { user, profile, signOut } = useAuth();
+  const { t, language } = useLanguage();
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const router = useRouter();
 
-  const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: () => {
-          router.navigate('/(auth)/welcome');
-          setTimeout(async () => { await signOut(); }, 50);
-        },
-      },
-    ]);
+  const handleSignOut = async () => {
+    setShowSignOutModal(false);
+    console.log('Initiating sign out...');
+    try {
+      await signOut();
+      router.replace('/(auth)/welcome');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const getRoleConfig = (role: string) => {
     switch (role) {
-      case 'b2b': return { label: 'Wholesale Customer', bg: '#EFF6FF', color: '#1D4ED8' };
-      case 'supplier': return { label: 'Supplier', bg: '#FFFBEB', color: '#D97706' };
-      case 'admin': return { label: 'Administrator', bg: '#FEF2F2', color: '#DC2626' };
-      default: return { label: 'Customer', bg: '#ECFDF5', color: '#059669' };
+      case 'b2b': return { label: t.wholesaleCustomer, bg: '#EFF6FF', color: '#1D4ED8' };
+      case 'supplier': return { label: t.supplier, bg: '#FFFBEB', color: '#D97706' };
+      case 'admin': return { label: t.administrator, bg: '#FEF2F2', color: '#DC2626' };
+      default: return { label: t.customerRole, bg: '#ECFDF5', color: '#059669' };
     }
   };
 
@@ -44,28 +48,26 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
         <View style={styles.header}>
           <View style={styles.headerGradient}>
             <View style={[styles.avatarCircle, { backgroundColor: '#475569' }]}>
               <User size={36} color="#FFF" />
             </View>
-            <Text style={styles.guestName}>Guest User</Text>
-            <Text style={styles.guestSub}>Not signed in</Text>
+            <Text style={styles.guestName}>{t.guestUser}</Text>
+            <Text style={styles.guestSub}>{t.notSignedIn}</Text>
           </View>
         </View>
         <View style={styles.guestContent}>
           <View style={styles.guestCard}>
-            <Text style={styles.guestCardTitle}>Join the Marketplace</Text>
-            <Text style={styles.guestCardSub}>
-              Sign in to access your orders, wishlist, and personalized experience
-            </Text>
-            <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/(auth)/login')}>
-              <Text style={styles.signInBtnText}>Sign In</Text>
-              <ArrowRight size={18} color="#FFF" />
+            <Text style={styles.guestCardTitle}>{t.welcome}</Text>
+            <Text style={styles.guestCardSub}>{t.signInToAccess}</Text>
+            <TouchableOpacity style={[styles.signInBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => router.push('/(auth)/login')}>
+              <Text style={styles.signInBtnText}>{t.signIn}</Text>
+              <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.createBtn} onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.createBtnText}>Create Account</Text>
+              <Text style={styles.createBtnText}>{t.createAccount}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -76,7 +78,7 @@ export default function ProfileScreen() {
   const roleConfig = getRoleConfig(profile?.role || 'customer');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <View style={styles.headerGradient}>
           <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
@@ -92,49 +94,83 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.account}</Text>
           <View style={styles.menuGroup}>
-            <MenuItem icon={<User size={20} color="#1D4ED8" />} iconBg="#EFF6FF" label="Edit Profile" onPress={() => router.push('/profile/edit')} />
-            <MenuItem icon={<Settings size={20} color="#059669" />} iconBg="#ECFDF5" label="Settings" onPress={() => router.push('/profile/settings')} border />
+            <MenuItem icon={<User size={20} color="#1D4ED8" />} iconBg="#EFF6FF" label={t.editProfile} onPress={() => router.push('/profile/edit')} rtl={language.rtl} />
+            <MenuItem icon={<Settings size={20} color="#059669" />} iconBg="#ECFDF5" label={t.settings} onPress={() => router.push('/profile/settings')} border rtl={language.rtl} />
           </View>
         </View>
 
         {(profile?.role === 'supplier' || profile?.role === 'admin') && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Supplier Tools</Text>
+            <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.supplierTools}</Text>
             <View style={styles.menuGroup}>
-              <MenuItem icon={<LayoutDashboard size={20} color="#D97706" />} iconBg="#FFFBEB" label="Supplier Dashboard" onPress={() => router.push('/supplier/dashboard')} />
-              <MenuItem icon={<Package size={20} color="#7C3AED" />} iconBg="#F5F3FF" label="Manage Products" onPress={() => router.push('/supplier/products')} border />
-              <MenuItem icon={<Truck size={20} color="#059669" />} iconBg="#ECFDF5" label="Manage Orders" onPress={() => router.push('/supplier/orders')} border />
-              <MenuItem icon={<ShieldCheck size={20} color="#DC2626" />} iconBg="#FEF2F2" label="KYC Verification" onPress={() => router.push('/supplier/kyc')} border />
+              <MenuItem icon={<LayoutDashboard size={20} color="#D97706" />} iconBg="#FFFBEB" label="Supplier Dashboard" onPress={() => router.push('/supplier/dashboard')} rtl={language.rtl} />
+              <MenuItem icon={<Package size={20} color="#7C3AED" />} iconBg="#F5F3FF" label="Manage Products" onPress={() => router.push('/supplier/products')} border rtl={language.rtl} />
+              <MenuItem icon={<Truck size={20} color="#059669" />} iconBg="#ECFDF5" label="Manage Orders" onPress={() => router.push('/supplier/orders')} border rtl={language.rtl} />
+              <MenuItem icon={<ShieldCheck size={20} color="#DC2626" />} iconBg="#FEF2F2" label="KYC Verification" onPress={() => router.push('/supplier/kyc')} border rtl={language.rtl} />
             </View>
           </View>
         )}
 
         {profile?.role === 'admin' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Admin</Text>
+            <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.adminTools}</Text>
             <View style={styles.menuGroup}>
-              <MenuItem icon={<LayoutDashboard size={20} color="#DC2626" />} iconBg="#FEF2F2" label="Admin Dashboard" onPress={() => router.push('/admin')} />
+              <MenuItem icon={<LayoutDashboard size={20} color="#DC2626" />} iconBg="#FEF2F2" label="Admin Dashboard" onPress={() => router.push('/admin')} rtl={language.rtl} />
             </View>
           </View>
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.support}</Text>
           <View style={styles.menuGroup}>
-            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label="Help Center" onPress={() => {}} />
-            <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label="Terms & Conditions" onPress={() => {}} border />
-            <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label="Privacy Policy" onPress={() => {}} border />
+            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.helpCenter} onPress={() => {}} rtl={language.rtl} />
+            <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.termsConditions} onPress={() => {}} border rtl={language.rtl} />
+            <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.privacyPolicy} onPress={() => {}} border rtl={language.rtl} />
           </View>
         </View>
 
-        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
-          <LogOut size={18} color="#EF4444" />
-          <Text style={styles.signOutText}>Sign Out</Text>
+        <TouchableOpacity style={[styles.signOutBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => setShowSignOutModal(true)}>
+          <LogOut size={18} color="#EF4444" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
+          <Text style={styles.signOutText}>{t.signOut}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>Version 1.0.0</Text>
+        {/* Custom Sign Out Modal */}
+        <Modal
+          visible={showSignOutModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowSignOutModal(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowSignOutModal(false)}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalIconWrap}>
+                <LogOut size={32} color="#EF4444" />
+              </View>
+              <Text style={styles.modalTitle}>{t.signOut}</Text>
+              <Text style={styles.modalSub}>{t.signOutConfirm}</Text>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.modalCancelBtn} 
+                  onPress={() => setShowSignOutModal(false)}
+                >
+                  <Text style={styles.modalCancelText}>{t.cancel}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalSignOutBtn} 
+                  onPress={handleSignOut}
+                >
+                  <Text style={styles.modalSignOutText}>{t.signOut}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Pressable>
+        </Modal>
+
+        <Text style={styles.versionText}>{t.version} 1.0.0</Text>
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -142,13 +178,14 @@ export default function ProfileScreen() {
 }
 
 function MenuItem({
-  icon, iconBg, label, onPress, border
+  icon, iconBg, label, onPress, border, rtl
 }: {
   icon: React.ReactNode;
   iconBg: string;
   label: string;
   onPress: () => void;
   border?: boolean;
+  rtl?: boolean;
 }) {
   return (
     <TouchableOpacity
@@ -160,7 +197,7 @@ function MenuItem({
         {icon}
       </View>
       <Text style={styles.menuLabel}>{label}</Text>
-      <ChevronRight size={18} color="#CBD5E1" />
+      <ChevronRight size={18} color="#CBD5E1" style={rtl && { transform: [{ rotate: '180deg' }] }} />
     </TouchableOpacity>
   );
 }
@@ -237,4 +274,36 @@ const styles = StyleSheet.create({
   },
   signOutText: { fontSize: 15, fontWeight: '700', color: '#EF4444' },
   versionText: { textAlign: 'center', marginTop: 20, fontSize: 12, color: '#CBD5E1' },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFF', borderRadius: 24, padding: 32,
+    width: '100%', maxWidth: 340, alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1, shadowRadius: 20, elevation: 10,
+  },
+  modalIconWrap: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: '#FEF2F2', justifyContent: 'center',
+    alignItems: 'center', marginBottom: 16,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 8 },
+  modalSub: { 
+    fontSize: 15, color: '#64748B', textAlign: 'center', 
+    lineHeight: 22, marginBottom: 24 
+  },
+  modalButtons: { flexDirection: 'row', gap: 12, width: '100%' },
+  modalCancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12,
+    borderWidth: 1.5, borderColor: '#E2E8F0', alignItems: 'center',
+  },
+  modalCancelText: { fontSize: 15, fontWeight: '600', color: '#64748B' },
+  modalSignOutBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12,
+    backgroundColor: '#EF4444', alignItems: 'center',
+  },
+  modalSignOutText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
 });

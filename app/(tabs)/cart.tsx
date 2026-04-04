@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Image
+  ActivityIndicator, Image, Alert
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from 'lucide-react-native';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 type CartItem = {
   id: string;
@@ -25,6 +27,8 @@ type CartItem = {
 
 export default function CartScreen() {
   const { user, profile } = useAuth();
+  const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +40,8 @@ export default function CartScreen() {
   const fetchCart = async () => {
     setLoading(true);
     try {
+      if (!user?.id) return;
+      
       const { data: items, error } = await supabase
         .from('cart_items')
         .select(`
@@ -43,7 +49,7 @@ export default function CartScreen() {
           products(id, name, b2c_price, b2b_price, currency, stock_quantity,
             product_images(image_url, is_primary, display_order))
         `)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
       if (error) throw error;
       if (items) setCartItems(items as any);
     } catch (error) {
@@ -98,7 +104,7 @@ export default function CartScreen() {
     const price = getPrice(item);
 
     return (
-      <View style={styles.cartItem}>
+      <View style={[styles.cartItem, language.rtl && { flexDirection: 'row-reverse' }]}>
         <View style={styles.imageWrap}>
           {imageUrl ? (
             <Image source={{ uri: imageUrl }} style={styles.itemImage} resizeMode="cover" />
@@ -108,11 +114,11 @@ export default function CartScreen() {
             </View>
           )}
         </View>
-        <View style={styles.itemDetails}>
-          <Text style={styles.itemName} numberOfLines={2}>{item.products.name}</Text>
-          <Text style={styles.itemPrice}>${price.toFixed(2)}</Text>
-          <Text style={styles.itemSubtotal}>Subtotal: ${(price * item.quantity).toFixed(2)}</Text>
-          <View style={styles.qtyRow}>
+        <View style={[styles.itemDetails, language.rtl && { alignItems: 'flex-end' }]}>
+          <Text style={[styles.itemName, language.rtl && { textAlign: 'right' }]} numberOfLines={2}>{item.products.name}</Text>
+          <Text style={styles.itemPrice}>{formatPrice(price)}</Text>
+          <Text style={styles.itemSubtotal}>{t.subtotal}: {formatPrice(price * item.quantity)}</Text>
+          <View style={[styles.qtyRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity
               style={styles.qtyBtn}
               onPress={() => updateQuantity(item.id, item.quantity - 1, item.products.stock_quantity)}
@@ -147,19 +153,19 @@ export default function CartScreen() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>My Cart</Text>
+          <Text style={styles.headerTitle}>{t.myCart}</Text>
         </View>
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconWrap}>
             <ShoppingBag size={48} color="#1D4ED8" />
           </View>
-          <Text style={styles.emptyTitle}>Sign in to view cart</Text>
-          <Text style={styles.emptySub}>Login to add items and complete your purchase</Text>
-          <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/(auth)/login')}>
-            <Text style={styles.signInBtnText}>Sign In</Text>
-            <ArrowRight size={18} color="#FFF" />
+          <Text style={styles.emptyTitle}>{t.signInToViewCart}</Text>
+          <Text style={styles.emptySub}>{t.loginToAddItems}</Text>
+          <TouchableOpacity style={[styles.signInBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => router.push('/(auth)/login')}>
+            <Text style={styles.signInBtnText}>{t.signIn}</Text>
+            <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -167,9 +173,9 @@ export default function CartScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Cart</Text>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
+      <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
+        <Text style={styles.headerTitle}>{t.myCart}</Text>
         {cartItems.length > 0 && (
           <View style={styles.countBadge}>
             <Text style={styles.countBadgeText}>{cartItems.length}</Text>
@@ -188,22 +194,22 @@ export default function CartScreen() {
           />
           <View style={styles.footer}>
             {savings > 0 && (
-              <View style={styles.savingsRow}>
+              <View style={[styles.savingsRow, language.rtl && { flexDirection: 'row-reverse' }]}>
                 <Tag size={14} color="#059669" />
-                <Text style={styles.savingsText}>Wholesale savings: ${savings.toFixed(2)}</Text>
+                <Text style={styles.savingsText}>{t.wholesaleSavings.replace('${count}', formatPrice(savings))}</Text>
               </View>
             )}
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Subtotal ({cartItems.length} items)</Text>
-              <Text style={styles.summaryValue}>${calculateTotal().toFixed(2)}</Text>
+            <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.summaryLabel}>{t.subtotalCount.replace('{count}', cartItems.length.toString())}</Text>
+              <Text style={styles.summaryValue}>{formatPrice(calculateTotal())}</Text>
             </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalAmount}>${calculateTotal().toFixed(2)}</Text>
+            <View style={[styles.totalRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.totalLabel}>{t.total}</Text>
+              <Text style={styles.totalAmount}>{formatPrice(calculateTotal())}</Text>
             </View>
-            <TouchableOpacity style={styles.checkoutBtn} onPress={() => router.push('/checkout')}>
-              <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
-              <ArrowRight size={18} color="#FFF" />
+            <TouchableOpacity style={[styles.checkoutBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => router.push('/checkout')}>
+              <Text style={styles.checkoutBtnText}>{t.proceedToCheckout}</Text>
+              <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
             </TouchableOpacity>
           </View>
         </>
@@ -212,11 +218,11 @@ export default function CartScreen() {
           <View style={styles.emptyIconWrap}>
             <ShoppingBag size={48} color="#1D4ED8" />
           </View>
-          <Text style={styles.emptyTitle}>Your cart is empty</Text>
-          <Text style={styles.emptySub}>Start adding items from the shop</Text>
-          <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/(tabs)/shop')}>
-            <Text style={styles.signInBtnText}>Browse Shop</Text>
-            <ArrowRight size={18} color="#FFF" />
+          <Text style={styles.emptyTitle}>{t.yourCartIsEmpty}</Text>
+          <Text style={styles.emptySub}>{t.startAddingItems}</Text>
+          <TouchableOpacity style={[styles.signInBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => router.push('/(tabs)/shop')}>
+            <Text style={styles.signInBtnText}>{t.browseShop}</Text>
+            <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
         </View>
       )}

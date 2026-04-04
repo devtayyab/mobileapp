@@ -27,7 +27,7 @@ export default function AdminReportsScreen() {
   const loadReports = useCallback(async () => {
     try {
       const [orderItemsRes, ordersRes, suppliersRes] = await Promise.all([
-        supabase.from('order_items').select('supplier_id, unit_price, quantity, commission, supplier_amount, order_id'),
+        supabase.from('order_items').select('supplier_id, unit_price, quantity, platform_commission, supplier_amount, order_id'),
         supabase.from('orders').select('id, status, total, created_at').order('created_at', { ascending: false }),
         supabase.from('suppliers').select('id, business_name'),
       ]);
@@ -37,7 +37,7 @@ export default function AdminReportsScreen() {
       const suppliers = suppliersRes.data || [];
 
       const totalRevenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-      const totalCommission = items.reduce((s, i) => s + Number(i.commission), 0);
+      const totalCommission = items.reduce((s, i) => s + Number(i.platform_commission), 0);
       const totalSupplierPayouts = items.reduce((s, i) => s + Number(i.supplier_amount), 0);
       const avgOrderValue = orders.length ? orders.reduce((s, o) => s + Number(o.total), 0) / orders.length : 0;
 
@@ -116,12 +116,15 @@ export default function AdminReportsScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity 
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')} 
+          style={styles.backBtn}
+        >
           <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Revenue Reports</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.backBtn}>
-          <RefreshCw size={18} color="#6B7280" />
+        <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+          <RefreshCw size={20} color="#6B7280" />
         </TouchableOpacity>
       </View>
 
@@ -226,11 +229,12 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12,
+    paddingHorizontal: 20, paddingBottom: 16,
     backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+  headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   content: { flex: 1, padding: 20 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   bigStatCard: {

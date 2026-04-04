@@ -137,17 +137,21 @@ export default function SupplierProducts() {
           </View>
 
           <View style={styles.productActions}>
-            <Switch
-              value={item.is_active}
-              onValueChange={() => toggleProductStatus(item.id, item.is_active)}
-              trackColor={{ false: '#D1D5DB', true: '#10B981' }}
-              thumbColor="#FFF"
-            />
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>{item.is_active ? 'Active' : 'Inactive'}</Text>
+              <Switch
+                value={item.is_active}
+                onValueChange={() => toggleProductStatus(item.id, item.is_active)}
+                trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                thumbColor="#FFF"
+              />
+            </View>
             <TouchableOpacity
               style={styles.editButton}
               onPress={() => router.push(`/supplier/edit-product?id=${item.id}`)}
             >
-              <Edit size={20} color="#007AFF" />
+              <Edit size={18} color="#007AFF" />
+              <Text style={styles.editButtonText}>Edit</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -298,11 +302,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   productActions: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    gap: 8,
+    paddingLeft: 8,
+  },
+  statusRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 4,
+  },
+  statusLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   editButton: {
-    padding: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#F0F7FF',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   emptyContainer: {
     flex: 1,
