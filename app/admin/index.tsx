@@ -134,21 +134,21 @@ export default function AdminDashboard() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.headerLeft}>
           <View style={styles.adminBadge}>
-            <Shield size={12} color="#FFF" />
+            <Shield size={10} color="#FFF" />
             <Text style={styles.adminBadgeText}>ADMIN</Text>
           </View>
           <Text style={styles.headerName}>{profile?.full_name || 'Administrator'}</Text>
           <Text style={styles.headerEmail}>{profile?.email}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity onPress={onRefresh} style={styles.iconBtn}>
-            <RefreshCw size={18} color="#94A3B8" />
+          <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+            <RefreshCw size={20} color="#94A3B8" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSignOut} style={styles.iconBtn}>
-            <LogOut size={18} color="#94A3B8" />
+          <TouchableOpacity onPress={handleSignOut} style={styles.headerIconBtn}>
+            <LogOut size={20} color="#EF4444" />
           </TouchableOpacity>
         </View>
       </View>
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />}
       >
-        {stats.pendingKyc > 0 && (
+        {!!(stats.pendingKyc > 0) && (
           <TouchableOpacity style={styles.alertBanner} onPress={() => router.push('/admin/suppliers')}>
             <View style={styles.alertIcon}>
               <AlertCircle size={18} color="#B45309" />
@@ -255,24 +255,24 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 14, color: '#6B7280' },
   header: {
     backgroundColor: '#0F172A',
-    paddingBottom: 20,
-    paddingHorizontal: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  headerLeft: { gap: 4 },
+  headerLeft: { flex: 1, gap: 2 },
   adminBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#1E40AF', borderRadius: 6,
-    paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start',
+    paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start',
   },
   adminBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFF', letterSpacing: 0.5 },
-  headerName: { fontSize: 20, fontWeight: '800', color: '#F1F5F9', marginTop: 4 },
-  headerEmail: { fontSize: 13, color: '#64748B' },
-  headerRight: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  iconBtn: {
-    width: 38, height: 38, borderRadius: 12,
+  headerName: { fontSize: 22, fontWeight: '900', color: '#F1F5F9', marginTop: 4 },
+  headerEmail: { fontSize: 13, color: '#94A3B8' },
+  headerRight: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingBottom: 4 },
+  headerIconBtn: {
+    width: 42, height: 42, borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center', alignItems: 'center',
   },

@@ -7,9 +7,10 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import {
-  ArrowLeft, Search, CheckCircle, XCircle, Clock, Eye,
+  ArrowLeft, ArrowRight, Search, CheckCircle, XCircle, Clock, Eye,
   FileText, Mail, Phone, Building2, Calendar, Percent, RefreshCw
 } from 'lucide-react-native';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type Supplier = {
   id: string;
@@ -53,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function AdminSuppliersScreen() {
   const insets = useSafeAreaInsets();
+  const { t, language } = useLanguage();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -208,12 +210,15 @@ export default function AdminSuppliersScreen() {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity 
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')} 
+          style={styles.backBtn}
+        >
           <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Supplier Management</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <RefreshCw size={18} color="#6B7280" />
+        <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+          <RefreshCw size={20} color="#6B7280" />
         </TouchableOpacity>
       </View>
 
@@ -221,7 +226,7 @@ export default function AdminSuppliersScreen() {
         <Search size={18} color="#9CA3AF" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name or email..."
+          placeholder={t.search || "Search by name or email..."}
           placeholderTextColor="#9CA3AF"
           value={search}
           onChangeText={setSearch}
@@ -238,7 +243,7 @@ export default function AdminSuppliersScreen() {
             <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
               {tab.label}
             </Text>
-            {tab.count > 0 && (
+            {!!(tab.count > 0) && (
               <View style={[styles.tabCount, filter === tab.key && styles.tabCountActive]}>
                 <Text style={[styles.tabCountText, filter === tab.key && styles.tabCountTextActive]}>{tab.count}</Text>
               </View>
@@ -273,11 +278,7 @@ export default function AdminSuppliersScreen() {
                 </View>
                 <View style={styles.cardInfo}>
                   <Text style={styles.cardName}>{item.business_name}</Text>
-                  <Text style={styles.cardEmail}>{(item.profiles as any)?.email}</Text>
-                  <View style={styles.cardMeta}>
-                    <Calendar size={11} color="#9CA3AF" />
-                    <Text style={styles.cardDate}>{new Date(item.created_at).toLocaleDateString()}</Text>
-                  </View>
+                  <Text style={styles.cardEmail} numberOfLines={1}>{(item.profiles as any)?.email}</Text>
                 </View>
                 <View style={styles.cardRight}>
                   <View style={[styles.statusBadge, { backgroundColor: STATUS_BG[item.kyc_status] || '#F3F4F6' }]}>
@@ -285,17 +286,49 @@ export default function AdminSuppliersScreen() {
                       {STATUS_LABELS[item.kyc_status] || item.kyc_status}
                     </Text>
                   </View>
-                  <Text style={styles.commissionBadge}>{item.commission_rate}% comm.</Text>
                 </View>
               </View>
-              <View style={styles.cardFooter}>
-                <View style={styles.docCount}>
-                  <FileText size={12} color="#6B7280" />
-                  <Text style={styles.docCountText}>{item.kyc_documents?.length || 0} docs</Text>
+
+              <View style={styles.cardStatsRow}>
+                <View style={styles.statItem}>
+                  <Calendar size={12} color="#64748B" />
+                  <Text style={styles.statLabel}>{new Date(item.created_at).toLocaleDateString()}</Text>
                 </View>
-                <View style={styles.viewDetailRow}>
-                  <Eye size={13} color="#2563EB" />
-                  <Text style={styles.viewDetailText}>Review Details</Text>
+                <View style={styles.statItem}>
+                  <Percent size={12} color="#059669" />
+                  <Text style={styles.statLabel}>{item.commission_rate}% comm.</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <FileText size={12} color="#64748B" />
+                  <Text style={styles.statLabel}>{item.kyc_documents?.length || 0} docs</Text>
+                </View>
+              </View>
+
+              <View style={styles.cardActionRow}>
+                <TouchableOpacity 
+                  style={styles.reviewBtnAction} 
+                  onPress={() => setSelectedSupplier(item)}
+                >
+                  <Eye size={16} color="#2563EB" />
+                  <Text style={styles.reviewBtnText}>Details</Text>
+                </TouchableOpacity>
+                
+                <View style={styles.directActions}>
+                  {item.kyc_status === 'pending' && (
+                    <TouchableOpacity style={styles.iconActionBtn} onPress={() => handleSetUnderReview(item)}>
+                      <Clock size={16} color="#D97706" />
+                    </TouchableOpacity>
+                  )}
+                  {(item.kyc_status === 'pending' || item.kyc_status === 'under_review') && (
+                    <>
+                      <TouchableOpacity style={[styles.iconActionBtn, styles.bgSuccess]} onPress={() => handleApprove(item)}>
+                        <CheckCircle size={16} color="#FFF" />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.iconActionBtn, styles.bgDanger]} onPress={() => { setSelectedSupplier(item); setShowRejectInput(true); }}>
+                        <XCircle size={16} color="#FFF" />
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -541,17 +574,19 @@ const styles = StyleSheet.create({
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12,
+    paddingHorizontal: 20, paddingBottom: 16,
     backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+  headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 4,
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 16, marginBottom: 16,
+    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
     borderWidth: 1, borderColor: '#E5E7EB',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 15, color: '#111827' },
   filterRow: { maxHeight: 52 },
@@ -586,15 +621,28 @@ const styles = StyleSheet.create({
   cardEmail: { fontSize: 13, color: '#6B7280', marginTop: 2 },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   cardDate: { fontSize: 11, color: '#9CA3AF' },
-  cardRight: { alignItems: 'flex-end', gap: 6 },
+  cardRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   statusText: { fontSize: 11, fontWeight: '700' },
-  commissionBadge: { fontSize: 11, color: '#059669', fontWeight: '600' },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  docCount: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  docCountText: { fontSize: 13, color: '#9CA3AF' },
-  viewDetailRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  viewDetailText: { fontSize: 13, fontWeight: '600', color: '#2563EB' },
+  cardStatsRow: { 
+    flexDirection: 'row', gap: 12, paddingVertical: 12, 
+    borderTopWidth: 1, borderTopColor: '#F3F4F6',
+    flexWrap: 'wrap',
+  },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statLabel: { fontSize: 12, color: '#64748B', fontWeight: '500' },
+  cardActionRow: { 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6',
+  },
+  reviewBtnAction: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
+  directActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  iconActionBtn: { 
+    width: 32, height: 32, borderRadius: 8, backgroundColor: '#F3F4F6',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  bgSuccess: { backgroundColor: '#10B981' },
+  bgDanger: { backgroundColor: '#DC2626' },
   modalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { X, Search as SearchIcon, Star } from 'lucide-react-native';
 
@@ -23,6 +24,7 @@ type Product = {
 export default function SearchScreen() {
   const router = useRouter();
   const { profile } = useAuth();
+  const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -82,7 +84,7 @@ export default function SearchScreen() {
     const imageUrl = getProductImage(item);
 
     return (
-      <TouchableOpacity style={styles.productCard} onPress={() => router.push(`/product/${item.id}`)}>
+      <TouchableOpacity style={[styles.productCard, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => router.push(`/product/${item.id}`)}>
         <View style={styles.productImageContainer}>
           {imageUrl ? (
             <Image
@@ -92,26 +94,26 @@ export default function SearchScreen() {
             />
           ) : (
             <View style={styles.productImagePlaceholder}>
-              <Text style={styles.placeholderText}>No Image</Text>
+              <Text style={styles.placeholderText}>{t.noImage}</Text>
             </View>
           )}
         </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>
+        <View style={[styles.productInfo, language.rtl && { alignItems: 'flex-end' }]}>
+          <Text style={[styles.productName, language.rtl && { textAlign: 'right' }]} numberOfLines={2}>
             {item.name}
           </Text>
-          <View style={styles.priceRow}>
+          <View style={[styles.priceRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <Text style={styles.productPrice}>
               {item.currency} {getPrice(item).toFixed(2)}
             </Text>
             {profile?.role === 'b2b' && item.b2b_price && (
               <View style={styles.b2bBadge}>
-                <Text style={styles.b2bBadgeText}>Wholesale</Text>
+                <Text style={styles.b2bBadgeText}>{t.wholesaleRole}</Text>
               </View>
             )}
           </View>
           {item.stock_quantity < 10 && item.stock_quantity > 0 && (
-            <Text style={styles.lowStockText}>Only {item.stock_quantity} left</Text>
+            <Text style={[styles.lowStockText, language.rtl && { textAlign: 'right' }]}>{t.onlyLeft.replace('{count}', item.stock_quantity.toString())}</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -119,13 +121,13 @@ export default function SearchScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
+      <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
+        <View style={[styles.searchContainer, language.rtl && { flexDirection: 'row-reverse' }]}>
           <SearchIcon size={20} color="#666" />
           <TextInput
-            style={styles.searchInput}
-            placeholder="Search products..."
+            style={[styles.searchInput, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.searchPlaceholder}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -139,13 +141,13 @@ export default function SearchScreen() {
           )}
         </View>
         <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={styles.cancelText}>{t.cancel}</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          <ActivityIndicator size="large" color="#1D4ED8" />
         </View>
       ) : searched ? (
         products.length > 0 ? (
@@ -158,15 +160,15 @@ export default function SearchScreen() {
         ) : (
           <View style={styles.emptyContainer}>
             <SearchIcon size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No products found</Text>
-            <Text style={styles.emptySubtext}>Try searching with different keywords</Text>
+            <Text style={styles.emptyText}>{t.noProductsFound}</Text>
+            <Text style={styles.emptySubtext}>{t.tryDifferentKeywords}</Text>
           </View>
         )
       ) : (
         <View style={styles.emptyContainer}>
           <SearchIcon size={48} color="#ccc" />
-          <Text style={styles.emptyText}>Search for products</Text>
-          <Text style={styles.emptySubtext}>Enter at least 2 characters to search</Text>
+          <Text style={styles.emptyText}>{t.searchForProducts}</Text>
+          <Text style={styles.emptySubtext}>{t.enterAtLeast2Chars}</Text>
         </View>
       )}
     </View>

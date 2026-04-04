@@ -2,9 +2,11 @@ import { Tabs } from 'expo-router';
 import { Hop as Home, Store, Grid2x2 as Grid, ShoppingCart, Package, User } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { t, language } = useLanguage();
   const tabBarHeight = 56 + insets.bottom;
 
   return (
@@ -25,6 +27,7 @@ export default function TabLayout() {
           shadowOpacity: 0.1,
           shadowRadius: 3,
           elevation: 8,
+          flexDirection: language.rtl ? 'row-reverse' : 'row',
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -35,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t.home,
           tabBarIcon: ({ size, color }) => (
             <Home size={size} color={color} />
           ),
@@ -44,7 +47,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="shop"
         options={{
-          title: 'Shop',
+          title: t.shop,
           tabBarIcon: ({ size, color }) => (
             <Store size={size} color={color} />
           ),
@@ -53,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="categories"
         options={{
-          title: 'Categories',
+          title: t.categories,
           tabBarIcon: ({ size, color }) => (
             <Grid size={size} color={color} />
           ),
@@ -62,7 +65,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: 'Cart',
+          title: t.cart,
           tabBarIcon: ({ size, color }) => (
             <ShoppingCart size={size} color={color} />
           ),
@@ -71,7 +74,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="orders"
         options={{
-          title: 'Orders',
+          title: t.orders,
           tabBarIcon: ({ size, color }) => (
             <Package size={size} color={color} />
           ),
@@ -80,7 +83,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t.profile,
           tabBarIcon: ({ size, color }) => (
             <User size={size} color={color} />
           ),

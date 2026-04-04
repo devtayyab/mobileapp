@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Grid3x3, Tag, ChevronRight } from 'lucide-react-native';
 
 type Category = {
@@ -41,6 +42,7 @@ export default function CategoriesScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     fetchCategories();
@@ -87,16 +89,18 @@ export default function CategoriesScreen() {
             </Text>
           </View>
         )}
-        <View style={styles.categoryOverlay}>
-          <Text style={styles.categoryOverlayName} numberOfLines={1}>{item.name}</Text>
+        <View style={[styles.categoryOverlay, language.rtl && { alignItems: 'flex-end' }]}>
+          <Text style={[styles.categoryOverlayName, language.rtl && { textAlign: 'right' }]} numberOfLines={1}>
+            {t[item.slug as keyof typeof t] || item.name}
+          </Text>
           {item.description && (
-            <Text style={styles.categoryOverlayDesc} numberOfLines={isLarge ? 2 : 1}>
-              {item.description}
+            <Text style={[styles.categoryOverlayDesc, language.rtl && { textAlign: 'right' }]} numberOfLines={isLarge ? 2 : 1}>
+              {t[`${item.slug}Desc` as keyof typeof t] || item.description}
             </Text>
           )}
         </View>
-        <View style={styles.categoryArrow}>
-          <ChevronRight size={14} color="#FFF" />
+        <View style={[styles.categoryArrow, language.rtl && { left: 12, right: undefined }]}>
+          <ChevronRight size={14} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </View>
       </TouchableOpacity>
     );
@@ -111,11 +115,11 @@ export default function CategoriesScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Categories</Text>
-          <Text style={styles.headerSub}>{categories.length} collections</Text>
+        <View style={language.rtl && { alignItems: 'flex-end' }}>
+          <Text style={styles.headerTitle}>{t.categories}</Text>
+          <Text style={styles.headerSub}>{categories.length} {t.collections.toLowerCase()}</Text>
         </View>
         <View style={styles.headerIcon}>
           <Grid3x3 size={20} color="#1D4ED8" />
@@ -130,18 +134,18 @@ export default function CategoriesScreen() {
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <View style={styles.bannerCard}>
+            <View style={[styles.bannerCard, language.rtl && { flexDirection: 'row-reverse' }]}>
               <Tag size={18} color="#1D4ED8" />
-              <View style={styles.bannerText}>
-                <Text style={styles.bannerTitle}>Explore All Collections</Text>
-                <Text style={styles.bannerSub}>Tap any category to shop</Text>
+              <View style={[styles.bannerText, language.rtl && { alignItems: 'flex-end' }]}>
+                <Text style={styles.bannerTitle}>{t.exploreCollections}</Text>
+                <Text style={styles.bannerSub}>{t.tapToShop}</Text>
               </View>
             </View>
           }
         />
       ) : (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No categories available</Text>
+          <Text style={styles.emptyText}>{t.noCategories}</Text>
         </View>
       )}
     </View>

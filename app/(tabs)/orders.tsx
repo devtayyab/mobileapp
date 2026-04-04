@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Modal, ScrollView
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import {
@@ -50,6 +51,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function OrdersScreen() {
   const { user } = useAuth();
+  const { t, language } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -90,7 +92,7 @@ export default function OrdersScreen() {
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    new Date(dateString).toLocaleDateString(language.code === 'el' ? 'el-GR' : language.code === 'fr' ? 'fr-FR' : language.code === 'es' ? 'es-ES' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const renderTrackingSteps = (status: string) => {
     const isCancelled = status === 'cancelled' || status === 'refunded';
@@ -138,32 +140,32 @@ export default function OrdersScreen() {
     const color = STATUS_COLORS[item.status] || '#9CA3AF';
     return (
       <TouchableOpacity style={styles.orderCard} onPress={() => setSelectedOrder(item)}>
-        <View style={styles.orderHeader}>
-          <View>
+        <View style={[styles.orderHeader, language.rtl && { flexDirection: 'row-reverse' }]}>
+          <View style={language.rtl && { alignItems: 'flex-end' }}>
             <Text style={styles.orderNumber}>#{item.order_number}</Text>
             <Text style={styles.orderDate}>{formatDate(item.created_at)}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: color + '20' }]}>
+          <View style={[styles.statusBadge, { backgroundColor: color + '20' }, language.rtl && { flexDirection: 'row-reverse' }]}>
             {getStatusIcon(item.status, 16)}
             <Text style={[styles.statusText, { color }]}>
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              {t[item.status as keyof typeof t] || item.status}
             </Text>
           </View>
         </View>
 
         <View style={styles.itemList}>
           {item.order_items?.slice(0, 2).map((oi, idx) => (
-            <Text key={idx} style={styles.itemText} numberOfLines={1}>
+            <Text key={idx} style={[styles.itemText, language.rtl && { textAlign: 'right' }]} numberOfLines={1}>
               {oi.quantity}x {oi.product_name}
             </Text>
           ))}
           {(item.order_items?.length || 0) > 2 && (
-            <Text style={styles.moreItems}>+{item.order_items.length - 2} more</Text>
+            <Text style={[styles.moreItems, language.rtl && { textAlign: 'right' }]}>{t.moreItems.replace('{count}', (item.order_items.length - 2).toString())}</Text>
           )}
         </View>
 
-        <View style={styles.orderFooter}>
-          <Text style={styles.totalLabel}>Total</Text>
+        <View style={[styles.orderFooter, language.rtl && { flexDirection: 'row-reverse' }]}>
+          <Text style={styles.totalLabel}>{t.total}</Text>
           <Text style={styles.totalAmount}>{item.currency} {item.total?.toFixed(2)}</Text>
         </View>
       </TouchableOpacity>
@@ -180,16 +182,16 @@ export default function OrdersScreen() {
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>My Orders</Text>
+          <Text style={[styles.title, language.rtl && { textAlign: 'right' }]}>{t.myOrders}</Text>
         </View>
         <View style={styles.emptyContainer}>
           <ShoppingBag size={64} color="#D1D5DB" />
-          <Text style={styles.emptyText}>Sign in to view your orders</Text>
-          <Text style={styles.emptySubtext}>Track your purchases in one place</Text>
+          <Text style={styles.emptyText}>{t.signInToViewOrders}</Text>
+          <Text style={styles.emptySubtext}>{t.trackYourPurchases}</Text>
           <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(auth)/login')}>
-            <Text style={styles.loginButtonText}>Sign In</Text>
+            <Text style={styles.loginButtonText}>{t.signIn}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -197,10 +199,12 @@ export default function OrdersScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Orders</Text>
-        <Text style={styles.subtitle}>{orders.length} order{orders.length !== 1 ? 's' : ''}</Text>
+        <Text style={[styles.title, language.rtl && { textAlign: 'right' }]}>{t.myOrders}</Text>
+        <Text style={[styles.subtitle, language.rtl && { textAlign: 'right' }]}>
+          {t.ordersCount.replace('{count}', orders.length.toString()).replace('{s}', orders.length !== 1 ? 's' : '')}
+        </Text>
       </View>
 
       {orders.length > 0 ? (
@@ -214,65 +218,65 @@ export default function OrdersScreen() {
       ) : (
         <View style={styles.emptyContainer}>
           <Package size={56} color="#D1D5DB" />
-          <Text style={styles.emptyText}>No orders yet</Text>
-          <Text style={styles.emptySubtext}>Your orders will appear here after you shop</Text>
+          <Text style={styles.emptyText}>{t.noOrdersYet}</Text>
+          <Text style={styles.emptySubtext}>{t.ordersWillAppear}</Text>
           <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(tabs)/shop')}>
-            <Text style={styles.loginButtonText}>Browse Products</Text>
+            <Text style={styles.loginButtonText}>{t.browseProducts}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       <Modal visible={!!selectedOrder} animationType="slide" onRequestClose={() => setSelectedOrder(null)}>
         {selectedOrder && (
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalContainer, language.rtl && { direction: 'rtl' }]}>
+            <View style={[styles.modalHeader, language.rtl && { flexDirection: 'row-reverse' }]}>
               <TouchableOpacity onPress={() => setSelectedOrder(null)} style={styles.modalBackBtn}>
-                <ArrowLeft size={24} color="#111827" />
+                <ArrowLeft size={24} color="#111827" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
               </TouchableOpacity>
-              <Text style={styles.modalTitle}>Order #{selectedOrder.order_number}</Text>
+              <Text style={styles.modalTitle}>{t.orderNumber}: #{selectedOrder.order_number}</Text>
               <View style={{ width: 40 }} />
             </View>
 
             <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
-              <View style={styles.trackingSection}>
-                <Text style={styles.trackingTitle}>Order Status</Text>
+              <View style={[styles.trackingSection, language.rtl && { alignItems: 'flex-end' }]}>
+                <Text style={[styles.trackingTitle, language.rtl && { textAlign: 'right' }]}>{t.orderStatus}</Text>
                 {renderTrackingSteps(selectedOrder.status)}
               </View>
 
               {selectedOrder.shipments?.[0]?.tracking_number && (
-                <View style={styles.detailCard}>
-                  <Text style={styles.cardSectionTitle}>Shipment Tracking</Text>
-                  <View style={styles.trackingRow}>
+                <View style={[styles.detailCard, language.rtl && { alignItems: 'flex-end' }]}>
+                  <Text style={[styles.cardSectionTitle, language.rtl && { textAlign: 'right' }]}>{t.shipmentTracking}</Text>
+                  <View style={[styles.trackingRow, language.rtl && { flexDirection: 'row-reverse' }]}>
                     <Truck size={16} color="#3B82F6" />
-                    <View>
+                    <View style={language.rtl && { alignItems: 'flex-end' }}>
                       <Text style={styles.trackingNum}>{selectedOrder.shipments[0].tracking_number}</Text>
                       {selectedOrder.shipments[0].carrier && (
-                        <Text style={styles.trackingCarrier}>via {selectedOrder.shipments[0].carrier}</Text>
+                        <Text style={styles.trackingCarrier}>{t.via} {selectedOrder.shipments[0].carrier}</Text>
                       )}
                     </View>
                   </View>
                 </View>
               )}
 
-              <View style={styles.detailCard}>
-                <Text style={styles.cardSectionTitle}>Order Items</Text>
+              <View style={[styles.detailCard, language.rtl && { alignItems: 'flex-end' }]}>
+                <Text style={[styles.cardSectionTitle, language.rtl && { textAlign: 'right' }]}>{t.orderItems}</Text>
                 {selectedOrder.order_items?.map((item, idx) => (
-                  <View key={idx} style={styles.orderItemRow}>
-                    <Text style={styles.orderItemName}>{item.product_name}</Text>
+                  <View key={idx} style={[styles.orderItemRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                    <Text style={[styles.orderItemName, language.rtl && { textAlign: 'right' }]}>{item.product_name}</Text>
                     <Text style={styles.orderItemQty}>{item.quantity}x</Text>
                     <Text style={styles.orderItemPrice}>${(item.unit_price * item.quantity).toFixed(2)}</Text>
                   </View>
                 ))}
-                <View style={styles.orderTotalRow}>
-                  <Text style={styles.orderTotalLabel}>Total</Text>
+                <View style={[styles.orderTotalRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.orderTotalLabel}>{t.total}</Text>
                   <Text style={styles.orderTotalAmount}>{selectedOrder.currency} {selectedOrder.total?.toFixed(2)}</Text>
                 </View>
               </View>
 
               {selectedOrder.shipping_address && (
-                <View style={styles.detailCard}>
-                  <Text style={styles.cardSectionTitle}>Delivery Address</Text>
-                  <Text style={styles.addressText}>
+                <View style={[styles.detailCard, language.rtl && { alignItems: 'flex-end' }]}>
+                  <Text style={[styles.cardSectionTitle, language.rtl && { textAlign: 'right' }]}>{t.deliveryAddress}</Text>
+                  <Text style={[styles.addressText, language.rtl && { textAlign: 'right' }]}>
                     {selectedOrder.shipping_address.street}{'\n'}
                     {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} {selectedOrder.shipping_address.zip}{'\n'}
                     {selectedOrder.shipping_address.country}
@@ -280,20 +284,20 @@ export default function OrdersScreen() {
                 </View>
               )}
 
-              <View style={styles.detailCard}>
-                <Text style={styles.cardSectionTitle}>Order Details</Text>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Order Date</Text>
+              <View style={[styles.detailCard, language.rtl && { alignItems: 'flex-end' }]}>
+                <Text style={[styles.cardSectionTitle, language.rtl && { textAlign: 'right' }]}>{t.orderDetails}</Text>
+                <View style={[styles.detailRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.detailLabel}>{t.orderDate}</Text>
                   <Text style={styles.detailValue}>{formatDate(selectedOrder.created_at)}</Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Order Number</Text>
+                <View style={[styles.detailRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.detailLabel}>{t.orderNumber}</Text>
                   <Text style={styles.detailValue}>#{selectedOrder.order_number}</Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Status</Text>
+                <View style={[styles.detailRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.detailLabel}>{t.status}</Text>
                   <Text style={[styles.detailValue, { color: STATUS_COLORS[selectedOrder.status] }]}>
-                    {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                    {t[selectedOrder.status as keyof typeof t] || selectedOrder.status}
                   </Text>
                 </View>
               </View>
