@@ -12,6 +12,7 @@ import {
   TrendingUp, ShoppingBag, Zap, ChevronRight
 } from 'lucide-react-native';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const { width } = Dimensions.get('window');
 
@@ -89,6 +90,7 @@ export default function HomeScreen() {
   const { profile } = useAuth();
   const { t, language } = useLanguage();
   const { formatPrice } = useCurrency();
+  const { unreadCount } = useNotifications();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -181,9 +183,16 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/search')}>
               <Search size={20} color="#374151" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}>
+            <TouchableOpacity 
+              style={styles.iconBtn} 
+              onPress={() => router.push('/notifications' as any)}
+            >
               <Bell size={20} color="#374151" />
-              <View style={styles.notifDot} />
+              {unreadCount > 0 && (
+                <View style={styles.notifDot}>
+                  <Text style={styles.notifDotText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -457,9 +466,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notifDot: {
-    position: 'absolute', top: 8, right: 8, width: 8, height: 8,
-    borderRadius: 4, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#FFF',
+    position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18,
+    borderRadius: 9, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#FFF',
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2,
   },
+  notifDotText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#F8FAFC', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
