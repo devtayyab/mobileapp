@@ -209,48 +209,50 @@ export default function AdminSuppliersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity 
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')} 
-          style={styles.backBtn}
-        >
-          <ArrowLeft size={22} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Supplier Management</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
-          <RefreshCw size={20} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchBar}>
-        <Search size={18} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t.search || "Search by name or email..."}
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
-        {filterTabs.map((tab) => (
+      <View style={styles.fixedTopSection}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
-            key={tab.key}
-            style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
-            onPress={() => setFilter(tab.key)}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+            style={styles.backBtn}
           >
-            <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
-              {tab.label}
-            </Text>
-            {!!(tab.count > 0) && (
-              <View style={[styles.tabCount, filter === tab.key && styles.tabCountActive]}>
-                <Text style={[styles.tabCountText, filter === tab.key && styles.tabCountTextActive]}>{tab.count}</Text>
-              </View>
-            )}
+            <ArrowLeft size={22} color="#111827" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          <Text style={styles.headerTitle}>Supplier Management</Text>
+          <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+            <RefreshCw size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={18} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t.search || "Search by name or email..."}
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+          {filterTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
+              onPress={() => setFilter(tab.key)}
+            >
+              <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
+                {tab.label}
+              </Text>
+              {!!(tab.count > 0) && (
+                <View style={[styles.tabCount, filter === tab.key && styles.tabCountActive]}>
+                  <Text style={[styles.tabCountText, filter === tab.key && styles.tabCountTextActive]}>{tab.count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centerLoader}>
@@ -305,14 +307,14 @@ export default function AdminSuppliersScreen() {
               </View>
 
               <View style={styles.cardActionRow}>
-                <TouchableOpacity 
-                  style={styles.reviewBtnAction} 
+                <TouchableOpacity
+                  style={styles.reviewBtnAction}
                   onPress={() => setSelectedSupplier(item)}
                 >
                   <Eye size={16} color="#2563EB" />
                   <Text style={styles.reviewBtnText}>Details</Text>
                 </TouchableOpacity>
-                
+
                 <View style={styles.directActions}>
                   {item.kyc_status === 'pending' && (
                     <TouchableOpacity style={styles.iconActionBtn} onPress={() => handleSetUnderReview(item)}>
@@ -572,17 +574,23 @@ function DetailRow({ icon, label, value }: { icon: any; label: string; value: st
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fixedTopSection: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFF',
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
   headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 16, marginBottom: 16,
+    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 12,
     paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
     borderWidth: 1, borderColor: '#E5E7EB',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
@@ -624,20 +632,20 @@ const styles = StyleSheet.create({
   cardRight: { alignItems: 'flex-end', justifyContent: 'center' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   statusText: { fontSize: 11, fontWeight: '700' },
-  cardStatsRow: { 
-    flexDirection: 'row', gap: 12, paddingVertical: 12, 
+  cardStatsRow: {
+    flexDirection: 'row', gap: 12, paddingVertical: 12,
     borderTopWidth: 1, borderTopColor: '#F3F4F6',
     flexWrap: 'wrap',
   },
   statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statLabel: { fontSize: 12, color: '#64748B', fontWeight: '500' },
-  cardActionRow: { 
+  cardActionRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6',
   },
   reviewBtnAction: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4 },
   directActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  iconActionBtn: { 
+  iconActionBtn: {
     width: 32, height: 32, borderRadius: 8, backgroundColor: '#F3F4F6',
     justifyContent: 'center', alignItems: 'center',
   },
