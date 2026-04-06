@@ -101,42 +101,44 @@ export default function AdminProductsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity 
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')} 
-          style={styles.backBtn}
-        >
-          <ArrowLeft size={22} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Catalog</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
-          <RefreshCw size={20} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchBar}>
-        <Search size={18} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search products or suppliers..."
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
-        {filterTabs.map((tab) => (
+      <View style={styles.fixedTopSection}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
-            key={tab.key}
-            style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
-            onPress={() => setFilter(tab.key)}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+            style={styles.backBtn}
           >
-            <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
-              {tab.label}
-            </Text>
+            <ArrowLeft size={22} color="#111827" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          <Text style={styles.headerTitle}>Product Catalog</Text>
+          <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+            <RefreshCw size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={18} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products or suppliers..."
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+          {filterTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
+              onPress={() => setFilter(tab.key)}
+            >
+              <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centerLoader}>
@@ -179,7 +181,7 @@ export default function AdminProductsScreen() {
                     Stock Status: <Text style={{ fontWeight: '700' }}>{item.stock_quantity}</Text> {item.stock_quantity < 10 ? '(Low Stock!)' : ''}
                   </Text>
                 </View>
-                
+
                 <View style={styles.buttonActionRow}>
                   <TouchableOpacity
                     style={[styles.actionBtn, item.is_featured && styles.featuredActive]}
@@ -190,7 +192,7 @@ export default function AdminProductsScreen() {
                       {item.is_featured ? 'Featured' : 'Mark Featured'}
                     </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
                     style={[styles.actionBtn, item.is_active ? styles.statusActive : styles.statusInactive]}
                     onPress={() => toggleActive(item)}
@@ -214,17 +216,23 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  fixedTopSection: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFF',
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
   headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 16, marginBottom: 16,
+    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 12,
     paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
     borderWidth: 1, borderColor: '#E5E7EB',
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
@@ -262,7 +270,7 @@ const styles = StyleSheet.create({
   stockRow: { flexDirection: 'row', alignItems: 'center' },
   stockText: { fontSize: 13, color: '#64748B' },
   lowStockText: { color: '#EF4444' },
-  buttonActionRow: { 
+  buttonActionRow: {
     flexDirection: 'row', gap: 10, flexWrap: 'wrap',
     marginTop: 8,
   },
