@@ -6,7 +6,9 @@ import {
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag } from 'lucide-react-native';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface Product {
   id: string;
@@ -31,6 +33,8 @@ interface Product {
 export default function ProductDetail() {
   const { id } = useLocalSearchParams();
   const { user, profile } = useAuth();
+  const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -132,10 +136,10 @@ export default function ProductDetail() {
   const effectiveMOQ = isB2B ? (product.moq || 1) : 1;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
+      <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <ArrowLeft size={22} color="#111827" />
+          <ArrowLeft size={22} color="#111827" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/cart')} style={styles.headerBtn}>
@@ -154,6 +158,7 @@ export default function ProductDetail() {
           ) : (
             <View style={styles.imagePlaceholder}>
               <Package size={64} color="#CBD5E1" />
+              <Text style={{ marginTop: 10, color: '#94A3B8' }}>{t.noImage}</Text>
             </View>
           )}
           {images.length > 1 && (
@@ -168,50 +173,50 @@ export default function ProductDetail() {
         </View>
 
         <View style={styles.detailsContainer}>
-          <View style={styles.categoryRow}>
+          <View style={[styles.categoryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <View style={styles.categoryPill}>
               <Text style={styles.categoryPillText}>{product.categories?.name}</Text>
             </View>
             {isLowStock && (
               <View style={styles.lowStockPill}>
-                <Text style={styles.lowStockPillText}>Only {product.stock_quantity} left</Text>
+                <Text style={styles.lowStockPillText}>{t.onlyLeft.replace('{count}', product.stock_quantity.toString())}</Text>
               </View>
             )}
             {product.stock_quantity === 0 && (
               <View style={styles.outOfStockPill}>
-                <Text style={styles.outOfStockPillText}>Out of Stock</Text>
+                <Text style={styles.outOfStockPillText}>{t.outOfStock}</Text>
               </View>
             )}
           </View>
 
-          <Text style={styles.productName}>{product.name}</Text>
+          <Text style={[styles.productName, language.rtl && { textAlign: 'right' }]}>{product.name}</Text>
 
-          <View style={styles.priceRow}>
-            <Text style={[styles.mainPrice, isB2B && styles.mainPriceB2B]}>
-              ${price.toFixed(2)}
+          <View style={[styles.priceRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+            <Text style={[styles.mainPrice, isB2B ? styles.mainPriceB2B : null]}>
+              {formatPrice(price)}
             </Text>
             {isB2B && (
-              <View style={styles.wholesaleTag}>
+              <View style={[styles.wholesaleTag, language.rtl && { flexDirection: 'row-reverse' }]}>
                 <Tag size={12} color="#059669" />
-                <Text style={styles.wholesaleTagText}>Wholesale Price</Text>
+                <Text style={styles.wholesaleTagText}>{t.wholesalePrice}</Text>
               </View>
             )}
             {isB2B && product.b2b_price && (
               <Text style={styles.originalPrice}>
-                ${product.b2c_price.toFixed(2)}
+                {formatPrice(product.b2c_price)}
               </Text>
             )}
           </View>
 
           <View style={styles.supplierCard}>
-            <View style={styles.supplierHeader}>
+            <View style={[styles.supplierHeader, language.rtl && { flexDirection: 'row-reverse' }]}>
               <View style={styles.supplierIconWrap}>
                 <Store size={18} color="#1D4ED8" />
               </View>
-              <View style={styles.supplierInfo}>
+              <View style={[styles.supplierInfo, language.rtl && { alignItems: 'flex-end' }]}>
                 <Text style={styles.supplierName}>{product.suppliers?.business_name}</Text>
                 {product.suppliers?.profiles?.address?.city && (
-                  <View style={styles.locationRow}>
+                  <View style={[styles.locationRow, language.rtl && { flexDirection: 'row-reverse' }]}>
                     <MapPin size={12} color="#94A3B8" />
                     <Text style={styles.locationText}>
                       {product.suppliers.profiles.address.city}
@@ -223,42 +228,44 @@ export default function ProductDetail() {
             </View>
           </View>
 
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <View style={styles.statItem}>
               <Package size={16} color="#1D4ED8" />
               <Text style={styles.statValue}>{product.stock_quantity}</Text>
-              <Text style={styles.statLabel}>In Stock</Text>
+              <Text style={styles.statLabel}>{t.inStock}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Star size={16} color="#F59E0B" fill="#F59E0B" />
               <Text style={styles.statValue}>4.8</Text>
-              <Text style={styles.statLabel}>Rating</Text>
+              <Text style={styles.statLabel}>{t.rating}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <ShoppingCart size={16} color="#059669" />
               <Text style={styles.statValue}>120+</Text>
-              <Text style={styles.statLabel}>Sold</Text>
+              <Text style={styles.statLabel}>{t.sold}</Text>
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>
-              {product.description || 'No description available for this product.'}
+          <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+            <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.description}</Text>
+            <Text style={[styles.description, language.rtl && { textAlign: 'right' }]}>
+              {product.description || t.noProductsFound}
             </Text>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Quantity</Text>
+          <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+            <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.quantity}</Text>
             {isB2B && effectiveMOQ > 1 && (
-              <View style={styles.moqBanner}>
+              <View style={[styles.moqBanner, language.rtl && { flexDirection: 'row-reverse' }]}>
                 <Tag size={13} color="#1D4ED8" />
-                <Text style={styles.moqBannerText}>Minimum order quantity: {effectiveMOQ} units</Text>
+                <Text style={[styles.moqBannerText, language.rtl && { textAlign: 'right' }]}>
+                  {t.minOrderQuantity.replace('{count}', effectiveMOQ.toString())}
+                </Text>
               </View>
             )}
-            <View style={styles.qtyRow}>
+            <View style={[styles.qtyRow, language.rtl && { flexDirection: 'row-reverse' }]}>
               <TouchableOpacity
                 style={[styles.qtyBtn, quantity <= effectiveMOQ && styles.qtyBtnDisabled]}
                 onPress={() => setQuantity(Math.max(effectiveMOQ, quantity - 1))}
@@ -276,7 +283,7 @@ export default function ProductDetail() {
               >
                 <Plus size={18} color={quantity >= product.stock_quantity ? '#CBD5E1' : '#111827'} />
               </TouchableOpacity>
-              <Text style={styles.qtyMax}>of {product.stock_quantity} available</Text>
+              <Text style={styles.qtyMax}>{t.available.replace('{count}', product.stock_quantity.toString())}</Text>
             </View>
           </View>
         </View>
@@ -284,13 +291,13 @@ export default function ProductDetail() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      <View style={styles.footer}>
-        <View style={styles.footerTotal}>
-          <Text style={styles.footerTotalLabel}>Total</Text>
-          <Text style={styles.footerTotalAmount}>${(price * quantity).toFixed(2)}</Text>
+      <View style={[styles.footer, language.rtl && { flexDirection: 'row-reverse' }]}>
+        <View style={[styles.footerTotal, language.rtl && { alignItems: 'flex-end' }]}>
+          <Text style={styles.footerTotalLabel}>{t.total}</Text>
+          <Text style={styles.footerTotalAmount}>{formatPrice(price * quantity)}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.addToCartBtn, (addingToCart || product.stock_quantity === 0) && styles.addToCartBtnDisabled]}
+          style={[styles.addToCartBtn, (addingToCart || product.stock_quantity === 0) && styles.addToCartBtnDisabled, language.rtl && { flexDirection: 'row-reverse' }]}
           onPress={handleAddToCart}
           disabled={addingToCart || product.stock_quantity === 0}
         >
@@ -300,7 +307,7 @@ export default function ProductDetail() {
             <>
               <ShoppingCart size={20} color="#FFF" />
               <Text style={styles.addToCartBtnText}>
-                {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {product.stock_quantity === 0 ? t.outOfStock : t.addToCart}
               </Text>
             </>
           )}

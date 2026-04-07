@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import {
   ArrowLeft, Search, Users, ShoppingBag, Building2, User,
-  Mail, Calendar, ChevronDown, RefreshCw, Shield
+  Mail, Calendar, ChevronDown, RefreshCw, Shield, Edit
 } from 'lucide-react-native';
 
 type UserProfile = {
@@ -134,60 +134,65 @@ export default function AdminUsersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={22} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>User Management</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <RefreshCw size={18} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.statsRow}>
-        {[
-          { label: 'Total', value: stats.total, color: '#111827', bg: '#F9FAFB' },
-          { label: 'Customers', value: stats.customers, color: '#065F46', bg: '#ECFDF5' },
-          { label: 'B2B', value: stats.b2b, color: '#1E40AF', bg: '#EFF6FF' },
-          { label: 'Suppliers', value: stats.suppliers, color: '#5B21B6', bg: '#F5F3FF' },
-          { label: 'Admins', value: stats.admins, color: '#991B1B', bg: '#FEF2F2' },
-        ].map((s) => (
-          <View key={s.label} style={[styles.statCard, { backgroundColor: s.bg }]}>
-            <Text style={[styles.statNum, { color: s.color }]}>{s.value}</Text>
-            <Text style={styles.statLbl}>{s.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.searchBar}>
-        <Search size={18} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search users..."
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
-        {filterTabs.map((tab) => (
+      <View style={styles.fixedTopSection}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
-            key={tab.key}
-            style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
-            onPress={() => setFilter(tab.key)}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+            style={styles.backBtn}
           >
-            <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
-              {tab.label}
-            </Text>
-            {tab.count > 0 && (
-              <View style={[styles.tabCount, filter === tab.key && styles.tabCountActive]}>
-                <Text style={[styles.tabCountText, filter === tab.key && styles.tabCountTextActive]}>{tab.count}</Text>
-              </View>
-            )}
+            <ArrowLeft size={22} color="#111827" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          <Text style={styles.headerTitle}>User Management</Text>
+          <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+            <RefreshCw size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.statsRow}>
+          {[
+            { label: 'Total', value: stats.total, color: '#111827', bg: '#F9FAFB' },
+            { label: 'Customers', value: stats.customers, color: '#065F46', bg: '#ECFDF5' },
+            { label: 'B2B', value: stats.b2b, color: '#1E40AF', bg: '#EFF6FF' },
+            { label: 'Suppliers', value: stats.suppliers, color: '#5B21B6', bg: '#F5F3FF' },
+            { label: 'Admins', value: stats.admins, color: '#991B1B', bg: '#FEF2F2' },
+          ].map((s) => (
+            <View key={s.label} style={[styles.statCard, { backgroundColor: s.bg }]}>
+              <Text style={[styles.statNum, { color: s.color }]}>{s.value}</Text>
+              <Text style={styles.statLbl}>{s.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={18} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search users..."
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+          {filterTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
+              onPress={() => setFilter(tab.key)}
+            >
+              <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
+                {tab.label}
+              </Text>
+              {!!(tab.count > 0) && (
+                <View style={[styles.tabCount, filter === tab.key && styles.tabCountActive]}>
+                  <Text style={[styles.tabCountText, filter === tab.key && styles.tabCountTextActive]}>{tab.count}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centerLoader}>
@@ -224,7 +229,7 @@ export default function AdminUsersScreen() {
                       <Mail size={11} color="#9CA3AF" />
                       <Text style={styles.email}>{item.email}</Text>
                     </View>
-                    {item.company_name && (
+                    {!!item.company_name && (
                       <Text style={styles.company}>{item.company_name}</Text>
                     )}
                     <View style={styles.joinedRow}>
@@ -234,10 +239,13 @@ export default function AdminUsersScreen() {
                   </View>
                 </View>
                 <View style={styles.cardRight}>
-                  <View style={[styles.roleBadge, { backgroundColor: roleStyle.bg, borderColor: roleStyle.border }]}>
+                  <TouchableOpacity
+                    style={[styles.editBadgeBtn, { backgroundColor: roleStyle.bg, borderColor: roleStyle.border }]}
+                    onPress={() => setSelectedUser(item)}
+                  >
                     <Text style={[styles.roleText, { color: roleStyle.text }]}>{item.role}</Text>
-                  </View>
-                  <ChevronDown size={14} color="#9CA3AF" />
+                    <Edit size={12} color={roleStyle.text} style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             );
@@ -289,8 +297,8 @@ export default function AdminUsersScreen() {
                           </Text>
                           <Text style={styles.roleOptionDesc}>
                             {role === 'customer' ? 'Regular buyer' :
-                             role === 'b2b' ? 'Business buyer with B2B prices' :
-                             role === 'supplier' ? 'Product supplier' : 'Platform administrator'}
+                              role === 'b2b' ? 'Business buyer with B2B prices' :
+                                role === 'supplier' ? 'Product supplier' : 'Platform administrator'}
                           </Text>
                         </View>
                         {isCurrentRole && (
@@ -320,17 +328,23 @@ export default function AdminUsersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fixedTopSection: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20, paddingBottom: 16,
+    backgroundColor: '#FFF',
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+  headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   statsRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: '#FFF',
   },
   statCard: {
     flex: 1, borderRadius: 10, padding: 8, alignItems: 'center',
@@ -378,8 +392,11 @@ const styles = StyleSheet.create({
   company: { fontSize: 12, color: '#2563EB', marginTop: 2, fontWeight: '500' },
   joinedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
   joined: { fontSize: 11, color: '#9CA3AF' },
-  cardRight: { alignItems: 'center', gap: 4 },
-  roleBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, borderWidth: 1 },
+  cardRight: { alignItems: 'flex-end' },
+  editBadgeBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1
+  },
   roleText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',

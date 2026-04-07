@@ -101,39 +101,44 @@ export default function AdminProductsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={22} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Product Catalog</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.backBtn}>
-          <RefreshCw size={18} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchBar}>
-        <Search size={18} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search products or suppliers..."
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
-        {filterTabs.map((tab) => (
+      <View style={styles.fixedTopSection}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
-            key={tab.key}
-            style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
-            onPress={() => setFilter(tab.key)}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+            style={styles.backBtn}
           >
-            <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
-              {tab.label}
-            </Text>
+            <ArrowLeft size={22} color="#111827" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          <Text style={styles.headerTitle}>Product Catalog</Text>
+          <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+            <RefreshCw size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={18} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search products or suppliers..."
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+          {filterTabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.filterTab, filter === tab.key && styles.filterTabActive]}
+              onPress={() => setFilter(tab.key)}
+            >
+              <Text style={[styles.filterTabText, filter === tab.key && styles.filterTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centerLoader}>
@@ -171,25 +176,31 @@ export default function AdminProductsScreen() {
               </View>
 
               <View style={styles.cardActions}>
-                <Text style={[styles.stockText, item.stock_quantity < 10 && styles.lowStockText]}>
-                  Stock: {item.stock_quantity} {item.stock_quantity < 10 ? '(Low)' : ''}
-                </Text>
-                <View style={styles.toggleRow}>
+                <View style={[styles.stockRow, { marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }]}>
+                  <Text style={[styles.stockText, item.stock_quantity < 10 && styles.lowStockText]}>
+                    Stock Status: <Text style={{ fontWeight: '700' }}>{item.stock_quantity}</Text> {item.stock_quantity < 10 ? '(Low Stock!)' : ''}
+                  </Text>
+                </View>
+
+                <View style={styles.buttonActionRow}>
                   <TouchableOpacity
-                    style={[styles.toggleBtn, item.is_featured && styles.toggleBtnActive]}
+                    style={[styles.actionBtn, item.is_featured && styles.featuredActive]}
                     onPress={() => toggleFeatured(item)}
                   >
-                    <Star size={14} color={item.is_featured ? '#FFF' : '#6B7280'} />
-                    <Text style={[styles.toggleBtnText, item.is_featured && styles.toggleBtnTextActive]}>
-                      {item.is_featured ? 'Featured' : 'Feature'}
+                    <Star size={16} color={item.is_featured ? '#FFF' : '#F59E0B'} fill={item.is_featured ? '#FFF' : 'transparent'} />
+                    <Text style={[styles.actionBtnText, item.is_featured && styles.textWhite]}>
+                      {item.is_featured ? 'Featured' : 'Mark Featured'}
                     </Text>
                   </TouchableOpacity>
+
                   <TouchableOpacity
-                    style={[styles.toggleBtn, item.is_active ? styles.toggleBtnGreen : styles.toggleBtnRed]}
+                    style={[styles.actionBtn, item.is_active ? styles.statusActive : styles.statusInactive]}
                     onPress={() => toggleActive(item)}
                   >
-                    {item.is_active ? <Eye size={14} color="#FFF" /> : <EyeOff size={14} color="#FFF" />}
-                    <Text style={styles.toggleBtnTextWhite}>{item.is_active ? 'Active' : 'Hidden'}</Text>
+                    {item.is_active ? <Eye size={16} color="#FFF" /> : <EyeOff size={16} color="#FFF" />}
+                    <Text style={[styles.actionBtnText, styles.textWhite]}>
+                      {item.is_active ? 'Active' : 'Hidden'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -205,18 +216,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 12 },
+  fixedTopSection: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20, paddingBottom: 16,
+    backgroundColor: '#FFF',
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+  headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#FFF', marginHorizontal: 20, marginVertical: 12,
-    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 12,
+    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
     borderWidth: 1, borderColor: '#E5E7EB',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   searchInput: { flex: 1, fontSize: 15, color: '#111827' },
   filterRow: { maxHeight: 48 },
@@ -246,19 +266,22 @@ const styles = StyleSheet.create({
   priceCol: { alignItems: 'flex-end' },
   b2cPrice: { fontSize: 15, fontWeight: '800', color: '#111827' },
   b2bPrice: { fontSize: 12, fontWeight: '600', color: '#6B7280', marginTop: 2 },
-  cardActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
-  stockText: { fontSize: 13, color: '#6B7280' },
-  lowStockText: { color: '#EF4444', fontWeight: '600' },
-  toggleRow: { flexDirection: 'row', gap: 8 },
-  toggleBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB',
+  cardActions: { paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  stockRow: { flexDirection: 'row', alignItems: 'center' },
+  stockText: { fontSize: 13, color: '#64748B' },
+  lowStockText: { color: '#EF4444' },
+  buttonActionRow: {
+    flexDirection: 'row', gap: 10, flexWrap: 'wrap',
+    marginTop: 8,
   },
-  toggleBtnActive: { backgroundColor: '#F59E0B', borderColor: '#F59E0B' },
-  toggleBtnGreen: { backgroundColor: '#10B981', borderColor: '#10B981' },
-  toggleBtnRed: { backgroundColor: '#6B7280', borderColor: '#6B7280' },
-  toggleBtnText: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  toggleBtnTextActive: { color: '#FFF' },
-  toggleBtnTextWhite: { fontSize: 12, fontWeight: '600', color: '#FFF' },
+  actionBtn: {
+    flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F8FAFC',
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  featuredActive: { backgroundColor: '#F59E0B', borderColor: '#D97706' },
+  statusActive: { backgroundColor: '#10B981', borderColor: '#059669' },
+  statusInactive: { backgroundColor: '#94A3B8', borderColor: '#64748B' },
+  actionBtnText: { fontSize: 13, fontWeight: '700', color: '#475569' },
+  textWhite: { color: '#FFF' },
 });

@@ -3,14 +3,16 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo } from '@/components/Logo';
 import { ShoppingBag, Truck, Shield, ArrowRight, User } from 'lucide-react-native';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const { t, language } = useLanguage();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <LinearGradient
         colors={['#0F172A', '#1E293B', '#111827']}
         style={styles.background}
@@ -26,10 +28,10 @@ export default function WelcomeScreen() {
               <Logo size="large" variant="light" />
             </View>
             <Text style={styles.tagline}>
-              Empowering Your Business,{'\n'}Connecting Markets.
+              {t.welcomeTagline}
             </Text>
             <Text style={styles.subtitle}>
-              Discover a seamless multi-vendor marketplace designed for efficiency and growth.
+              {t.welcomeSubtitle}
             </Text>
           </View>
 
@@ -39,21 +41,21 @@ export default function WelcomeScreen() {
               <View style={[styles.iconBox, { backgroundColor: 'rgba(59, 130, 246, 0.2)' }]}>
                 <ShoppingBag size={24} color="#60A5FA" />
               </View>
-              <Text style={styles.featureTitle}>Global Reach</Text>
+              <Text style={styles.featureTitle}>{t.globalReach}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.featureItem}>
               <View style={[styles.iconBox, { backgroundColor: 'rgba(16, 185, 129, 0.2)' }]}>
                 <Truck size={24} color="#34D399" />
               </View>
-              <Text style={styles.featureTitle}>Fast Delivery</Text>
+              <Text style={styles.featureTitle}>{t.fastDelivery}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.featureItem}>
               <View style={[styles.iconBox, { backgroundColor: 'rgba(139, 92, 246, 0.2)' }]}>
                 <Shield size={24} color="#A78BFA" />
               </View>
-              <Text style={styles.featureTitle}>Secure Trade</Text>
+              <Text style={styles.featureTitle}>{t.secureTrade}</Text>
             </View>
           </View>
 
@@ -70,8 +72,8 @@ export default function WelcomeScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientButton}
               >
-                <Text style={styles.primaryButtonText}>Get Started</Text>
-                <ArrowRight size={20} color="#FFF" />
+                <Text style={styles.primaryButtonText}>{t.signIn}</Text>
+                <ArrowRight size={20} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
               </LinearGradient>
             </TouchableOpacity>
 
@@ -80,21 +82,21 @@ export default function WelcomeScreen() {
               activeOpacity={0.7}
               onPress={() => router.push('/(auth)/register')}
             >
-              <Text style={styles.secondaryButtonText}>Create an Account</Text>
+              <Text style={styles.secondaryButtonText}>{t.createAccount}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.guestButton}
               onPress={() => router.push('/(tabs)')}
             >
-              <Text style={styles.guestButtonText}>Browse as Guest</Text>
+              <Text style={styles.guestButtonText}>{t.browseAsGuest}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              By continuing, you handle our <Text style={styles.linkText}>Terms</Text> & <Text style={styles.linkText}>Privacy Policy</Text>
+              {t.termsAndPrivacy}
             </Text>
           </View>
         </View>

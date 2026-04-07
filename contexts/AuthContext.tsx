@@ -10,7 +10,7 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUp: (email: string, password: string, role?: 'customer' | 'b2b' | 'supplier') => Promise<{ error: any }>;
+  signUp: (email: string, password: string, role?: 'customer' | 'b2b' | 'supplier', name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -90,16 +90,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { data, error };
   };
 
-  const signUp = async (email: string, password: string, role: 'customer' | 'b2b' | 'supplier' = 'customer') => {
+  const signUp = async (email: string, password: string, role: 'customer' | 'b2b' | 'supplier' = 'customer', name?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: { full_name: name || '' },
+      },
     });
 
     if (data.user && !error) {
+      const updateData: any = { role };
+      if (name) updateData.full_name = name;
       await supabase
         .from('profiles')
-        .update({ role })
+        .update(updateData)
         .eq('id', data.user.id);
 
       await supabase.auth.signOut();

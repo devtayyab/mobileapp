@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
 
@@ -15,10 +16,11 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
+  const { t, language } = useLanguage();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert(t.error, t.fillAllFields);
       return;
     }
 
@@ -27,7 +29,7 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Login Failed', error.message);
+      Alert.alert(t.loginFailed, error.message);
     } else if (data.user) {
       const { data: profile } = await supabase
         .from('profiles').select('role').eq('id', data.user.id).single();
@@ -44,31 +46,31 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, language.rtl && { direction: 'rtl' }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topSection}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={22} color="#FFF" />
+            <ArrowLeft size={22} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
           <View style={styles.topContent}>
             <View style={styles.iconWrap}>
               <Lock size={28} color="#FFF" />
             </View>
-            <Text style={styles.welcomeTitle}>Welcome Back</Text>
-            <Text style={styles.welcomeSub}>Sign in to continue shopping</Text>
+            <Text style={styles.welcomeTitle}>{t.welcome}</Text>
+            <Text style={styles.welcomeSub}>{t.loginSubtitle}</Text>
           </View>
         </View>
 
         <View style={styles.formCard}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
+            <Text style={styles.label}>{t.emailAddress}</Text>
             <View style={styles.inputRow}>
               <Mail size={18} color="#94A3B8" />
               <TextInput
-                style={styles.input}
-                placeholder="your@email.com"
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.emailPlaceholder}
                 placeholderTextColor="#94A3B8"
                 value={email}
                 onChangeText={setEmail}
@@ -80,12 +82,12 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t.password}</Text>
             <View style={styles.inputRow}>
               <Lock size={18} color="#94A3B8" />
               <TextInput
-                style={styles.input}
-                placeholder="Enter your password"
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.passwordPlaceholder}
                 placeholderTextColor="#94A3B8"
                 value={password}
                 onChangeText={setPassword}
@@ -107,28 +109,28 @@ export default function LoginScreen() {
               <ActivityIndicator color="#FFF" />
             ) : (
               <>
-                <Text style={styles.signInBtnText}>Sign In</Text>
-                <ArrowRight size={18} color="#FFF" />
+                <Text style={styles.signInBtnText}>{t.signIn}</Text>
+                <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
               </>
             )}
           </TouchableOpacity>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>{language.code === 'el' ? 'ή' : (language.code === 'es' ? 'o' : (language.code === 'fr' ? 'ou' : 'or'))}</Text>
             <View style={styles.dividerLine} />
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>{t.dontHaveAccount} </Text>
             <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-              <Text style={styles.linkText}>Create Account</Text>
+              <Text style={styles.linkText}>{t.createAccount}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <TouchableOpacity style={styles.guestBtn} onPress={() => router.push('/(tabs)')}>
-          <Text style={styles.guestBtnText}>Continue as Guest</Text>
+          <Text style={styles.guestBtnText}>{t.continueAsGuest}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import {
   ArrowLeft, MapPin, CreditCard, CheckCircle, Package, ArrowRight
@@ -34,6 +35,7 @@ type Address = {
 
 export default function CheckoutScreen() {
   const { user, profile } = useAuth();
+  const { t, language } = useLanguage();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
@@ -51,18 +53,22 @@ export default function CheckoutScreen() {
   const [errors, setErrors] = useState<Partial<Address>>({});
 
   useEffect(() => {
-    loadCheckoutData();
-  }, []);
+    if (user) {
+      loadCheckoutData();
+    }
+  }, [user]);
 
   const loadCheckoutData = async () => {
     try {
+      if (!user?.id) return;
+
       const { data: items, error } = await supabase
         .from('cart_items')
         .select(`
           id, product_id, quantity,
           products (id, name, b2c_price, b2b_price, currency, supplier_id)
         `)
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
 
       if (error) throw error;
       setCartItems(items as any);
@@ -100,12 +106,12 @@ export default function CheckoutScreen() {
 
   const handlePlaceOrder = async () => {
     if (!validateAddress()) {
-      Alert.alert('Incomplete Address', 'Please fill in all address fields.');
+      Alert.alert(t.error, t.shippingAddress);
       return;
     }
 
     if (cartItems.length === 0) {
-      Alert.alert('Empty Cart', 'Your cart is empty.');
+      Alert.alert(t.error, t.yourCartIsEmpty);
       return;
     }
 
@@ -173,7 +179,7 @@ export default function CheckoutScreen() {
       setOrderSuccess(true);
     } catch (error) {
       console.error('Error placing order:', error);
-      Alert.alert('Error', 'Failed to place order. Please try again.');
+      Alert.alert(t.error, t.error);
     } finally {
       setPlacing(false);
     }
@@ -189,56 +195,56 @@ export default function CheckoutScreen() {
 
   if (orderSuccess) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
         <View style={styles.successContainer}>
           <View style={styles.successIconWrap}>
             <CheckCircle size={64} color="#10B981" />
           </View>
-          <Text style={styles.successTitle}>Order Placed!</Text>
-          <Text style={styles.successSub}>Your order has been confirmed and is being processed.</Text>
+          <Text style={styles.successTitle}>{t.orderPlaced}</Text>
+          <Text style={styles.successSub}>{t.orderConfirmedMessage}</Text>
 
           <View style={styles.orderCard}>
-            <View style={styles.orderCardRow}>
-              <Text style={styles.orderCardLabel}>Order Number</Text>
+            <View style={[styles.orderCardRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.orderCardLabel}>{t.orderNumber}</Text>
               <Text style={styles.orderCardValue}>{placedOrderNumber}</Text>
             </View>
             <View style={styles.orderCardDivider} />
-            <View style={styles.orderCardRow}>
-              <Text style={styles.orderCardLabel}>Total Paid</Text>
+            <View style={[styles.orderCardRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.orderCardLabel}>{t.totalPaid}</Text>
               <Text style={styles.orderCardAmount}>
-                {cartItems[0]?.products.currency || 'USD'} {placedTotal.toFixed(2)}
+                {cartItems[0]?.products.currency} {placedTotal.toFixed(2)}
               </Text>
             </View>
             <View style={styles.orderCardDivider} />
-            <View style={styles.orderCardRow}>
-              <Text style={styles.orderCardLabel}>Payment</Text>
+            <View style={[styles.orderCardRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.orderCardLabel}>{t.payment}</Text>
               <Text style={styles.orderCardValue}>
-                {paymentMethod === 'card' ? 'Credit/Debit Card' : 'Cash on Delivery'}
+                {paymentMethod === 'card' ? t.creditDebitCard : t.cashOnDelivery}
               </Text>
             </View>
             <View style={styles.orderCardDivider} />
-            <View style={styles.orderCardRow}>
-              <Text style={styles.orderCardLabel}>Status</Text>
+            <View style={[styles.orderCardRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.orderCardLabel}>{t.status}</Text>
               <View style={styles.statusBadge}>
-                <Text style={styles.statusBadgeText}>Pending</Text>
+                <Text style={styles.statusBadgeText}>{t.pending}</Text>
               </View>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.viewOrdersBtn}
+            style={[styles.viewOrdersBtn, language.rtl && { flexDirection: 'row-reverse' }]}
             onPress={() => router.replace('/(tabs)/orders')}
           >
             <Package size={18} color="#FFF" />
-            <Text style={styles.viewOrdersBtnText}>View My Orders</Text>
+            <Text style={styles.viewOrdersBtnText}>{t.viewMyOrders}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.continueShoppingBtn}
+            style={[styles.continueShoppingBtn, language.rtl && { flexDirection: 'row-reverse' }]}
             onPress={() => router.replace('/(tabs)/shop')}
           >
-            <Text style={styles.continueShoppingText}>Continue Shopping</Text>
-            <ArrowRight size={16} color="#1D4ED8" />
+            <Text style={styles.continueShoppingText}>{t.continueShopping}</Text>
+            <ArrowRight size={16} color="#1D4ED8" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -246,93 +252,96 @@ export default function CheckoutScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#111827" />
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
+      <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
+        <TouchableOpacity 
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/shop')} 
+          style={styles.backButton}
+        >
+          <ArrowLeft size={24} color="#111827" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
+        <Text style={styles.headerTitle}>{t.checkout}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+          <View style={[styles.sectionHeader, language.rtl && { flexDirection: 'row-reverse' }]}>
             <MapPin size={20} color="#1D4ED8" />
-            <Text style={styles.sectionTitle}>Shipping Address</Text>
+            <Text style={styles.sectionTitle}>{t.shippingAddress}</Text>
           </View>
 
           <TextInput
-            style={[styles.input, errors.street && styles.inputError]}
-            placeholder="Street Address"
+            style={[styles.input, errors.street && styles.inputError, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.streetAddress}
             placeholderTextColor="#94A3B8"
-            value={address.street}
-            onChangeText={(t) => { setAddress({ ...address, street: t }); setErrors({ ...errors, street: undefined }); }}
+            value={address.street || ''}
+            onChangeText={(v) => { setAddress({ ...address, street: v }); setErrors({ ...errors, street: undefined }); }}
           />
           <TextInput
-            style={[styles.input, errors.city && styles.inputError]}
-            placeholder="City"
+            style={[styles.input, errors.city && styles.inputError, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.city}
             placeholderTextColor="#94A3B8"
-            value={address.city}
-            onChangeText={(t) => { setAddress({ ...address, city: t }); setErrors({ ...errors, city: undefined }); }}
+            value={address.city || ''}
+            onChangeText={(v) => { setAddress({ ...address, city: v }); setErrors({ ...errors, city: undefined }); }}
           />
-          <View style={styles.row}>
+          <View style={[styles.row, language.rtl && { flexDirection: 'row-reverse' }]}>
             <TextInput
-              style={[styles.input, styles.halfInput, errors.state && styles.inputError]}
-              placeholder="State"
+              style={[styles.input, styles.halfInput, errors.state && styles.inputError, language.rtl && { textAlign: 'right' }]}
+              placeholder={t.state}
               placeholderTextColor="#94A3B8"
-              value={address.state}
-              onChangeText={(t) => { setAddress({ ...address, state: t }); setErrors({ ...errors, state: undefined }); }}
+              value={address.state || ''}
+              onChangeText={(v) => { setAddress({ ...address, state: v }); setErrors({ ...errors, state: undefined }); }}
             />
             <TextInput
-              style={[styles.input, styles.halfInput, errors.zipCode && styles.inputError]}
-              placeholder="ZIP Code"
+              style={[styles.input, styles.halfInput, errors.zipCode && styles.inputError, language.rtl && { textAlign: 'right' }]}
+              placeholder={t.zipCode}
               placeholderTextColor="#94A3B8"
-              value={address.zipCode}
-              onChangeText={(t) => { setAddress({ ...address, zipCode: t }); setErrors({ ...errors, zipCode: undefined }); }}
+              value={address.zipCode || ''}
+              onChangeText={(v) => { setAddress({ ...address, zipCode: v }); setErrors({ ...errors, zipCode: undefined }); }}
             />
           </View>
           <TextInput
-            style={[styles.input, errors.country && styles.inputError]}
-            placeholder="Country"
+            style={[styles.input, errors.country && styles.inputError, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.country}
             placeholderTextColor="#94A3B8"
-            value={address.country}
-            onChangeText={(t) => { setAddress({ ...address, country: t }); setErrors({ ...errors, country: undefined }); }}
+            value={address.country || ''}
+            onChangeText={(v) => { setAddress({ ...address, country: v }); setErrors({ ...errors, country: undefined }); }}
           />
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
+        <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+          <View style={[styles.sectionHeader, language.rtl && { flexDirection: 'row-reverse' }]}>
             <CreditCard size={20} color="#1D4ED8" />
-            <Text style={styles.sectionTitle}>Payment Method</Text>
+            <Text style={styles.sectionTitle}>{t.paymentMethod}</Text>
           </View>
 
           <TouchableOpacity
-            style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive]}
+            style={[styles.paymentOption, paymentMethod === 'card' && styles.paymentOptionActive, language.rtl && { flexDirection: 'row-reverse' }]}
             onPress={() => setPaymentMethod('card')}
           >
-            <View style={[styles.radioButton, paymentMethod === 'card' && styles.radioButtonActive]}>
+            <View style={[styles.radioButton, paymentMethod === 'card' && styles.radioButtonActive, language.rtl && { marginRight: 0, marginLeft: 12 }]}>
               {paymentMethod === 'card' && <View style={styles.radioButtonInner} />}
             </View>
-            <Text style={styles.paymentOptionText}>Credit/Debit Card</Text>
+            <Text style={styles.paymentOptionText}>{t.creditDebitCard}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionActive]}
+            style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionActive, language.rtl && { flexDirection: 'row-reverse' }]}
             onPress={() => setPaymentMethod('cash')}
           >
-            <View style={[styles.radioButton, paymentMethod === 'cash' && styles.radioButtonActive]}>
+            <View style={[styles.radioButton, paymentMethod === 'cash' && styles.radioButtonActive, language.rtl && { marginRight: 0, marginLeft: 12 }]}>
               {paymentMethod === 'cash' && <View style={styles.radioButtonInner} />}
             </View>
-            <Text style={styles.paymentOptionText}>Cash on Delivery</Text>
+            <Text style={styles.paymentOptionText}>{t.cashOnDelivery}</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
+        <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.orderSummary}</Text>
           {cartItems.map((item) => (
-            <View key={item.id} style={styles.orderItem}>
-              <Text style={styles.orderItemName} numberOfLines={1}>
+            <View key={item.id} style={[styles.orderItem, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={[styles.orderItemName, language.rtl && { textAlign: 'right' }]} numberOfLines={1}>
                 {item.products.name} x {item.quantity}
               </Text>
               <Text style={styles.orderItemPrice}>
@@ -341,21 +350,21 @@ export default function CheckoutScreen() {
             </View>
           ))}
           <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal</Text>
+          <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+            <Text style={styles.summaryLabel}>{t.subtotal}</Text>
             <Text style={styles.summaryValue}>
-              {cartItems[0]?.products.currency || 'USD'} {calculateSubtotal().toFixed(2)}
+              {cartItems[0]?.products.currency} {calculateSubtotal().toFixed(2)}
             </Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Shipping</Text>
-            <Text style={styles.summaryValueGreen}>Free</Text>
+          <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+            <Text style={styles.summaryLabel}>{t.shipping}</Text>
+            <Text style={styles.summaryValueGreen}>{t.free}</Text>
           </View>
           <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabelBold}>Total</Text>
+          <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+            <Text style={styles.summaryLabelBold}>{t.total}</Text>
             <Text style={styles.summaryValueBold}>
-              {cartItems[0]?.products.currency || 'USD'} {calculateTotal().toFixed(2)}
+              {cartItems[0]?.products.currency} {calculateTotal().toFixed(2)}
             </Text>
           </View>
         </View>
@@ -372,7 +381,7 @@ export default function CheckoutScreen() {
           {placing ? (
             <ActivityIndicator color="#FFF" />
           ) : (
-            <Text style={styles.placeOrderButtonText}>Place Order</Text>
+            <Text style={styles.placeOrderButtonText}>{t.placeOrder}</Text>
           )}
         </TouchableOpacity>
       </View>

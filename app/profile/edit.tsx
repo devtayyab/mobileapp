@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Save } from 'lucide-react-native';
 
 export default function EditProfileScreen() {
   const { profile, user, refreshProfile } = useAuth();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -62,7 +64,7 @@ export default function EditProfileScreen() {
 
       await refreshProfile();
 
-      Alert.alert('Success', 'Profile updated successfully!', [
+      Alert.alert(t.success, t.profileUpdated, [
         {
           text: 'OK',
           onPress: () => router.back(),
@@ -70,46 +72,46 @@ export default function EditProfileScreen() {
       ]);
     } catch (error) {
       console.error('Error updating profile:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      Alert.alert(t.error, t.error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#000" />
+          <ArrowLeft size={24} color="#000" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{t.editProfile}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.personalInfo}</Text>
 
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.fullName}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter your full name"
+            style={[styles.input, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.enterFullName}
             value={fullName}
             onChangeText={setFullName}
           />
 
-          <Text style={styles.label}>Phone</Text>
+          <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.phone}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter your phone number"
+            style={[styles.input, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.phone}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
           />
 
-          <Text style={styles.label}>Email</Text>
+          <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.email}</Text>
           <TextInput
-            style={[styles.input, styles.inputDisabled]}
+            style={[styles.input, styles.inputDisabled, language.rtl && { textAlign: 'right' }]}
             value={profile?.email}
             editable={false}
           />
@@ -117,20 +119,20 @@ export default function EditProfileScreen() {
 
         {(profile?.role === 'b2b' || profile?.role === 'supplier') && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Business Information</Text>
+            <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.businessInfo}</Text>
 
-            <Text style={styles.label}>Company Name</Text>
+            <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.companyName}</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Enter company name"
+              style={[styles.input, language.rtl && { textAlign: 'right' }]}
+              placeholder={t.companyName}
               value={companyName}
               onChangeText={setCompanyName}
             />
 
-            <Text style={styles.label}>Tax ID</Text>
+            <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.taxId}</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Enter tax ID"
+              style={[styles.input, language.rtl && { textAlign: 'right' }]}
+              placeholder={t.taxId}
               value={taxId}
               onChangeText={setTaxId}
             />
@@ -138,50 +140,50 @@ export default function EditProfileScreen() {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Address</Text>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.address}</Text>
 
-          <Text style={styles.label}>Street Address</Text>
+          <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.streetAddress}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter street address"
+            style={[styles.input, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.streetAddress}
             value={street}
             onChangeText={setStreet}
           />
 
-          <Text style={styles.label}>City</Text>
+          <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.city}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter city"
+            style={[styles.input, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.city}
             value={city}
             onChangeText={setCity}
           />
 
-          <View style={styles.row}>
+          <View style={[styles.row, language.rtl && { flexDirection: 'row-reverse' }]}>
             <View style={styles.halfWidth}>
-              <Text style={styles.label}>State</Text>
+              <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.state}</Text>
               <TextInput
-                style={styles.input}
-                placeholder="State"
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.state}
                 value={state}
                 onChangeText={setState}
               />
             </View>
 
             <View style={styles.halfWidth}>
-              <Text style={styles.label}>ZIP Code</Text>
+              <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.zipCode}</Text>
               <TextInput
-                style={styles.input}
-                placeholder="ZIP Code"
+                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                placeholder={t.zipCode}
                 value={zipCode}
                 onChangeText={setZipCode}
               />
             </View>
           </View>
 
-          <Text style={styles.label}>Country</Text>
+          <Text style={[styles.label, language.rtl && { textAlign: 'right' }]}>{t.country}</Text>
           <TextInput
-            style={styles.input}
-            placeholder="Enter country"
+            style={[styles.input, language.rtl && { textAlign: 'right' }]}
+            placeholder={t.country}
             value={country}
             onChangeText={setCountry}
           />
@@ -199,7 +201,7 @@ export default function EditProfileScreen() {
           ) : (
             <>
               <Save size={20} color="#FFF" />
-              <Text style={styles.saveButtonText}>Save Changes</Text>
+              <Text style={styles.saveButtonText}>{t.save}</Text>
             </>
           )}
         </TouchableOpacity>

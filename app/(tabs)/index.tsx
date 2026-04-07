@@ -5,11 +5,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import {
   Search, Bell, Star, ArrowRight, Flame, Tag,
   TrendingUp, ShoppingBag, Zap, ChevronRight
 } from 'lucide-react-native';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 const { width } = Dimensions.get('window');
 
@@ -85,6 +88,9 @@ const CATEGORY_COLORS = [
 export default function HomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
+  const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
+  const { unreadCount } = useNotifications();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -160,34 +166,41 @@ export default function HomeScreen() {
 
   const isB2B = profile?.role === 'b2b';
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? t.goodMorning : hour < 17 ? t.goodAfternoon : t.goodEvening;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View style={styles.headerGreetWrap}>
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.userName} numberOfLines={1}>
               {profile?.full_name?.split(' ')[0] || 'Guest'}
-              {isB2B ? <Text style={styles.b2bSuffix}> · Wholesale</Text> : null}
+              {!!isB2B ? <Text style={styles.b2bSuffix}> · {t.wholesalePricing}</Text> : null}
             </Text>
           </View>
-          <View style={styles.headerIcons}>
+          <View style={[styles.headerIcons, language.rtl && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/search')}>
               <Search size={20} color="#374151" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn}>
+            <TouchableOpacity 
+              style={styles.iconBtn} 
+              onPress={() => router.push('/notifications' as any)}
+            >
               <Bell size={20} color="#374151" />
-              <View style={styles.notifDot} />
+              {unreadCount > 0 && (
+                <View style={styles.notifDot}>
+                  <Text style={styles.notifDotText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
         <TouchableOpacity style={styles.searchBar} onPress={() => router.push('/search')} activeOpacity={0.85}>
           <Search size={15} color="#9CA3AF" />
-          <Text style={styles.searchText}>Search products, brands, categories...</Text>
+          <Text style={styles.searchText}>{t.searchPlaceholder}</Text>
           <View style={styles.filterChip}>
-            <Text style={styles.filterChipText}>Filter</Text>
+            <Text style={styles.filterChipText}>{t.filter}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -197,10 +210,10 @@ export default function HomeScreen() {
           <View style={styles.b2bBanner}>
             <Tag size={16} color="#1D4ED8" />
             <View style={{ flex: 1 }}>
-              <Text style={styles.b2bBannerTitle}>Wholesale Pricing Active</Text>
-              <Text style={styles.b2bBannerSub}>Exclusive B2B prices on all products</Text>
+              <Text style={styles.b2bBannerTitle}>{t.wholesalePricing}</Text>
+              <Text style={styles.b2bBannerSub}>{t.exclusiveDeals}</Text>
             </View>
-            <ArrowRight size={15} color="#1D4ED8" />
+            <ArrowRight size={15} color="#1D4ED8" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </View>
         )}
 
@@ -226,13 +239,13 @@ export default function HomeScreen() {
                 <View style={[styles.heroBannerOverlay, { backgroundColor: banner.overlayColor }]}>
                   <View style={[styles.heroAccentPill, { backgroundColor: banner.accent }]}>
                     <Zap size={11} color="#FFF" />
-                    <Text style={styles.heroAccentText}>Special Offer</Text>
+                    <Text style={styles.heroAccentText}>{t.specialOffer}</Text>
                   </View>
                   <Text style={styles.heroBannerTitle}>{banner.title}</Text>
                   <Text style={styles.heroBannerSub}>{banner.subtitle}</Text>
                   <TouchableOpacity style={styles.heroBannerBtn} onPress={() => router.push('/(tabs)/shop')}>
-                    <Text style={styles.heroBannerBtnText}>{banner.cta}</Text>
-                    <ArrowRight size={13} color="#111827" />
+                    <Text style={styles.heroBannerBtnText}>{t.buyNow}</Text>
+                    <ArrowRight size={13} color="#111827" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -247,10 +260,10 @@ export default function HomeScreen() {
 
         <View style={styles.statsRow}>
           {[
-            { icon: <ShoppingBag size={16} color="#1D4ED8" />, bg: '#EFF6FF', num: '500+', label: 'Products' },
-            { icon: <TrendingUp size={16} color="#059669" />, bg: '#ECFDF5', num: '50+', label: 'Brands' },
-            { icon: <Flame size={16} color="#EA580C" />, bg: '#FFF7ED', num: 'Daily', label: 'Deals' },
-            { icon: <Star size={16} color="#B45309" fill="#B45309" />, bg: '#FFFBEB', num: '4.8★', label: 'Rating' },
+            { icon: <ShoppingBag size={16} color="#1D4ED8" />, bg: '#EFF6FF', num: '500+', label: t.products },
+            { icon: <TrendingUp size={16} color="#059669" />, bg: '#ECFDF5', num: '50+', label: t.brands },
+            { icon: <Flame size={16} color="#EA580C" />, bg: '#FFF7ED', num: t.deals, label: t.deals },
+            { icon: <Star size={16} color="#B45309" fill="#B45309" />, bg: '#FFFBEB', num: '4.8★', label: t.rating },
           ].map((s, i) => (
             <View key={i} style={styles.statItem}>
               {i > 0 && <View style={styles.statDivider} />}
@@ -263,10 +276,10 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>Browse Categories</Text>
+            <Text style={styles.sectionTitle}>{t.categories}</Text>
             <TouchableOpacity style={styles.seeAll} onPress={() => router.push('/(tabs)/categories')}>
-              <Text style={styles.seeAllText}>See all</Text>
-              <ChevronRight size={13} color="#1D4ED8" />
+              <Text style={styles.seeAllText}>{t.seeAll}</Text>
+              <ChevronRight size={13} color="#1D4ED8" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
@@ -298,13 +311,13 @@ export default function HomeScreen() {
           <View style={styles.flashBannerOverlay}>
             <View style={styles.flashBadge}>
               <Flame size={13} color="#FFF" />
-              <Text style={styles.flashBadgeText}>FLASH SALE</Text>
+              <Text style={styles.flashBadgeText}>{t.flashSale}</Text>
             </View>
-            <Text style={styles.flashTitle}>Up to 50% Off</Text>
-            <Text style={styles.flashSub}>Limited time fashion deals</Text>
+            <Text style={styles.flashTitle}>{t.upTo50Off}</Text>
+            <Text style={styles.flashSub}>{t.limitedTimeDeals}</Text>
             <View style={styles.flashBtn}>
-              <Text style={styles.flashBtnText}>Shop Now</Text>
-              <ArrowRight size={13} color="#FFF" />
+              <Text style={styles.flashBtnText}>{t.buyNow}</Text>
+              <ArrowRight size={13} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
             </View>
           </View>
         </TouchableOpacity>
@@ -314,11 +327,11 @@ export default function HomeScreen() {
             <View style={styles.sectionRow}>
               <View style={styles.sectionTitleRow}>
                 <Star size={17} color="#F59E0B" fill="#F59E0B" />
-                <Text style={styles.sectionTitle}>Featured</Text>
+                <Text style={styles.sectionTitle}>{t.featured}</Text>
               </View>
               <TouchableOpacity style={styles.seeAll} onPress={() => router.push('/(tabs)/shop')}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <ChevronRight size={13} color="#1D4ED8" />
+                <Text style={styles.seeAllText}>{t.seeAll}</Text>
+                <ChevronRight size={13} color="#1D4ED8" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
@@ -339,17 +352,17 @@ export default function HomeScreen() {
                       </View>
                       {p.stock_quantity < 10 && p.stock_quantity > 0 && (
                         <View style={styles.stockBadge}>
-                          <Text style={styles.stockBadgeText}>{p.stock_quantity} left</Text>
+                          <Text style={styles.stockBadgeText}>{p.stock_quantity} {t.left}</Text>
                         </View>
                       )}
                     </View>
                     <View style={styles.featInfo}>
-                      {(p.categories as any)?.name && (
+                      {!!((p.categories as any)?.name) && (
                         <Text style={styles.featCat}>{(p.categories as any).name}</Text>
                       )}
                       <Text style={styles.featName} numberOfLines={2}>{p.name}</Text>
                       <View style={styles.featPriceRow}>
-                        <Text style={styles.featPrice}>${getPrice(p).toFixed(2)}</Text>
+                        <Text style={styles.featPrice}>{formatPrice(getPrice(p))}</Text>
                         {isB2B && p.b2b_price && (
                           <View style={styles.wsBadge}>
                             <Text style={styles.wsBadgeText}>B2B</Text>
@@ -367,12 +380,12 @@ export default function HomeScreen() {
         <View style={styles.promoPair}>
           <TouchableOpacity style={[styles.promoCard, { backgroundColor: '#ECFDF5' }]} onPress={() => router.push('/(tabs)/shop')}>
             <TrendingUp size={20} color="#059669" />
-            <Text style={[styles.promoTitle, { color: '#065F46' }]}>New Arrivals</Text>
+            <Text style={[styles.promoTitle, { color: '#065F46' }]}>{t.newArrivals}</Text>
             <Text style={styles.promoSub}>Fresh weekly</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.promoCard, { backgroundColor: '#EFF6FF' }]} onPress={() => router.push('/(tabs)/shop')}>
             <Tag size={20} color="#1D4ED8" />
-            <Text style={[styles.promoTitle, { color: '#1E3A8A' }]}>Best Deals</Text>
+            <Text style={[styles.promoTitle, { color: '#1E3A8A' }]}>{t.bestDeals}</Text>
             <Text style={styles.promoSub}>Save more today</Text>
           </TouchableOpacity>
         </View>
@@ -382,11 +395,11 @@ export default function HomeScreen() {
             <View style={styles.sectionRow}>
               <View style={styles.sectionTitleRow}>
                 <TrendingUp size={17} color="#059669" />
-                <Text style={styles.sectionTitle}>New Arrivals</Text>
+                <Text style={styles.sectionTitle}>{t.newArrivals}</Text>
               </View>
               <TouchableOpacity style={styles.seeAll} onPress={() => router.push('/(tabs)/shop')}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <ChevronRight size={13} color="#1D4ED8" />
+                <Text style={styles.seeAllText}>{t.seeAll}</Text>
+                <ChevronRight size={13} color="#1D4ED8" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
               </TouchableOpacity>
             </View>
             <View style={styles.grid3}>
@@ -404,7 +417,7 @@ export default function HomeScreen() {
                       )}
                     </View>
                     <Text style={styles.gridName} numberOfLines={1}>{p.name}</Text>
-                    <Text style={styles.gridPrice}>${getPrice(p).toFixed(2)}</Text>
+                    <Text style={styles.gridPrice}>{formatPrice(getPrice(p))}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -419,11 +432,11 @@ export default function HomeScreen() {
             resizeMode="cover"
           />
           <View style={styles.bottomBannerOverlay}>
-            <Text style={styles.bottomBannerTitle}>Shop the Full Collection</Text>
-            <Text style={styles.bottomBannerSub}>Thousands of products from verified suppliers</Text>
+            <Text style={styles.bottomBannerTitle}>{t.browseAllProducts}</Text>
+            <Text style={styles.bottomBannerSub}>{t.thousandsProducts}</Text>
             <View style={styles.bottomBannerBtn}>
-              <Text style={styles.bottomBannerBtnText}>Browse All Products</Text>
-              <ArrowRight size={14} color="#111827" />
+              <Text style={styles.bottomBannerBtnText}>{t.browseAll}</Text>
+              <ArrowRight size={14} color="#111827" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
             </View>
           </View>
         </TouchableOpacity>
@@ -453,9 +466,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   notifDot: {
-    position: 'absolute', top: 8, right: 8, width: 8, height: 8,
-    borderRadius: 4, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#FFF',
+    position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18,
+    borderRadius: 9, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#FFF',
+    justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2,
   },
+  notifDotText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: '#F8FAFC', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,

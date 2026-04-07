@@ -118,45 +118,50 @@ export default function AdminOrdersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={22} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order Monitoring</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshBtn}>
-          <RefreshCw size={18} color="#6B7280" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.searchBar}>
-        <Search size={18} color="#9CA3AF" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by order # or customer..."
-          placeholderTextColor="#9CA3AF"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
-        {STATUSES.map((s) => (
+      <View style={styles.fixedTopSection}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
-            key={s}
-            style={[styles.filterTab, statusFilter === s && styles.filterTabActive]}
-            onPress={() => setStatusFilter(s)}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
+            style={styles.backBtn}
           >
-            <Text style={[styles.filterTabText, statusFilter === s && styles.filterTabTextActive]}>
-              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-            </Text>
-            {statusCounts[s] > 0 && (
-              <View style={[styles.tabCount, statusFilter === s && styles.tabCountActive]}>
-                <Text style={[styles.tabCountText, statusFilter === s && styles.tabCountTextActive]}>{statusCounts[s]}</Text>
-              </View>
-            )}
+            <ArrowLeft size={22} color="#111827" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          <Text style={styles.headerTitle}>Order Monitoring</Text>
+          <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
+            <RefreshCw size={20} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Search size={18} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by order # or customer..."
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={setSearch}
+          />
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterContent}>
+          {STATUSES.map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.filterTab, statusFilter === s && styles.filterTabActive]}
+              onPress={() => setStatusFilter(s)}
+            >
+              <Text style={[styles.filterTabText, statusFilter === s && styles.filterTabTextActive]}>
+                {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+              </Text>
+              {!!(statusCounts[s] > 0) && (
+                <View style={[styles.tabCount, statusFilter === s && styles.tabCountActive]}>
+                  <Text style={[styles.tabCountText, statusFilter === s && styles.tabCountTextActive]}>{statusCounts[s]}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {loading ? (
         <View style={styles.centerLoader}>
@@ -199,9 +204,16 @@ export default function AdminOrdersScreen() {
                   <Calendar size={12} color="#9CA3AF" />
                   <Text style={styles.date}>{new Date(item.created_at).toLocaleDateString()}</Text>
                 </View>
-                <View style={styles.amountRow}>
-                  <Text style={styles.itemCount}>{item.order_items?.length || 0} items</Text>
+                <View style={[styles.amountRow, { gap: 12 }]}>
                   <Text style={styles.amount}>${item.total?.toFixed(2)}</Text>
+                  {nextStatus[item.status] && (
+                    <TouchableOpacity
+                      style={styles.directActionBtn}
+                      onPress={() => updateOrderStatus(item.id, nextStatus[item.status])}
+                    >
+                      <ChevronRight size={16} color="#FFF" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -328,14 +340,20 @@ export default function AdminOrdersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fixedTopSection: {
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    zIndex: 10,
+  },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20, paddingBottom: 16,
+    backgroundColor: '#FFF',
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  refreshBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
+  headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 4,
@@ -375,9 +393,12 @@ const styles = StyleSheet.create({
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   date: { fontSize: 12, color: '#9CA3AF' },
-  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  itemCount: { fontSize: 12, color: '#9CA3AF' },
-  amount: { fontSize: 15, fontWeight: '800', color: '#111827' },
+  amountRow: { flexDirection: 'row', alignItems: 'center' },
+  amount: { fontSize: 16, fontWeight: '800', color: '#111827' },
+  directActionBtn: {
+    width: 32, height: 32, borderRadius: 8, backgroundColor: '#1E40AF',
+    justifyContent: 'center', alignItems: 'center',
+  },
   modalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
