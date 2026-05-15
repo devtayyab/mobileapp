@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Colors } from '@/constants/Colors';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
@@ -15,7 +16,11 @@ export default function RootLayout() {
       <CurrencyProvider>
         <AuthProvider>
           <NotificationProvider>
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: Colors.background.primary },
+                animation: 'fade',
+              }}>
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="admin" options={{ headerShown: false }} />
@@ -30,7 +35,7 @@ export default function RootLayout() {
               />
               <Stack.Screen name="+not-found" />
             </Stack>
-            <StatusBar style="auto" />
+            <StatusBar style="light" backgroundColor={Colors.background.primary} />
           </NotificationProvider>
         </AuthProvider>
       </CurrencyProvider>

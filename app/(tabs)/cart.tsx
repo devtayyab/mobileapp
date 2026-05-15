@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from 'lucide-react-native';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { Colors } from '@/constants/Colors';
 
 type CartItem = {
   id: string;
@@ -231,86 +232,86 @@ export default function CartScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: Colors.border.medium,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: Colors.text.primary, letterSpacing: -0.5 },
   countBadge: {
-    backgroundColor: '#1D4ED8', borderRadius: 12,
+    backgroundColor: Colors.secondary, borderRadius: 12,
     paddingHorizontal: 10, paddingVertical: 3,
   },
   countBadgeText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
   listContainer: { padding: 20, gap: 14, paddingBottom: 8 },
   cartItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: Colors.border.medium,
     gap: 12,
   },
   imageWrap: { borderRadius: 12, overflow: 'hidden' },
   itemImage: { width: 88, height: 88, borderRadius: 12 },
   imagePlaceholder: {
-    width: 88, height: 88, backgroundColor: '#F8FAFC',
+    width: 88, height: 88, backgroundColor: Colors.background.primary,
     borderRadius: 12, justifyContent: 'center', alignItems: 'center',
   },
   itemDetails: { flex: 1, justifyContent: 'space-between' },
-  itemName: { fontSize: 14, fontWeight: '600', color: '#111827', lineHeight: 20 },
-  itemPrice: { fontSize: 17, fontWeight: '800', color: '#1D4ED8' },
-  itemSubtotal: { fontSize: 12, color: '#94A3B8' },
+  itemName: { fontSize: 14, fontWeight: '600', color: Colors.text.primary, lineHeight: 20 },
+  itemPrice: { fontSize: 17, fontWeight: '800', color: Colors.secondary },
+  itemSubtotal: { fontSize: 12, color: Colors.text.tertiary },
   qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   qtyBtn: {
     width: 30, height: 30, borderRadius: 8,
-    backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.primary, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   qtyNumWrap: {
     minWidth: 32, height: 30, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.primary, borderRadius: 8, borderWidth: 1, borderColor: Colors.border.medium,
     paddingHorizontal: 8,
   },
-  qtyNum: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  qtyNum: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
   deleteBtn: {
     justifyContent: 'flex-start', paddingTop: 2,
   },
   footer: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     padding: 20,
     paddingBottom: 34,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: Colors.border.medium,
     gap: 10,
   },
   savingsRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#ECFDF5', padding: 10, borderRadius: 10,
+    backgroundColor: 'rgba(0, 168, 107, 0.1)', padding: 10, borderRadius: 10,
   },
-  savingsText: { fontSize: 13, fontWeight: '600', color: '#059669' },
+  savingsText: { fontSize: 13, fontWeight: '600', color: Colors.secondary },
   summaryRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  summaryLabel: { fontSize: 14, color: '#6B7280' },
-  summaryValue: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  summaryLabel: { fontSize: 14, color: Colors.text.tertiary },
+  summaryValue: { fontSize: 14, fontWeight: '600', color: Colors.text.primary },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    paddingTop: 10, borderTopWidth: 1, borderTopColor: Colors.border.medium,
   },
-  totalLabel: { fontSize: 17, fontWeight: '700', color: '#111827' },
-  totalAmount: { fontSize: 24, fontWeight: '800', color: '#111827' },
+  totalLabel: { fontSize: 17, fontWeight: '700', color: Colors.text.primary },
+  totalAmount: { fontSize: 24, fontWeight: '800', color: Colors.text.primary },
   checkoutBtn: {
-    backgroundColor: '#1D4ED8',
+    backgroundColor: Colors.secondary,
     paddingVertical: 16,
     borderRadius: 14,
     flexDirection: 'row',
@@ -322,19 +323,20 @@ const styles = StyleSheet.create({
   checkoutBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 40, gap: 12,
+    paddingHorizontal: 40, gap: 12, backgroundColor: Colors.background.primary,
   },
   emptyIconWrap: {
     width: 90, height: 90, borderRadius: 45,
-    backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center',
-    marginBottom: 8,
+    backgroundColor: Colors.background.secondary, justifyContent: 'center', alignItems: 'center',
+    marginBottom: 8, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  emptySub: { fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: Colors.text.primary },
+  emptySub: { fontSize: 14, color: Colors.text.tertiary, textAlign: 'center', lineHeight: 20 },
   signInBtn: {
-    backgroundColor: '#1D4ED8', paddingHorizontal: 32,
+    backgroundColor: Colors.secondary, paddingHorizontal: 32,
     paddingVertical: 14, borderRadius: 14,
     flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8,
   },
   signInBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });
+

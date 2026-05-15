@@ -1,5 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { ShoppingBag } from 'lucide-react-native';
+import { View, Image, StyleSheet } from 'react-native';
 
 type LogoProps = {
   size?: 'small' | 'medium' | 'large';
@@ -7,61 +6,46 @@ type LogoProps = {
 };
 
 export function Logo({ size = 'medium', variant = 'dark' }: LogoProps) {
-  const iconSize = size === 'large' ? 48 : size === 'medium' ? 36 : 24;
-  const fontSize = size === 'large' ? 32 : size === 'medium' ? 24 : 18;
-  const color = variant === 'light' ? '#ffffff' : '#333';
+  const dimensions = {
+    large: { width: 160, height: 160 },
+    medium: { width: 90, height: 90 },
+    small: { width: 48, height: 48 },
+  }[size];
+
+  const padding = {
+    large: 16,
+    medium: 10,
+    small: 6,
+  }[size];
 
   return (
-    <View style={styles.container}>
-      <View style={[
-        styles.iconContainer,
-        size === 'large' && styles.iconContainerLarge,
-        size === 'medium' && styles.iconContainerMedium,
-        size === 'small' && styles.iconContainerSmall,
-      ]}>
-        <ShoppingBag size={iconSize} color="#ffffff" strokeWidth={2.5} />
-      </View>
-      <Text style={[styles.text, { fontSize, color }]}>
-        Market<Text style={styles.accent}>Place</Text>
-      </Text>
+    <View style={[
+      styles.container,
+      {
+        width: dimensions.width + padding * 2,
+        height: dimensions.height + padding * 2,
+        padding,
+      }
+    ]}>
+      <Image
+        source={require('@/assets/images/logo.png')}
+        style={dimensions}
+        resizeMode="contain"
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  iconContainer: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center',
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
-    elevation: 4,
-  },
-  iconContainerLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-  },
-  iconContainerMedium: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-  },
-  iconContainerSmall: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-  },
-  text: {
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  accent: {
-    color: '#4CAF50',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
   },
 });

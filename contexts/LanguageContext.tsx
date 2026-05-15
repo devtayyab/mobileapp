@@ -244,6 +244,8 @@ export type Translations = {
   'name_ne': string;
   'description_ne': string;
   and: string;
+  welcomeBack: string;
+  authOptionsSubtitle: string;
 };
 
 type LanguageContextType = {

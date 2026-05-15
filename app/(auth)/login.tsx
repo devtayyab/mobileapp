@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
+
+const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -30,36 +34,28 @@ export default function LoginScreen() {
 
     if (error) {
       Alert.alert(t.loginFailed, error.message);
-    } else if (data.user) {
-      const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', data.user.id).single();
-
-      if (profile?.role === 'supplier') {
-        router.replace('/supplier/dashboard');
-      } else if (profile?.role === 'admin') {
-        router.replace('/admin');
-      } else {
-        router.replace('/(tabs)');
-      }
+    } else {
+      router.replace('/(tabs)');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, language.rtl && { direction: 'rtl' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topSection}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={22} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
+            <ArrowLeft size={22} color={Colors.text.primary} />
           </TouchableOpacity>
           <View style={styles.topContent}>
             <View style={styles.iconWrap}>
-              <Lock size={28} color="#FFF" />
+              <Lock size={32} color={Colors.secondary} />
             </View>
-            <Text style={styles.welcomeTitle}>{t.welcome}</Text>
-            <Text style={styles.welcomeSub}>{t.loginSubtitle}</Text>
+            <Text style={styles.welcomeTitle}>{t.welcome || 'Welcome Back'}</Text>
+            <Text style={styles.welcomeSub}>{t.loginSubtitle || 'Sign in to your account'}</Text>
           </View>
         </View>
 
@@ -67,16 +63,15 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.emailAddress}</Text>
             <View style={styles.inputRow}>
-              <Mail size={18} color="#94A3B8" />
+              <Mail size={18} color={Colors.text.tertiary} />
               <TextInput
-                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                style={styles.input}
                 placeholder={t.emailPlaceholder}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={Colors.text.tertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoCorrect={false}
               />
             </View>
           </View>
@@ -84,42 +79,42 @@ export default function LoginScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.password}</Text>
             <View style={styles.inputRow}>
-              <Lock size={18} color="#94A3B8" />
+              <Lock size={18} color={Colors.text.tertiary} />
               <TextInput
-                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                style={styles.input}
                 placeholder={t.passwordPlaceholder}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={Colors.text.tertiary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                {showPassword ? <EyeOff size={18} color="#94A3B8" /> : <Eye size={18} color="#94A3B8" />}
+                {showPassword ? <EyeOff size={18} color={Colors.text.tertiary} /> : <Eye size={18} color={Colors.text.tertiary} />}
               </TouchableOpacity>
             </View>
           </View>
 
           <TouchableOpacity
-            style={[styles.signInBtn, loading && styles.signInBtnDisabled]}
+            style={styles.signInBtn}
             onPress={handleLogin}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <>
-                <Text style={styles.signInBtnText}>{t.signIn}</Text>
-                <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
-              </>
-            )}
+            <LinearGradient
+              colors={Colors.gradients.premium}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientBtn}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.text.inverse} />
+              ) : (
+                <>
+                  <Text style={styles.signInBtnText}>{t.signIn}</Text>
+                  <ArrowRight size={20} color={Colors.text.inverse} />
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>{language.code === 'el' ? 'ή' : (language.code === 'es' ? 'o' : (language.code === 'fr' ? 'ou' : 'or'))}</Text>
-            <View style={styles.dividerLine} />
-          </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t.dontHaveAccount} </Text>
@@ -133,68 +128,83 @@ export default function LoginScreen() {
           <Text style={styles.guestBtnText}>{t.continueAsGuest}</Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   scrollContent: { flexGrow: 1 },
   topSection: {
-    backgroundColor: '#1E293B',
-    paddingTop: 56,
-    paddingBottom: 48,
+    paddingTop: 20,
+    paddingBottom: 30,
     paddingHorizontal: 24,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: Colors.background.secondary,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
   },
   topContent: { alignItems: 'center', gap: 10 },
   iconWrap: {
-    width: 64, height: 64, borderRadius: 20,
-    backgroundColor: '#1D4ED8',
+    width: 70, height: 70, borderRadius: 24,
+    backgroundColor: 'rgba(0, 168, 107, 0.1)',
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  welcomeTitle: { fontSize: 26, fontWeight: '800', color: '#F8FAFC', letterSpacing: -0.3 },
-  welcomeSub: { fontSize: 14, color: '#94A3B8' },
+  welcomeTitle: { fontSize: 30, fontWeight: '800', color: Colors.text.primary, letterSpacing: -1 },
+  welcomeSub: { fontSize: 16, color: Colors.text.tertiary, textAlign: 'center' },
   formCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     marginHorizontal: 20,
-    marginTop: -24,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    gap: 18,
+    borderColor: Colors.border.medium,
+    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  inputGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151' },
+  inputGroup: { gap: 10 },
+  label: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#F8FAFC', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 13,
-    borderWidth: 1.5, borderColor: '#E2E8F0',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.background.primary, borderRadius: 16,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderWidth: 1.5, borderColor: Colors.border.medium,
   },
-  input: { flex: 1, fontSize: 15, color: '#111827' },
-  eyeBtn: { padding: 2 },
+  input: { flex: 1, fontSize: 16, color: Colors.text.secondary },
+  eyeBtn: { padding: 4 },
   signInBtn: {
-    backgroundColor: '#1D4ED8', paddingVertical: 16,
-    borderRadius: 14, flexDirection: 'row',
-    justifyContent: 'center', alignItems: 'center', gap: 8,
-    marginTop: 4,
+    height: 60,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 10,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  signInBtnDisabled: { opacity: 0.6 },
-  signInBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#F1F5F9' },
-  dividerText: { fontSize: 13, color: '#94A3B8', fontWeight: '500' },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerText: { fontSize: 14, color: '#6B7280' },
-  linkText: { fontSize: 14, color: '#1D4ED8', fontWeight: '700' },
-  guestBtn: { alignItems: 'center', paddingVertical: 20 },
-  guestBtnText: { fontSize: 14, color: '#94A3B8', fontWeight: '500' },
+  gradientBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  signInBtnText: { color: Colors.text.inverse, fontSize: 18, fontWeight: '700' },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  footerText: { fontSize: 15, color: Colors.text.tertiary },
+  linkText: { fontSize: 15, color: Colors.secondary, fontWeight: '700' },
+  guestBtn: { alignItems: 'center', paddingVertical: 30 },
+  guestBtnText: { fontSize: 15, color: Colors.text.tertiary, fontWeight: '500' },
 });
+

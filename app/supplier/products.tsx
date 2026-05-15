@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Switch } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, Edit, Package } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type Product = {
   id: string;
@@ -210,7 +211,7 @@ export default function SupplierProducts() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -224,9 +225,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.border.medium,
   },
   backButton: {
     padding: 8,
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: Colors.text.primary,
   },
   addButton: {
     padding: 8,
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   productCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     borderRadius: 12,
     padding: 12,
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
@@ -258,13 +259,13 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.background.primary,
   },
   productImagePlaceholder: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.background.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -275,19 +276,19 @@ const styles = StyleSheet.create({
   productName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: Colors.text.primary,
     marginBottom: 4,
   },
   productPrice: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#10B981',
+    color: Colors.success,
     marginBottom: 4,
   },
   productPriceSecondary: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: Colors.text.tertiary,
   },
   stockRow: {
     flexDirection: 'row',
@@ -295,10 +296,10 @@ const styles = StyleSheet.create({
   },
   stockText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
   },
   lowStock: {
-    color: '#EF4444',
+    color: Colors.error,
     fontWeight: '600',
   },
   productActions: {
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6B7280',
+    color: Colors.text.tertiary,
   },
   editButton: {
     paddingVertical: 6,
@@ -329,7 +330,7 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#007AFF',
+    color: Colors.primary,
   },
   emptyContainer: {
     flex: 1,
@@ -340,13 +341,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: Colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
     textAlign: 'center',
     marginBottom: 24,
   },

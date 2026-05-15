@@ -12,6 +12,7 @@ import {
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
   Store, Shield, RefreshCw, Activity
 } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type AdminStats = {
   totalUsers: number;
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E40AF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
@@ -99,35 +100,35 @@ export default function AdminDashboard() {
     {
       label: 'Supplier Management',
       subtitle: 'KYC reviews & approvals',
-      icon: Store, color: '#2563EB', bg: '#EFF6FF',
+      icon: Store, color: Colors.primary, bg: Colors.background.tertiary,
       route: '/admin/suppliers',
       badge: stats.pendingKyc > 0 ? stats.pendingKyc : undefined,
-      badgeColor: '#EF4444',
+      badgeColor: Colors.error,
     },
     {
       label: 'Product Catalog',
       subtitle: 'Feature, activate & manage listings',
-      icon: Package, color: '#059669', bg: '#ECFDF5',
+      icon: Package, color: Colors.success, bg: Colors.background.tertiary,
       route: '/admin/products',
     },
     {
       label: 'Order Monitoring',
       subtitle: 'Track & update order statuses',
-      icon: ShoppingBag, color: '#D97706', bg: '#FFFBEB',
+      icon: ShoppingBag, color: Colors.warning, bg: Colors.background.tertiary,
       route: '/admin/orders',
       badge: stats.pendingOrders > 0 ? stats.pendingOrders : undefined,
-      badgeColor: '#F59E0B',
+      badgeColor: Colors.warning,
     },
     {
       label: 'Revenue Reports',
       subtitle: 'Platform earnings & commission',
-      icon: BarChart2, color: '#7C3AED', bg: '#F5F3FF',
+      icon: BarChart2, color: Colors.primaryLight, bg: Colors.background.tertiary,
       route: '/admin/reports',
     },
     {
       label: 'User Management',
       subtitle: 'All users, roles & analytics',
-      icon: Users, color: '#DC2626', bg: '#FEF2F2',
+      icon: Users, color: Colors.error, bg: Colors.background.tertiary,
       route: '/admin/users',
     },
   ];
@@ -156,7 +157,7 @@ export default function AdminDashboard() {
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
       >
         {!!(stats.pendingKyc > 0) && (
           <TouchableOpacity style={styles.alertBanner} onPress={() => router.push('/admin/suppliers')}>
@@ -192,12 +193,12 @@ export default function AdminDashboard() {
 
         <View style={styles.statsGrid}>
           {[
-            { label: 'Total Users', value: stats.totalUsers, color: '#1E40AF', bg: '#EFF6FF', icon: Users },
-            { label: 'Suppliers', value: stats.totalSuppliers, sub: `${stats.approvedSuppliers} approved`, color: '#059669', bg: '#ECFDF5', icon: Store },
-            { label: 'Total Orders', value: stats.totalOrders, color: '#D97706', bg: '#FFFBEB', icon: ShoppingBag },
-            { label: 'Pending Orders', value: stats.pendingOrders, color: '#DC2626', bg: '#FEF2F2', icon: Clock },
-            { label: 'Products', value: stats.totalProducts, sub: `${stats.activeProducts} active`, color: '#7C3AED', bg: '#F5F3FF', icon: Package },
-            { label: 'KYC Pending', value: stats.pendingKyc, color: '#B45309', bg: '#FEF3C7', icon: Activity },
+            { label: 'Total Users', value: stats.totalUsers, color: Colors.primary, bg: Colors.background.tertiary, icon: Users },
+            { label: 'Suppliers', value: stats.totalSuppliers, sub: `${stats.approvedSuppliers} approved`, color: Colors.success, bg: Colors.background.tertiary, icon: Store },
+            { label: 'Total Orders', value: stats.totalOrders, color: Colors.warning, bg: Colors.background.tertiary, icon: ShoppingBag },
+            { label: 'Pending Orders', value: stats.pendingOrders, color: Colors.error, bg: Colors.background.tertiary, icon: Clock },
+            { label: 'Products', value: stats.totalProducts, sub: `${stats.activeProducts} active`, color: Colors.primaryLight, bg: Colors.background.tertiary, icon: Package },
+            { label: 'KYC Pending', value: stats.pendingKyc, color: Colors.warning, bg: Colors.background.tertiary, icon: Activity },
           ].map((item) => {
             const Icon = item.icon;
             return (
@@ -250,86 +251,75 @@ export default function AdminDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F1F5F9' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#6B7280' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, backgroundColor: Colors.background.primary },
+  loadingText: { fontSize: 14, color: Colors.text.tertiary },
   header: {
-    backgroundColor: '#0F172A',
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    backgroundColor: Colors.background.secondary,
+    paddingBottom: 24, paddingHorizontal: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end',
+    borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
   headerLeft: { flex: 1, gap: 2 },
   adminBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#1E40AF', borderRadius: 6,
+    backgroundColor: Colors.primary, borderRadius: 6,
     paddingHorizontal: 8, paddingVertical: 2, alignSelf: 'flex-start',
   },
-  adminBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFF', letterSpacing: 0.5 },
-  headerName: { fontSize: 22, fontWeight: '900', color: '#F1F5F9', marginTop: 4 },
-  headerEmail: { fontSize: 13, color: '#94A3B8' },
+  adminBadgeText: { fontSize: 10, fontWeight: '800', color: Colors.text.inverse, letterSpacing: 0.5 },
+  headerName: { fontSize: 22, fontWeight: '900', color: Colors.text.primary, marginTop: 4 },
+  headerEmail: { fontSize: 13, color: Colors.text.tertiary },
   headerRight: { flexDirection: 'row', gap: 12, alignItems: 'center', paddingBottom: 4 },
   headerIconBtn: {
     width: 42, height: 42, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: Colors.background.tertiary,
     justifyContent: 'center', alignItems: 'center',
   },
   content: { flex: 1, paddingHorizontal: 16 },
   alertBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#FFFBEB', borderRadius: 14, padding: 14,
+    backgroundColor: Colors.background.tertiary, borderRadius: 14, padding: 14,
     marginTop: 16, marginBottom: 4,
-    borderWidth: 1, borderColor: '#FDE68A',
+    borderWidth: 1, borderColor: Colors.warning,
   },
   alertIcon: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.background.secondary, justifyContent: 'center', alignItems: 'center',
   },
   alertBody: { flex: 1 },
-  alertTitle: { fontSize: 14, fontWeight: '700', color: '#92400E' },
-  alertSub: { fontSize: 12, color: '#B45309', marginTop: 2 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginTop: 20, marginBottom: 10 },
+  alertTitle: { fontSize: 14, fontWeight: '700', color: Colors.warning },
+  alertSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
+  sectionLabel: { fontSize: 12, fontWeight: '700', color: Colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 1, marginTop: 20, marginBottom: 10 },
   revenueRow: { flexDirection: 'row', gap: 12 },
   revenueCard: {
-    flex: 1, backgroundColor: '#EFF6FF', borderRadius: 16, padding: 18,
-    alignItems: 'center', gap: 6,
+    flex: 1, backgroundColor: Colors.background.secondary, borderRadius: 16, padding: 18,
+    alignItems: 'center', gap: 6, borderWidth: 1, borderColor: Colors.border.medium,
   },
   revenueIconWrap: {
-    width: 44, height: 44, borderRadius: 14, backgroundColor: '#DBEAFE',
+    width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.background.tertiary,
     justifyContent: 'center', alignItems: 'center', marginBottom: 4,
   },
-  revenueValue: { fontSize: 22, fontWeight: '800', color: '#1E3A8A' },
-  revenueLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
-  statsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10,
-  },
+  revenueValue: { fontSize: 22, fontWeight: '800', color: Colors.primary },
+  revenueLabel: { fontSize: 12, color: Colors.text.tertiary, fontWeight: '500' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
   statCard: {
-    width: '30.5%', borderRadius: 14, padding: 12,
-    alignItems: 'center', gap: 4,
+    width: '30.5%', borderRadius: 14, padding: 12, alignItems: 'center', gap: 4,
+    backgroundColor: Colors.background.secondary, borderWidth: 1, borderColor: Colors.border.medium,
   },
   statValue: { fontSize: 20, fontWeight: '800' },
-  statLabel: { fontSize: 11, color: '#6B7280', fontWeight: '500', textAlign: 'center' },
+  statLabel: { fontSize: 11, color: Colors.text.tertiary, fontWeight: '500', textAlign: 'center' },
   statSub: { fontSize: 10, fontWeight: '600', opacity: 0.8 },
   navList: { gap: 10 },
   navItem: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#FFF', padding: 16, borderRadius: 16,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.secondary, padding: 16, borderRadius: 16,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  navIconWrap: {
-    width: 48, height: 48, borderRadius: 14,
-    justifyContent: 'center', alignItems: 'center',
-  },
+  navIconWrap: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   navText: { flex: 1 },
-  navLabel: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  navSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 2 },
+  navLabel: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
+  navSubtitle: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
   navRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  badgeWrap: {
-    borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 3,
-    minWidth: 24, alignItems: 'center',
-  },
+  badgeWrap: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, minWidth: 24, alignItems: 'center' },
   badgeText: { fontSize: 11, fontWeight: '800', color: '#FFF' },
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Switch
@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Save, Store, AlertCircle } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type SupplierData = {
   id: string;
@@ -274,42 +275,42 @@ export default function BusinessSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    backgroundColor: Colors.background.secondary, borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8FAFC',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
   notFoundContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32 },
-  notFoundText: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  notFoundText: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
   notFoundSub: { fontSize: 14, color: '#64748B', textAlign: 'center' },
   content: { flex: 1 },
   form: { padding: 20 },
   section: {
-    backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginBottom: 16,
+    backgroundColor: Colors.background.secondary, borderRadius: 16, padding: 16, marginBottom: 16,
     borderWidth: 1, borderColor: '#F1F5F9',
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
   fieldGroup: { marginBottom: 14 },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
-  required: { color: '#EF4444' },
+  label: { fontSize: 13, fontWeight: '700', color: Colors.text.primary, marginBottom: 6 },
+  required: { color: Colors.error },
   input: {
-    backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.primary, borderWidth: 1.5, borderColor: Colors.border.medium,
     borderRadius: 10, paddingVertical: 11, paddingHorizontal: 13,
-    fontSize: 14, color: '#111827',
+    fontSize: 14, color: Colors.text.primary,
   },
   textArea: { height: 90, textAlignVertical: 'top' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   toggleInfo: { flex: 1 },
-  toggleLabel: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  toggleSub: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
+  toggleLabel: { fontSize: 15, fontWeight: '600', color: Colors.text.primary },
+  toggleSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#1D4ED8', padding: 16, borderRadius: 14, gap: 8, marginTop: 4,
