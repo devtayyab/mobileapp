@@ -13,25 +13,25 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.text.secondary,
+        tabBarActiveTintColor: Colors.secondary,
+        tabBarInactiveTintColor: Colors.text.tertiary,
         tabBarStyle: {
-          backgroundColor: Colors.background.primary,
+          backgroundColor: Colors.background.secondary,
           borderTopWidth: 1,
-          borderTopColor: Colors.border.light,
+          borderTopColor: Colors.border.medium,
           height: tabBarHeight,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
-          shadowColor: Colors.shadow.medium,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 3,
-          elevation: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 10,
+          elevation: 20,
           flexDirection: language.rtl ? 'row-reverse' : 'row',
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '700',
         },
       }}
     >

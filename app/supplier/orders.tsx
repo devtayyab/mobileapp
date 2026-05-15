@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Package, Clock, CheckCircle, Truck } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type OrderItem = {
   id: string;
@@ -234,7 +235,7 @@ export default function SupplierOrders() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: Colors.background.primary,
   },
   loadingContainer: {
     flex: 1,
@@ -248,9 +249,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.border.medium,
   },
   backButton: {
     padding: 8,
@@ -258,19 +259,19 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: Colors.text.primary,
   },
   filterContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     gap: 8,
   },
   filterButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: Colors.background.primary,
   },
   filterButtonActive: {
     backgroundColor: '#007AFF',
@@ -278,7 +279,7 @@ const styles = StyleSheet.create({
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: Colors.text.tertiary,
   },
   filterTextActive: {
     color: '#FFF',
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   orderCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     borderRadius: 12,
     padding: 16,
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.05)',
@@ -306,12 +307,12 @@ const styles = StyleSheet.create({
   orderNumber: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: Colors.text.primary,
     marginBottom: 4,
   },
   orderDate: {
     fontSize: 13,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -340,13 +341,13 @@ const styles = StyleSheet.create({
   orderItemName: {
     flex: 1,
     fontSize: 14,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
     marginRight: 12,
   },
   orderItemPrice: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: Colors.text.primary,
   },
   orderFooter: {
     flexDirection: 'row',
@@ -356,12 +357,12 @@ const styles = StyleSheet.create({
   },
   footerLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
     marginBottom: 2,
   },
   footerValue: {
     fontSize: 14,
-    color: '#111827',
+    color: Colors.text.primary,
     fontWeight: '500',
   },
   totalContainer: {
@@ -369,13 +370,13 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
     marginBottom: 2,
   },
   totalAmount: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
+    color: Colors.success,
   },
   emptyContainer: {
     flex: 1,
@@ -386,13 +387,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: Colors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#6B7280',
+    color: Colors.text.tertiary,
     textAlign: 'center',
   },
 });

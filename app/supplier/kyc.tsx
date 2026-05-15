@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
@@ -10,6 +10,7 @@ import {
   ArrowLeft, FileText, CheckCircle, Clock, XCircle, Upload,
   Building2, User, CreditCard, AlertCircle, ChevronRight
 } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type KycDocument = {
   id: string;
@@ -36,7 +37,7 @@ const DOC_TYPES = [
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any; label: string }> = {
   pending: { color: '#92400E', bg: '#FEF3C7', icon: Clock, label: 'Pending Review' },
-  under_review: { color: '#1E40AF', bg: '#DBEAFE', icon: Clock, label: 'Under Review' },
+  under_review: { color: Colors.primary, bg: '#DBEAFE', icon: Clock, label: 'Under Review' },
   approved: { color: '#065F46', bg: '#D1FAE5', icon: CheckCircle, label: 'Approved' },
   rejected: { color: '#991B1B', bg: '#FEE2E2', icon: XCircle, label: 'Rejected' },
 };
@@ -359,15 +360,15 @@ export default function SupplierKycScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
   backBtn: { width: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
   content: { flex: 1, padding: 20 },
   statusBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -383,11 +384,11 @@ const styles = StyleSheet.create({
   rejectionInfo: { flex: 1 },
   rejectionTitle: { fontSize: 13, fontWeight: '700', color: '#991B1B', marginBottom: 2 },
   rejectionText: { fontSize: 13, color: '#7F1D1D' },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  sectionSubtitle: { fontSize: 13, color: '#6B7280', marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.text.primary, marginBottom: 4 },
+  sectionSubtitle: { fontSize: 13, color: Colors.text.tertiary, marginBottom: 16 },
   docCard: {
-    backgroundColor: '#FFF', borderRadius: 14, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, borderRadius: 14, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   docHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   docIconWrap: {
@@ -395,8 +396,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   docInfo: { flex: 1 },
-  docTitle: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  docDesc: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  docTitle: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
+  docDesc: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
   docStatusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   docStatusText: { fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
   docRejection: { backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, marginBottom: 10 },
@@ -405,21 +406,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: '#1E40AF', borderRadius: 10, padding: 12,
   },
-  uploadBtnSecondary: { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#D1D5DB' },
+  uploadBtnSecondary: { backgroundColor: Colors.background.primary, borderWidth: 1, borderColor: Colors.border.medium },
   uploadBtnText: { fontSize: 14, fontWeight: '600', color: '#FFF' },
-  uploadBtnTextSecondary: { color: '#374151' },
+  uploadBtnTextSecondary: { color: Colors.text.primary },
   urlInputContainer: { gap: 8 },
-  urlInputLabel: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  urlInputLabel: { fontSize: 13, fontWeight: '600', color: Colors.text.primary },
   urlInput: {
-    backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#D1D5DB',
-    borderRadius: 8, padding: 11, fontSize: 13, color: '#111827',
+    backgroundColor: Colors.background.primary, borderWidth: 1, borderColor: Colors.border.medium,
+    borderRadius: 8, padding: 11, fontSize: 13, color: Colors.text.primary,
   },
   urlInputActions: { flexDirection: 'row', gap: 10 },
   cancelUrlBtn: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#D1D5DB',
+    paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  cancelUrlBtnText: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  cancelUrlBtnText: { fontSize: 14, fontWeight: '600', color: Colors.text.tertiary },
   confirmUrlBtn: {
     flex: 2, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 10, borderRadius: 8, backgroundColor: '#1E40AF',
@@ -429,14 +430,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     backgroundColor: '#10B981', borderRadius: 14, padding: 16, marginTop: 8, marginBottom: 16,
   },
-  submitAllBtnDisabled: { backgroundColor: '#F3F4F6' },
+  submitAllBtnDisabled: { backgroundColor: Colors.background.primary },
   submitAllBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
-  submitAllBtnTextDisabled: { color: '#9CA3AF' },
+  submitAllBtnTextDisabled: { color: Colors.text.tertiary },
   infoBox: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     backgroundColor: '#EFF6FF', borderRadius: 12, padding: 14, marginBottom: 8,
   },
-  infoText: { flex: 1, fontSize: 13, color: '#1E40AF', lineHeight: 20 },
+  infoText: { flex: 1, fontSize: 13, color: Colors.primary, lineHeight: 20 },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  emptyTitle: { fontSize: 16, color: '#6B7280' },
+  emptyTitle: { fontSize: 16, color: Colors.text.tertiary },
 });

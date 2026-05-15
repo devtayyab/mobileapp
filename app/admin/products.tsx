@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Search, Package, Star, Eye, EyeOff, RefreshCw, TrendingDown } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type Product = {
   id: string;
@@ -107,21 +108,22 @@ export default function AdminProductsScreen() {
             onPress={() => router.canGoBack() ? router.back() : router.replace('/admin')}
             style={styles.backBtn}
           >
-            <ArrowLeft size={22} color="#111827" />
+            <ArrowLeft size={22} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Product Catalog</Text>
           <TouchableOpacity onPress={onRefresh} style={styles.headerIconBtn}>
-            <RefreshCw size={20} color="#6B7280" />
+            <RefreshCw size={20} color={Colors.text.tertiary} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchBar}>
-          <Search size={18} color="#9CA3AF" />
+          <Search size={18} color={Colors.text.tertiary} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search products or suppliers..."
             value={search}
             onChangeText={setSearch}
+            placeholderTextColor={Colors.text.tertiary}
           />
         </View>
 
@@ -213,75 +215,67 @@ export default function AdminProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
-  centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 12 },
   fixedTopSection: {
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    zIndex: 10,
+    backgroundColor: Colors.background.secondary,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.medium, zIndex: 10,
   },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: '#FFF',
+    paddingHorizontal: 20, paddingBottom: 16, backgroundColor: Colors.background.secondary,
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
   headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: Colors.text.primary, flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 12,
+    backgroundColor: Colors.background.primary, marginHorizontal: 16, marginTop: 12, marginBottom: 12,
     paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14,
-    borderWidth: 1, borderColor: '#E5E7EB',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#111827' },
+  searchInput: { flex: 1, fontSize: 15, color: Colors.text.primary },
   filterRow: { maxHeight: 48 },
   filterContent: { paddingHorizontal: 20, gap: 8, paddingBottom: 8 },
   filterTab: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.primary, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  filterTabActive: { backgroundColor: '#1E40AF', borderColor: '#1E40AF' },
-  filterTabText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  filterTabActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  filterTabText: { fontSize: 13, fontWeight: '600', color: Colors.text.tertiary },
   filterTabTextActive: { color: '#FFF' },
   list: { padding: 20, gap: 12 },
-  emptyText: { textAlign: 'center', color: '#9CA3AF', marginTop: 40 },
+  emptyText: { textAlign: 'center', color: Colors.text.tertiary, marginTop: 40 },
   card: {
-    backgroundColor: '#FFF', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
   cardIconWrap: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: '#F3F4F6',
+    width: 44, height: 44, borderRadius: 12, backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
   },
   cardInfo: { flex: 1 },
-  cardName: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  cardSupplier: { fontSize: 13, color: '#3B82F6', marginTop: 2 },
-  cardCategory: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
+  cardName: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
+  cardSupplier: { fontSize: 13, color: Colors.primary, marginTop: 2 },
+  cardCategory: { fontSize: 12, color: Colors.text.tertiary, marginTop: 1 },
   priceCol: { alignItems: 'flex-end' },
-  b2cPrice: { fontSize: 15, fontWeight: '800', color: '#111827' },
-  b2bPrice: { fontSize: 12, fontWeight: '600', color: '#6B7280', marginTop: 2 },
-  cardActions: { paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  b2cPrice: { fontSize: 15, fontWeight: '800', color: Colors.text.primary },
+  b2bPrice: { fontSize: 12, fontWeight: '600', color: Colors.text.tertiary, marginTop: 2 },
+  cardActions: { paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border.light },
   stockRow: { flexDirection: 'row', alignItems: 'center' },
-  stockText: { fontSize: 13, color: '#64748B' },
-  lowStockText: { color: '#EF4444' },
-  buttonActionRow: {
-    flexDirection: 'row', gap: 10, flexWrap: 'wrap',
-    marginTop: 8,
-  },
+  stockText: { fontSize: 13, color: Colors.text.tertiary },
+  lowStockText: { color: Colors.error },
+  buttonActionRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginTop: 8 },
   actionBtn: {
     flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F8FAFC',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: Colors.background.primary,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  featuredActive: { backgroundColor: '#F59E0B', borderColor: '#D97706' },
-  statusActive: { backgroundColor: '#10B981', borderColor: '#059669' },
-  statusInactive: { backgroundColor: '#94A3B8', borderColor: '#64748B' },
-  actionBtnText: { fontSize: 13, fontWeight: '700', color: '#475569' },
+  featuredActive: { backgroundColor: Colors.warning, borderColor: Colors.warning },
+  statusActive: { backgroundColor: Colors.success, borderColor: Colors.success },
+  statusInactive: { backgroundColor: Colors.border.dark, borderColor: Colors.border.dark },
+  actionBtnText: { fontSize: 13, fontWeight: '700', color: Colors.text.tertiary },
   textWhite: { color: '#FFF' },
 });

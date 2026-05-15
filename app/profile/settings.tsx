@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ArrowLeft, Bell, Lock, Eye, Globe, Check } from 'lucide-react-native';
 import { useLanguage, LANGUAGES, Language } from '@/contexts/LanguageContext';
 import { useCurrency, CURRENCIES, Currency } from '@/contexts/CurrencyContext';
+import { Colors } from '@/constants/Colors';
 
 export default function SettingsScreen() {
   const { language, t, setLanguage } = useLanguage();
@@ -37,7 +38,7 @@ export default function SettingsScreen() {
     <View style={[styles.container, !!language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <ArrowLeft size={24} color="#000" style={!!language.rtl && { transform: [{ rotate: '180deg' }] }} />
+          <ArrowLeft size={24} color={Colors.text.primary} style={!!language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.settings}</Text>
         <View style={{ width: 40 }} />
@@ -46,7 +47,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Bell size={20} color="#007AFF" />
+            <Bell size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>{t.notifications || 'Notifications'}</Text>
           </View>
 
@@ -58,7 +59,7 @@ export default function SettingsScreen() {
             <Switch
               value={pushNotifications}
               onValueChange={setPushNotifications}
-              trackColor={{ false: '#D1D5DB', true: '#007AFF' }}
+              trackColor={{ false: Colors.border.medium, true: Colors.primary }}
               thumbColor="#FFF"
             />
           </View>
@@ -71,7 +72,7 @@ export default function SettingsScreen() {
             <Switch
               value={emailNotifications}
               onValueChange={setEmailNotifications}
-              trackColor={{ false: '#D1D5DB', true: '#007AFF' }}
+              trackColor={{ false: Colors.border.medium, true: Colors.primary }}
               thumbColor="#FFF"
             />
           </View>
@@ -84,7 +85,7 @@ export default function SettingsScreen() {
             <Switch
               value={orderUpdates}
               onValueChange={setOrderUpdates}
-              trackColor={{ false: '#D1D5DB', true: '#007AFF' }}
+              trackColor={{ false: Colors.border.medium, true: Colors.primary }}
               thumbColor="#FFF"
             />
           </View>
@@ -97,7 +98,7 @@ export default function SettingsScreen() {
             <Switch
               value={promotions}
               onValueChange={setPromotions}
-              trackColor={{ false: '#D1D5DB', true: '#007AFF' }}
+              trackColor={{ false: Colors.border.medium, true: Colors.primary }}
               thumbColor="#FFF"
             />
           </View>
@@ -105,20 +106,20 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Lock size={20} color="#007AFF" />
+            <Lock size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>{t.privacy || 'Privacy & Security'}</Text>
           </View>
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
-              <Lock size={20} color="#6B7280" />
+              <Lock size={20} color={Colors.text.tertiary} />
               <Text style={styles.menuItemText}>{t.changePassword || 'Change Password'}</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
-              <Eye size={20} color="#6B7280" />
+              <Eye size={20} color={Colors.text.tertiary} />
               <Text style={styles.menuItemText}>{t.privacySettings || 'Privacy Settings'}</Text>
             </View>
           </TouchableOpacity>
@@ -126,7 +127,7 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Globe size={20} color="#007AFF" />
+            <Globe size={20} color={Colors.primary} />
             <Text style={styles.sectionTitle}>{t.general || 'General'}</Text>
           </View>
 
@@ -135,7 +136,7 @@ export default function SettingsScreen() {
             onPress={() => setLangModalVisible(true)}
           >
             <View style={styles.menuItemLeft}>
-              <Globe size={20} color="#6B7280" />
+              <Globe size={20} color={Colors.text.tertiary} />
               <View style={styles.menuItemTextContainer}>
                 <Text style={styles.menuItemText}>{t.language || 'Language'}</Text>
                 <Text style={styles.menuItemSubtext}>{language?.flag} {language?.nativeName}</Text>
@@ -192,7 +193,7 @@ export default function SettingsScreen() {
                     </View>
                   </View>
                   {language?.code === item.code && (
-                    <Check size={20} color="#007AFF" />
+                    <Check size={20} color={Colors.primary} />
                   )}
                 </TouchableOpacity>
               )}
@@ -232,7 +233,7 @@ export default function SettingsScreen() {
                     </View>
                   </View>
                   {activeCurrency?.code === item.code && (
-                    <Check size={20} color="#007AFF" />
+                    <Check size={20} color={Colors.primary} />
                   )}
                 </TouchableOpacity>
               )}
@@ -245,158 +246,55 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
+    backgroundColor: Colors.background.secondary,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  content: {
-    flex: 1,
-  },
+  backButton: { padding: 8 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.text.primary },
+  content: { flex: 1 },
   section: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    marginTop: 12,
+    backgroundColor: Colors.background.secondary, padding: 20, marginTop: 12,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginLeft: 8,
-  },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary, marginLeft: 8 },
   settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  settingLeft: {
-    flex: 1,
-  },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  settingDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
+  settingLeft: { flex: 1 },
+  settingLabel: { fontSize: 16, fontWeight: '600', color: Colors.text.primary, marginBottom: 4 },
+  settingDescription: { fontSize: 14, color: Colors.text.tertiary },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  menuItemTextContainer: {
-    flex: 1,
-  },
-  menuItemText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#111827',
-  },
-  menuItemSubtext: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  currencyIcon: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#6B7280',
-    width: 30,
-    textAlign: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
+  menuItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  menuItemTextContainer: { flex: 1 },
+  menuItemText: { fontSize: 16, fontWeight: '500', color: Colors.text.primary },
+  menuItemSubtext: { fontSize: 14, color: Colors.text.tertiary, marginTop: 2 },
+  currencyIcon: { fontSize: 20, fontWeight: '600', color: Colors.text.tertiary, width: 30, textAlign: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    paddingBottom: 40,
+    backgroundColor: Colors.background.secondary, borderTopLeftRadius: 24,
+    borderTopRightRadius: 24, maxHeight: '80%', paddingBottom: 40,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  closeText: {
-    fontSize: 16,
-    color: '#007AFF',
-    fontWeight: '600',
-  },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: Colors.text.primary },
+  closeText: { fontSize: 16, color: Colors.primary, fontWeight: '600' },
   langItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    padding: 20, borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  langItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    flex: 1,
-  },
-  langFlag: {
-    fontSize: 28,
-  },
-  langName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  langSubName: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginTop: 2,
-  },
+  langItemLeft: { flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 },
+  langFlag: { fontSize: 28 },
+  langName: { fontSize: 16, fontWeight: '600', color: Colors.text.primary },
+  langSubName: { fontSize: 14, color: Colors.text.tertiary, marginTop: 2 },
 });

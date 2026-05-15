@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl
 } from 'react-native';
@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, DollarSign, TrendingUp, ShoppingBag, Users, Percent, RefreshCw } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type ReportData = {
   totalRevenue: number;
@@ -128,7 +129,7 @@ export default function AdminReportsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}>
         <View style={styles.statsGrid}>
           <View style={styles.bigStatCard}>
             <DollarSign size={24} color="#1E40AF" />
@@ -225,16 +226,16 @@ export default function AdminReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
   headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: Colors.text.primary, flex: 1, textAlign: 'center' },
   content: { flex: 1, padding: 20 },
   statsGrid: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   bigStatCard: {
@@ -242,32 +243,32 @@ const styles = StyleSheet.create({
     alignItems: 'center', gap: 8,
   },
   bigStatValue: { fontSize: 22, fontWeight: '800', color: '#1E3A8A' },
-  bigStatLabel: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
+  bigStatLabel: { fontSize: 12, color: Colors.text.tertiary, fontWeight: '500' },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   smallStat: {
-    flex: 1, backgroundColor: '#FFF', borderRadius: 14, padding: 14,
-    alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#E5E7EB',
+    flex: 1, backgroundColor: Colors.background.secondary, borderRadius: 14, padding: 14,
+    alignItems: 'center', gap: 6, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  smallStatValue: { fontSize: 16, fontWeight: '800', color: '#111827' },
-  smallStatLabel: { fontSize: 11, color: '#9CA3AF', textAlign: 'center' },
+  smallStatValue: { fontSize: 16, fontWeight: '800', color: Colors.text.primary },
+  smallStatLabel: { fontSize: 11, color: Colors.text.tertiary, textAlign: 'center' },
   section: {
-    backgroundColor: '#FFF', borderRadius: 16, padding: 18, marginBottom: 16,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, borderRadius: 16, padding: 18, marginBottom: 16,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 16 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.text.primary, marginBottom: 16 },
   chartContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 100 },
   barGroup: { alignItems: 'center', flex: 1 },
   barContainer: { height: 80, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
   bar: { width: 20, backgroundColor: '#3B82F6', borderRadius: 4 },
   barEmpty: { backgroundColor: '#E5E7EB' },
-  barLabel: { fontSize: 10, color: '#9CA3AF', marginTop: 4 },
-  barValue: { fontSize: 9, color: '#3B82F6', fontWeight: '600', marginTop: 2 },
+  barLabel: { fontSize: 10, color: Colors.text.tertiary, marginTop: 4 },
+  barValue: { fontSize: 9, color: Colors.primary, fontWeight: '600', marginTop: 2 },
   statusList: { gap: 12 },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
-  statusLabel: { fontSize: 14, color: '#374151', width: 80 },
-  statusCount: { fontSize: 14, fontWeight: '700', color: '#111827', width: 30 },
-  statusBar: { flex: 1, height: 8, backgroundColor: '#F3F4F6', borderRadius: 4, overflow: 'hidden' },
+  statusLabel: { fontSize: 14, color: Colors.text.primary, width: 80 },
+  statusCount: { fontSize: 14, fontWeight: '700', color: Colors.text.primary, width: 30 },
+  statusBar: { flex: 1, height: 8, backgroundColor: Colors.background.primary, borderRadius: 4, overflow: 'hidden' },
   statusBarFill: { height: '100%', borderRadius: 4 },
   supplierRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -277,9 +278,9 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14, backgroundColor: '#EFF6FF',
     justifyContent: 'center', alignItems: 'center',
   },
-  supplierRankText: { fontSize: 13, fontWeight: '700', color: '#1E40AF' },
+  supplierRankText: { fontSize: 13, fontWeight: '700', color: Colors.primary },
   supplierInfo: { flex: 1 },
-  supplierName: { fontSize: 14, fontWeight: '600', color: '#111827' },
-  supplierOrders: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
-  supplierRevenue: { fontSize: 15, fontWeight: '800', color: '#10B981' },
+  supplierName: { fontSize: 14, fontWeight: '600', color: Colors.text.primary },
+  supplierOrders: { fontSize: 12, color: Colors.text.tertiary, marginTop: 1 },
+  supplierRevenue: { fontSize: 15, fontWeight: '800', color: Colors.success },
 });

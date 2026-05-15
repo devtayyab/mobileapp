@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Briefcase, Store } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
+
+const { width } = Dimensions.get('window');
 
 type UserRole = 'customer' | 'b2b' | 'supplier';
 
@@ -20,12 +25,12 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
 
   const ROLES: Array<{ key: UserRole; label: string; sub: string; icon: any; color: string; bg: string }> = [
-    { key: 'customer', label: t.customerRole, sub: t.customerSub, icon: ShoppingBag, color: '#059669', bg: '#ECFDF5' },
-    { key: 'b2b', label: t.wholesaleRole, sub: t.wholesaleSub, icon: Briefcase, color: '#1D4ED8', bg: '#EFF6FF' },
-    { key: 'supplier', label: t.supplierRole, sub: t.supplierSub, icon: Store, color: '#D97706', bg: '#FFFBEB' },
+    { key: 'customer', label: t.customerRole || 'Buyer', sub: t.customerSub || 'Shop products', icon: ShoppingBag, color: Colors.secondary, bg: 'rgba(0, 168, 107, 0.1)' },
+    { key: 'b2b', label: t.wholesaleRole || 'B2B', sub: t.wholesaleSub || 'Business trade', icon: Briefcase, color: Colors.primary, bg: 'rgba(192, 192, 192, 0.1)' },
+    { key: 'supplier', label: t.supplierRole || 'Supplier', sub: t.supplierSub || 'Sell products', icon: Store, color: Colors.secondaryLight, bg: 'rgba(80, 200, 120, 0.1)' },
   ];
 
   const handleRegister = async () => {
@@ -53,23 +58,24 @@ export default function RegisterScreen() {
     if (error) {
       Alert.alert(t.registrationFailed, error.message);
     } else {
-      router.push('/(auth)/login')
+      router.push('/(auth)/login');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, language.rtl && { direction: 'rtl' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topSection}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <ArrowLeft size={22} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
+            <ArrowLeft size={22} color={Colors.text.primary} />
           </TouchableOpacity>
           <View style={styles.topContent}>
             <View style={styles.iconWrap}>
-              <User size={28} color="#FFF" />
+              <User size={32} color={Colors.secondary} />
             </View>
             <Text style={styles.welcomeTitle}>{t.createAccount}</Text>
             <Text style={styles.welcomeSub}>{t.joinMarketplace}</Text>
@@ -83,14 +89,14 @@ export default function RegisterScreen() {
               {ROLES.map(({ key, label, sub, icon: Icon, color, bg }) => (
                 <TouchableOpacity
                   key={key}
-                  style={[styles.roleCard, role === key && styles.roleCardActive, role === key && { borderColor: color }]}
+                  style={[styles.roleCard, role === key && { borderColor: color, backgroundColor: 'rgba(255,255,255,0.02)' }]}
                   onPress={() => setRole(key)}
                   activeOpacity={0.8}
                 >
-                  <View style={[styles.roleIcon, { backgroundColor: role === key ? bg : '#F8FAFC' }]}>
-                    <Icon size={18} color={role === key ? color : '#94A3B8'} />
+                  <View style={[styles.roleIcon, { backgroundColor: role === key ? bg : Colors.background.primary }]}>
+                    <Icon size={18} color={role === key ? color : Colors.text.tertiary} />
                   </View>
-                  <Text style={[styles.roleLabel, role === key && { color }]}>{label}</Text>
+                  <Text style={[styles.roleLabel, { color: role === key ? color : Colors.text.primary }]}>{label}</Text>
                   <Text style={styles.roleSub}>{sub}</Text>
                 </TouchableOpacity>
               ))}
@@ -98,17 +104,16 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.fullName} <Text style={{ color: '#EF4444' }}>*</Text></Text>
+            <Text style={styles.label}>{t.fullName} <Text style={{ color: Colors.secondary }}>*</Text></Text>
             <View style={styles.inputRow}>
-              <User size={18} color="#94A3B8" />
+              <User size={18} color={Colors.text.tertiary} />
               <TextInput
-                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                style={styles.input}
                 placeholder={t.enterFullName}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={Colors.text.tertiary}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
-                autoCorrect={false}
               />
             </View>
           </View>
@@ -116,16 +121,15 @@ export default function RegisterScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.emailAddress}</Text>
             <View style={styles.inputRow}>
-              <Mail size={18} color="#94A3B8" />
+              <Mail size={18} color={Colors.text.tertiary} />
               <TextInput
-                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                style={styles.input}
                 placeholder="your@email.com"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={Colors.text.tertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                autoCorrect={false}
               />
             </View>
           </View>
@@ -133,18 +137,17 @@ export default function RegisterScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.password}</Text>
             <View style={styles.inputRow}>
-              <Lock size={18} color="#94A3B8" />
+              <Lock size={18} color={Colors.text.tertiary} />
               <TextInput
-                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                style={styles.input}
                 placeholder={t.atLeast6Chars}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={Colors.text.tertiary}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                {showPassword ? <EyeOff size={18} color="#94A3B8" /> : <Eye size={18} color="#94A3B8" />}
+                {showPassword ? <EyeOff size={18} color={Colors.text.tertiary} /> : <Eye size={18} color={Colors.text.tertiary} />}
               </TouchableOpacity>
             </View>
           </View>
@@ -152,32 +155,38 @@ export default function RegisterScreen() {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.confirmPassword}</Text>
             <View style={styles.inputRow}>
-              <Lock size={18} color="#94A3B8" />
+              <Lock size={18} color={Colors.text.tertiary} />
               <TextInput
-                style={[styles.input, language.rtl && { textAlign: 'right' }]}
+                style={styles.input}
                 placeholder={t.reEnterPassword}
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={Colors.text.tertiary}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showPassword}
-                autoCapitalize="none"
               />
             </View>
           </View>
 
           <TouchableOpacity
-            style={[styles.createBtn, loading && styles.createBtnDisabled]}
+            style={styles.createBtn}
             onPress={handleRegister}
             disabled={loading}
           >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <>
-                <Text style={styles.createBtnText}>{t.createAccount}</Text>
-                <ArrowRight size={18} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
-              </>
-            )}
+            <LinearGradient
+              colors={Colors.gradients.premium}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientBtn}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.text.inverse} />
+              ) : (
+                <>
+                  <Text style={styles.createBtnText}>{t.createAccount}</Text>
+                  <ArrowRight size={20} color={Colors.text.inverse} />
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
           <View style={styles.footer}>
@@ -194,83 +203,101 @@ export default function RegisterScreen() {
           {' '}{t.and}{' '}
           <Text style={styles.termsLink}>{t.privacyPolicy}</Text>
         </Text>
-        <View style={{ height: 32 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   scrollContent: { flexGrow: 1 },
   topSection: {
-    backgroundColor: '#1E293B',
-    paddingTop: 56,
-    paddingBottom: 48,
+    paddingTop: 20,
+    paddingBottom: 30,
     paddingHorizontal: 24,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: Colors.background.secondary,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
   },
   topContent: { alignItems: 'center', gap: 10 },
   iconWrap: {
-    width: 64, height: 64, borderRadius: 20,
-    backgroundColor: '#059669',
+    width: 70, height: 70, borderRadius: 24,
+    backgroundColor: 'rgba(0, 168, 107, 0.1)',
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  welcomeTitle: { fontSize: 26, fontWeight: '800', color: '#F8FAFC', letterSpacing: -0.3 },
-  welcomeSub: { fontSize: 14, color: '#94A3B8' },
+  welcomeTitle: { fontSize: 30, fontWeight: '800', color: Colors.text.primary, letterSpacing: -1 },
+  welcomeSub: { fontSize: 16, color: Colors.text.tertiary, textAlign: 'center' },
   formCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     marginHorizontal: 20,
-    marginTop: -24,
-    borderRadius: 24,
+    borderRadius: 28,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
-    gap: 18,
+    borderColor: Colors.border.medium,
+    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  roleSection: { gap: 10 },
+  roleSection: { gap: 12 },
   roleGrid: { flexDirection: 'row', gap: 8 },
   roleCard: {
-    flex: 1, alignItems: 'center', padding: 12, borderRadius: 14,
-    borderWidth: 1.5, borderColor: '#E2E8F0', gap: 4,
+    flex: 1, alignItems: 'center', padding: 12, borderRadius: 16,
+    borderWidth: 1.5, borderColor: Colors.border.medium, gap: 6,
+    backgroundColor: Colors.background.primary,
   },
-  roleCardActive: { borderWidth: 2 },
   roleIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
+    width: 40, height: 40, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 2,
   },
-  roleLabel: { fontSize: 12, fontWeight: '700', color: '#374151' },
-  roleSub: { fontSize: 10, color: '#94A3B8', textAlign: 'center' },
-  inputGroup: { gap: 8 },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151' },
+  roleLabel: { fontSize: 12, fontWeight: '800' },
+  roleSub: { fontSize: 10, color: Colors.text.tertiary, textAlign: 'center' },
+  inputGroup: { gap: 10 },
+  label: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#F8FAFC', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 13,
-    borderWidth: 1.5, borderColor: '#E2E8F0',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.background.primary, borderRadius: 16,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderWidth: 1.5, borderColor: Colors.border.medium,
   },
-  input: { flex: 1, fontSize: 15, color: '#111827' },
-  eyeBtn: { padding: 2 },
+  input: { flex: 1, fontSize: 16, color: Colors.text.secondary },
+  eyeBtn: { padding: 4 },
   createBtn: {
-    backgroundColor: '#059669', paddingVertical: 16,
-    borderRadius: 14, flexDirection: 'row',
-    justifyContent: 'center', alignItems: 'center', gap: 8,
-    marginTop: 4,
+    height: 60,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 10,
+    shadowColor: Colors.secondary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  createBtnDisabled: { opacity: 0.6 },
-  createBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  footerText: { fontSize: 14, color: '#6B7280' },
-  linkText: { fontSize: 14, color: '#1D4ED8', fontWeight: '700' },
+  gradientBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  createBtnText: { color: Colors.text.inverse, fontSize: 18, fontWeight: '700' },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  footerText: { fontSize: 15, color: Colors.text.tertiary },
+  linkText: { fontSize: 15, color: Colors.secondary, fontWeight: '700' },
   termsText: {
-    fontSize: 12, color: '#94A3B8', textAlign: 'center',
-    paddingHorizontal: 32, marginTop: 16, lineHeight: 18,
+    fontSize: 12, color: Colors.text.tertiary, textAlign: 'center',
+    paddingHorizontal: 32, marginTop: 20, lineHeight: 18,
   },
-  termsLink: { color: '#1D4ED8', fontWeight: '600' },
+  termsLink: { color: Colors.secondary, fontWeight: '600' },
 });
+
