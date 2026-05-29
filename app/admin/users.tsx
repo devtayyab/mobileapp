@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, ScrollView, Modal, Alert, RefreshControl
@@ -10,6 +10,7 @@ import {
   ArrowLeft, Search, Users, ShoppingBag, Building2, User,
   Mail, Calendar, ChevronDown, RefreshCw, Shield, Edit
 } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type UserProfile = {
   id: string;
@@ -150,9 +151,9 @@ export default function AdminUsersScreen() {
 
         <View style={styles.statsRow}>
           {[
-            { label: 'Total', value: stats.total, color: '#111827', bg: '#F9FAFB' },
+            { label: 'Total', value: stats.total, color: Colors.text.primary, bg: '#F9FAFB' },
             { label: 'Customers', value: stats.customers, color: '#065F46', bg: '#ECFDF5' },
-            { label: 'B2B', value: stats.b2b, color: '#1E40AF', bg: '#EFF6FF' },
+            { label: 'B2B', value: stats.b2b, color: Colors.primary, bg: '#EFF6FF' },
             { label: 'Suppliers', value: stats.suppliers, color: '#5B21B6', bg: '#F5F3FF' },
             { label: 'Admins', value: stats.admins, color: '#991B1B', bg: '#FEF2F2' },
           ].map((s) => (
@@ -203,7 +204,7 @@ export default function AdminUsersScreen() {
           data={filtered}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1E40AF" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Users size={40} color="#D1D5DB" />
@@ -326,59 +327,59 @@ export default function AdminUsersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fixedTopSection: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: Colors.border.medium,
     zIndex: 10,
   },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingBottom: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
   headerIconBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111827', flex: 1, textAlign: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: Colors.text.primary, flex: 1, textAlign: 'center' },
   statsRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
   },
   statCard: {
     flex: 1, borderRadius: 10, padding: 8, alignItems: 'center',
   },
   statNum: { fontSize: 16, fontWeight: '800' },
-  statLbl: { fontSize: 10, color: '#6B7280', marginTop: 2, textAlign: 'center' },
+  statLbl: { fontSize: 10, color: Colors.text.tertiary, marginTop: 2, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#FFF', marginHorizontal: 16, marginTop: 12, marginBottom: 4,
+    backgroundColor: Colors.background.secondary, marginHorizontal: 16, marginTop: 12, marginBottom: 4,
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  searchInput: { flex: 1, fontSize: 15, color: '#111827' },
+  searchInput: { flex: 1, fontSize: 15, color: Colors.text.primary },
   filterRow: { maxHeight: 52 },
   filterContent: { paddingHorizontal: 16, gap: 8, paddingBottom: 8, paddingTop: 4 },
   filterTab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.primary, borderWidth: 1, borderColor: Colors.border.medium,
   },
   filterTabActive: { backgroundColor: '#1E40AF', borderColor: '#1E40AF' },
-  filterTabText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  filterTabText: { fontSize: 13, fontWeight: '600', color: Colors.text.tertiary },
   filterTabTextActive: { color: '#FFF' },
   tabCount: { backgroundColor: '#E5E7EB', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 },
   tabCountActive: { backgroundColor: 'rgba(255,255,255,0.25)' },
-  tabCountText: { fontSize: 11, fontWeight: '700', color: '#6B7280' },
+  tabCountText: { fontSize: 11, fontWeight: '700', color: Colors.text.tertiary },
   tabCountTextActive: { color: '#FFF' },
   list: { padding: 16, gap: 10 },
   emptyContainer: { alignItems: 'center', paddingTop: 60, gap: 12 },
-  emptyText: { color: '#9CA3AF', fontSize: 15 },
+  emptyText: { color: Colors.text.tertiary, fontSize: 15 },
   card: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#FFF', borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   avatar: {
@@ -386,12 +387,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   cardInfo: { flex: 1 },
-  name: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  name: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
   emailRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  email: { fontSize: 12, color: '#6B7280' },
+  email: { fontSize: 12, color: Colors.text.tertiary },
   company: { fontSize: 12, color: '#2563EB', marginTop: 2, fontWeight: '500' },
   joinedRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
-  joined: { fontSize: 11, color: '#9CA3AF' },
+  joined: { fontSize: 11, color: Colors.text.tertiary },
   cardRight: { alignItems: 'flex-end' },
   editBadgeBtn: {
     flexDirection: 'row', alignItems: 'center',
@@ -403,31 +404,31 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: Colors.background.secondary, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 20,
   },
   sheetHandle: {
     width: 40, height: 4, borderRadius: 2, backgroundColor: '#D1D5DB',
     alignSelf: 'center', marginBottom: 20,
   },
-  sheetTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 16 },
+  sheetTitle: { fontSize: 18, fontWeight: '800', color: Colors.text.primary, marginBottom: 16 },
   userCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#F9FAFB', borderRadius: 14, padding: 14, marginBottom: 16,
+    backgroundColor: Colors.background.primary, borderRadius: 14, padding: 14, marginBottom: 16,
   },
   sheetAvatar: {
     width: 46, height: 46, borderRadius: 14,
     justifyContent: 'center', alignItems: 'center',
   },
   sheetAvatarText: { fontSize: 20, fontWeight: '800' },
-  sheetUserName: { fontSize: 15, fontWeight: '700', color: '#111827' },
-  sheetUserEmail: { fontSize: 13, color: '#6B7280', marginTop: 2 },
-  sheetSubtitle: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sheetUserName: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
+  sheetUserEmail: { fontSize: 13, color: Colors.text.tertiary, marginTop: 2 },
+  sheetSubtitle: { fontSize: 13, fontWeight: '700', color: Colors.text.primary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   roleOptions: { gap: 8, marginBottom: 16 },
   roleOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: '#E5E7EB',
-    backgroundColor: '#FFF',
+    borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: Colors.border.medium,
+    backgroundColor: Colors.background.secondary,
   },
   roleOptionIcon: {
     width: 40, height: 40, borderRadius: 12,
@@ -435,11 +436,11 @@ const styles = StyleSheet.create({
   },
   roleOptionInfo: { flex: 1 },
   roleOptionLabel: { fontSize: 15, fontWeight: '700' },
-  roleOptionDesc: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  roleOptionDesc: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
   currentBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
   currentBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
   cancelBtn: {
-    backgroundColor: '#F3F4F6', borderRadius: 14, padding: 15, alignItems: 'center',
+    backgroundColor: Colors.background.primary, borderRadius: 14, padding: 15, alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 15, fontWeight: '600', color: '#374151' },
+  cancelBtnText: { fontSize: 15, fontWeight: '600', color: Colors.text.primary },
 });

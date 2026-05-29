@@ -11,8 +11,10 @@ import {
   Search, Bell, Star, ArrowRight, Flame, Tag,
   TrendingUp, ShoppingBag, Zap, ChevronRight
 } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
@@ -91,6 +93,7 @@ export default function HomeScreen() {
   const { t, language } = useLanguage();
   const { formatPrice } = useCurrency();
   const { unreadCount } = useNotifications();
+  const insets = useSafeAreaInsets();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -170,7 +173,7 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 10, 20) }]}>
         <View style={styles.headerTop}>
           <View style={styles.headerGreetWrap}>
             <Text style={styles.greeting}>{greeting}</Text>
@@ -448,50 +451,51 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {
-    backgroundColor: '#FFF', paddingTop: 56, paddingBottom: 12, paddingHorizontal: 20,
-    borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    backgroundColor: Colors.background.secondary, paddingBottom: 12, paddingHorizontal: 20,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   headerGreetWrap: { flex: 1, paddingRight: 10 },
-  greeting: { fontSize: 12, color: '#9CA3AF', fontWeight: '500', letterSpacing: 0.3 },
-  userName: { fontSize: 22, fontWeight: '800', color: '#111827', marginTop: 3 },
-  b2bSuffix: { fontSize: 18, fontWeight: '600', color: '#1D4ED8' },
+  greeting: { fontSize: 12, color: Colors.text.tertiary, fontWeight: '500', letterSpacing: 0.3 },
+  userName: { fontSize: 22, fontWeight: '800', color: Colors.text.primary, marginTop: 3 },
+  b2bSuffix: { fontSize: 18, fontWeight: '600', color: Colors.secondary },
   headerIcons: { flexDirection: 'row', gap: 8 },
   iconBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8FAFC',
-    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.background.primary,
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: Colors.border.medium,
     position: 'relative',
   },
   notifDot: {
     position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18,
-    borderRadius: 9, backgroundColor: '#EF4444', borderWidth: 1.5, borderColor: '#FFF',
+    borderRadius: 9, backgroundColor: Colors.secondary, borderWidth: 1.5, borderColor: Colors.background.secondary,
     justifyContent: 'center', alignItems: 'center', paddingHorizontal: 2,
   },
   notifDotText: { color: '#FFF', fontSize: 9, fontWeight: '800' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#F8FAFC', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: Colors.background.primary, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  searchText: { flex: 1, fontSize: 13, color: '#9CA3AF' },
-  filterChip: { backgroundColor: '#EFF6FF', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  filterChipText: { fontSize: 12, fontWeight: '700', color: '#1D4ED8' },
+  searchText: { flex: 1, fontSize: 13, color: Colors.text.tertiary },
+  filterChip: { backgroundColor: 'rgba(0, 168, 107, 0.1)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  filterChipText: { fontSize: 12, fontWeight: '700', color: Colors.secondary },
   b2bBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#EFF6FF', marginHorizontal: 16, marginTop: 14, marginBottom: 4,
-    borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#BFDBFE',
+    backgroundColor: 'rgba(0, 168, 107, 0.05)', marginHorizontal: 16, marginTop: 14, marginBottom: 4,
+    borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  b2bBannerTitle: { fontSize: 13, fontWeight: '700', color: '#1D4ED8' },
-  b2bBannerSub: { fontSize: 12, color: '#3B82F6', marginTop: 1 },
+  b2bBannerTitle: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  b2bBannerSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 1 },
   heroWrap: { marginTop: 14 },
   heroBanner: { height: 210, overflow: 'hidden', position: 'relative' },
   heroBannerBg: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   heroBannerOverlay: { flex: 1, paddingHorizontal: 24, paddingVertical: 26, justifyContent: 'flex-end' },
   heroAccentPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
+    backgroundColor: Colors.secondary,
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 10,
   },
   heroAccentText: { fontSize: 10, fontWeight: '800', color: '#FFF', textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -505,110 +509,111 @@ const styles = StyleSheet.create({
   heroDots: {
     flexDirection: 'row', justifyContent: 'center', gap: 6, paddingVertical: 10,
   },
-  heroDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#CBD5E1' },
-  heroDotActive: { width: 20, height: 6, borderRadius: 3, backgroundColor: '#1D4ED8' },
+  heroDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.border.dark },
+  heroDotActive: { width: 20, height: 6, borderRadius: 3, backgroundColor: Colors.secondary },
   statsRow: {
-    flexDirection: 'row', backgroundColor: '#FFF', marginHorizontal: 16,
-    borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB',
+    flexDirection: 'row', backgroundColor: Colors.background.secondary, marginHorizontal: 16,
+    borderRadius: 16, borderWidth: 1, borderColor: Colors.border.medium,
     paddingVertical: 14, overflow: 'hidden',
   },
   statItem: { flex: 1, alignItems: 'center', gap: 4 },
-  statDivider: { position: 'absolute', left: 0, top: 10, bottom: 10, width: 1, backgroundColor: '#F1F5F9' },
+  statDivider: { position: 'absolute', left: 0, top: 10, bottom: 10, width: 1, backgroundColor: Colors.border.light },
   statIcon: { width: 34, height: 34, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  statNum: { fontSize: 13, fontWeight: '800', color: '#111827' },
-  statLbl: { fontSize: 10, color: '#9CA3AF', fontWeight: '500' },
+  statNum: { fontSize: 13, fontWeight: '800', color: Colors.text.primary },
+  statLbl: { fontSize: 10, color: Colors.text.tertiary, fontWeight: '500' },
   section: { paddingHorizontal: 16, marginTop: 22 },
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
   seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  seeAllText: { fontSize: 13, fontWeight: '600', color: '#1D4ED8' },
+  seeAllText: { fontSize: 13, fontWeight: '600', color: Colors.secondary },
   catRow: { gap: 12, paddingRight: 4 },
   catCard: { alignItems: 'center', width: 72 },
-  catImgWrap: { width: 62, height: 62, borderRadius: 18, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', marginBottom: 7 },
+  catImgWrap: { width: 62, height: 62, borderRadius: 18, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', marginBottom: 7, borderWidth: 1, borderColor: Colors.border.medium },
   catImg: { width: '100%', height: '100%' },
   catLetter: { fontSize: 22, fontWeight: '800' },
-  catName: { fontSize: 11, fontWeight: '600', color: '#374151', textAlign: 'center' },
+  catName: { fontSize: 11, fontWeight: '600', color: Colors.text.tertiary, textAlign: 'center' },
   flashBanner: {
     marginHorizontal: 16, marginTop: 20, borderRadius: 20, overflow: 'hidden', height: 120,
     flexDirection: 'row',
   },
   flashBannerImg: { width: 130, height: '100%' },
   flashBannerOverlay: {
-    flex: 1, backgroundColor: '#1A1A2E', padding: 16, justifyContent: 'center', gap: 4,
+    flex: 1, backgroundColor: Colors.background.secondary, padding: 16, justifyContent: 'center', gap: 4,
   },
   flashBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start',
-    backgroundColor: '#E94560', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginBottom: 3,
+    backgroundColor: Colors.secondary, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 20, marginBottom: 3,
   },
   flashBadgeText: { fontSize: 10, fontWeight: '800', color: '#FFF', letterSpacing: 0.5 },
-  flashTitle: { fontSize: 20, fontWeight: '800', color: '#FFF' },
-  flashSub: { fontSize: 12, color: 'rgba(255,255,255,0.72)' },
+  flashTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
+  flashSub: { fontSize: 12, color: Colors.text.tertiary },
   flashBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6,
-    backgroundColor: '#E94560', alignSelf: 'flex-start',
+    backgroundColor: Colors.secondary, alignSelf: 'flex-start',
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
   },
   flashBtnText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
   hScroll: { gap: 14 },
   featCard: {
-    width: 158, backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: '#F1F5F9',
+    width: 158, backgroundColor: Colors.background.secondary, borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   featImgWrap: { position: 'relative' },
   featImg: { width: '100%', height: 158 },
   featImgPlaceholder: {
-    width: '100%', height: 158, backgroundColor: '#F8FAFC',
+    width: '100%', height: 158, backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
   },
   featStarBadge: {
-    position: 'absolute', top: 8, right: 8, backgroundColor: '#FFF',
+    position: 'absolute', top: 8, right: 8, backgroundColor: Colors.background.secondary,
     borderRadius: 10, padding: 5,
   },
   stockBadge: {
-    position: 'absolute', bottom: 8, left: 8, backgroundColor: '#EF4444',
+    position: 'absolute', bottom: 8, left: 8, backgroundColor: Colors.secondary,
     paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7,
   },
   stockBadgeText: { fontSize: 9, fontWeight: '700', color: '#FFF' },
   featInfo: { padding: 11 },
-  featCat: { fontSize: 9, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 },
-  featName: { fontSize: 12, fontWeight: '600', color: '#111827', marginBottom: 8, minHeight: 32 },
+  featCat: { fontSize: 9, fontWeight: '700', color: Colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 },
+  featName: { fontSize: 12, fontWeight: '600', color: Colors.text.primary, marginBottom: 8, minHeight: 32 },
   featPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  featPrice: { fontSize: 15, fontWeight: '800', color: '#1D4ED8' },
-  wsBadge: { backgroundColor: '#DBEAFE', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-  wsBadgeText: { fontSize: 9, fontWeight: '700', color: '#1D4ED8' },
+  featPrice: { fontSize: 15, fontWeight: '800', color: Colors.secondary },
+  wsBadge: { backgroundColor: 'rgba(0, 168, 107, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
+  wsBadgeText: { fontSize: 9, fontWeight: '700', color: Colors.secondary },
   promoPair: { flexDirection: 'row', gap: 12, paddingHorizontal: 16, marginTop: 20 },
   promoCard: {
     flex: 1, borderRadius: 16, padding: 16, gap: 5, minHeight: 100, justifyContent: 'center',
+    backgroundColor: Colors.background.secondary, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  promoTitle: { fontSize: 14, fontWeight: '700' },
-  promoSub: { fontSize: 12, color: '#6B7280' },
+  promoTitle: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
+  promoSub: { fontSize: 12, color: Colors.text.tertiary },
   grid3: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   gridCard: {
-    width: (width - 32 - 20) / 3, backgroundColor: '#FFF',
-    borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9',
+    width: (width - 32 - 20) / 3, backgroundColor: Colors.background.secondary,
+    borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: Colors.border.medium,
   },
   gridImgWrap: { width: '100%', aspectRatio: 1 },
   gridImg: { width: '100%', height: '100%' },
   gridImgPlaceholder: {
-    width: '100%', height: '100%', backgroundColor: '#F8FAFC',
+    width: '100%', height: '100%', backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  gridName: { fontSize: 11, fontWeight: '600', color: '#374151', padding: 7, paddingBottom: 2 },
-  gridPrice: { fontSize: 12, fontWeight: '800', color: '#1D4ED8', paddingHorizontal: 7, paddingBottom: 8 },
+  gridName: { fontSize: 11, fontWeight: '600', color: Colors.text.primary, padding: 7, paddingBottom: 2 },
+  gridPrice: { fontSize: 12, fontWeight: '800', color: Colors.secondary, paddingHorizontal: 7, paddingBottom: 8 },
   bottomBanner: {
     height: 170, marginHorizontal: 16, marginTop: 22, borderRadius: 20,
     overflow: 'hidden', position: 'relative',
   },
   bottomBannerImg: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   bottomBannerOverlay: {
-    flex: 1, backgroundColor: 'rgba(15,23,42,0.75)', justifyContent: 'center', padding: 24,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 24,
   },
   bottomBannerTitle: { fontSize: 22, fontWeight: '800', color: '#FFF', marginBottom: 5 },
   bottomBannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.78)', marginBottom: 16 },
   bottomBannerBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start',
-    backgroundColor: '#FFF', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
+    backgroundColor: Colors.secondary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12,
   },
-  bottomBannerBtnText: { fontSize: 13, fontWeight: '700', color: '#111827' },
+  bottomBannerBtnText: { fontSize: 13, fontWeight: '700', color: '#FFF' },
 });

@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type KycStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | null;
 
@@ -152,7 +153,7 @@ export default function SupplierDashboard() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
@@ -163,12 +164,12 @@ export default function SupplierDashboard() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-            <Menu size={24} color="#111827" />
+            <Menu size={24} color={Colors.text.primary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
         <TouchableOpacity style={styles.notificationButton}>
-          <Bell size={24} color="#111827" />
+            <Bell size={24} color={Colors.text.primary} />
           <View style={styles.badge} />
         </TouchableOpacity>
       </View>
@@ -184,14 +185,12 @@ export default function SupplierDashboard() {
             ]}
             onPress={() => router.push('/supplier/kyc')}
           >
-            {kycStatus === 'approved' ? (
-              <ShieldCheck size={20} color="#065F46" />
-            ) : kycStatus === 'under_review' ? (
-              <Clock size={20} color="#1E40AF" />
+            {kycStatus === 'under_review' ? (
+              <Clock size={20} color={Colors.primary} />
             ) : kycStatus === 'rejected' ? (
-              <AlertCircle size={20} color="#991B1B" />
+              <AlertCircle size={20} color={Colors.error} />
             ) : (
-              <AlertCircle size={20} color="#92400E" />
+              <AlertCircle size={20} color={Colors.warning} />
             )}
             <View style={styles.kycBannerText}>
               <Text style={[
@@ -227,32 +226,32 @@ export default function SupplierDashboard() {
         {/* Stats Grid */}
         <View style={styles.statsContainer}>
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: '#E0F2FE' }]}>
+            <View style={[styles.statCard, { backgroundColor: Colors.background.secondary }]}>
               <View style={styles.statIconWrapper}>
-                <DollarSign size={20} color="#0284C7" />
+                <DollarSign size={20} color={Colors.primary} />
               </View>
               <Text style={styles.statLabel}>Revenue</Text>
               <Text style={styles.statValue}>${data.totalRevenue.toFixed(0)}</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#DCFCE7' }]}>
-              <View style={[styles.statIconWrapper, { backgroundColor: 'rgba(22, 163, 74, 0.1)' }]}>
-                <ShoppingCart size={20} color="#16A34A" />
+            <View style={[styles.statCard, { backgroundColor: Colors.background.secondary }]}>
+              <View style={[styles.statIconWrapper, { backgroundColor: Colors.background.tertiary }]}>
+                <ShoppingCart size={20} color={Colors.success} />
               </View>
               <Text style={styles.statLabel}>Orders</Text>
               <Text style={styles.statValue}>{data.totalOrders}</Text>
             </View>
           </View>
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: '#F3E8FF' }]}>
-              <View style={[styles.statIconWrapper, { backgroundColor: 'rgba(147, 51, 234, 0.1)' }]}>
-                <TrendingUp size={20} color="#9333EA" />
+            <View style={[styles.statCard, { backgroundColor: Colors.background.secondary }]}>
+              <View style={[styles.statIconWrapper, { backgroundColor: Colors.background.tertiary }]}>
+                <TrendingUp size={20} color={Colors.primaryLight} />
               </View>
               <Text style={styles.statLabel}>Pending</Text>
               <Text style={styles.statValue}>{data.pendingOrders}</Text>
             </View>
-            <View style={[styles.statCard, { backgroundColor: '#FFEDD5' }]}>
-              <View style={[styles.statIconWrapper, { backgroundColor: 'rgba(234, 88, 12, 0.1)' }]}>
-                <Package size={20} color="#EA580C" />
+            <View style={[styles.statCard, { backgroundColor: Colors.background.secondary }]}>
+              <View style={[styles.statIconWrapper, { backgroundColor: Colors.background.tertiary }]}>
+                <Package size={20} color={Colors.warning} />
               </View>
               <Text style={styles.statLabel}>Products</Text>
               <Text style={styles.statValue}>{data.totalProducts}</Text>
@@ -270,8 +269,8 @@ export default function SupplierDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/supplier/products')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#EEF2FF' }]}>
-              <Package size={24} color="#4F46E5" />
+            <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
+              <Package size={24} color={Colors.primary} />
             </View>
             <Text style={styles.actionTitle}>Products</Text>
           </TouchableOpacity>
@@ -280,8 +279,8 @@ export default function SupplierDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/supplier/orders')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#ECFDF5' }]}>
-              <ShoppingCart size={24} color="#059669" />
+            <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
+              <ShoppingCart size={24} color={Colors.success} />
             </View>
             <Text style={styles.actionTitle}>Orders</Text>
           </TouchableOpacity>
@@ -290,8 +289,8 @@ export default function SupplierDashboard() {
             style={styles.actionCard}
             onPress={() => { /* Navigate to analytics */ }}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#FEF2F2' }]}>
-              <TrendingUp size={24} color="#DC2626" />
+            <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
+              <TrendingUp size={24} color={Colors.primaryLight} />
             </View>
             <Text style={styles.actionTitle}>Analytics</Text>
           </TouchableOpacity>
@@ -300,8 +299,8 @@ export default function SupplierDashboard() {
             style={styles.actionCard}
             onPress={() => router.push('/supplier/business-settings')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: '#F3F4F6' }]}>
-              <Settings size={24} color="#4B5563" />
+            <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
+              <Settings size={24} color={Colors.text.tertiary} />
             </View>
             <Text style={styles.actionTitle}>Settings</Text>
           </TouchableOpacity>
@@ -453,375 +452,135 @@ export default function SupplierDashboard() {
 
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'delivered': return '#10B981';
-    case 'shipped': return '#007AFF';
-    case 'processing': return '#F59E0B';
-    case 'cancelled': return '#EF4444';
-    default: return '#6B7280';
+    case 'delivered': return Colors.success;
+    case 'shipped': return Colors.primary;
+    case 'processing': return Colors.warning;
+    case 'cancelled': return Colors.error;
+    default: return Colors.text.tertiary;
   }
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  // Header
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFF',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
+    backgroundColor: Colors.background.secondary,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  menuButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  notificationButton: {
-    position: 'relative',
-    padding: 4,
-  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  menuButton: { padding: 4 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.text.primary },
+  notificationButton: { position: 'relative', padding: 4 },
   badge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
+    position: 'absolute', top: 4, right: 4, width: 8, height: 8,
+    borderRadius: 4, backgroundColor: Colors.error,
   },
-  // Content
-  content: {
-    flex: 1,
-    padding: 20,
-  },
+  content: { flex: 1, padding: 20 },
   welcomeSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    padding: 24,
-    borderRadius: 20,
-    marginBottom: 24,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: Colors.background.secondary, padding: 24, borderRadius: 20,
+    marginBottom: 24, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  welcomeInfo: {
-    flex: 1,
-  },
-  welcomeTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  welcomeSubtitle: {
-    fontSize: 14,
-    color: '#94A3B8',
-  },
+  welcomeInfo: { flex: 1 },
+  welcomeTitle: { fontSize: 22, fontWeight: '700', color: Colors.text.primary, marginBottom: 4 },
+  welcomeSubtitle: { fontSize: 14, color: Colors.text.tertiary },
   avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center',
   },
-  // Stats
-  statsContainer: {
-    gap: 12,
-    marginBottom: 32,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  statsContainer: { gap: 12, marginBottom: 32 },
+  statsRow: { flexDirection: 'row', gap: 12 },
   statCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    justifyContent: 'center',
+    flex: 1, padding: 16, borderRadius: 16, justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   statIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: Colors.background.tertiary,
+    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
   },
-  statLabel: {
-    fontSize: 13,
-    color: '#4B5563',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  // Action Grid
+  statLabel: { fontSize: 13, color: Colors.text.tertiary, fontWeight: '600', marginBottom: 4 },
+  statValue: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#4F46E5',
-    fontWeight: '600',
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 32,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
+  seeAllText: { fontSize: 14, color: Colors.primary, fontWeight: '600' },
+  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 32 },
   actionCard: {
-    width: '48%',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    width: '48%', backgroundColor: Colors.background.secondary, padding: 16,
+    borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 12,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center',
   },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  // Recent Orders
-  ordersList: {
-    gap: 12,
-  },
+  actionTitle: { fontSize: 14, fontWeight: '600', color: Colors.text.primary },
+  ordersList: { gap: 12 },
   orderItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.background.secondary, padding: 16, borderRadius: 12,
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   orderIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F9FAFB',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.background.primary,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
   },
-  orderInfo: {
-    flex: 1,
-  },
-  orderId: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  orderDate: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
-  orderMeta: {
-    alignItems: 'flex-end',
-  },
-  statusBadge: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#9CA3AF',
-    marginTop: 20,
-  },
-  // Side Menu
+  orderInfo: { flex: 1 },
+  orderId: { fontSize: 15, fontWeight: '600', color: Colors.text.primary },
+  orderDate: { fontSize: 13, color: Colors.text.tertiary },
+  orderMeta: { alignItems: 'flex-end' },
+  statusBadge: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
+  emptyText: { textAlign: 'center', color: Colors.text.tertiary, marginTop: 20 },
   overlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    zIndex: 100,
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 100,
   },
   sideMenu: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    width: width * 0.8,
-    backgroundColor: '#FFF',
-    zIndex: 101,
-    paddingTop: 50,
-    paddingBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
+    position: 'absolute', top: 0, bottom: 0, left: 0, width: width * 0.8,
+    backgroundColor: Colors.background.secondary, zIndex: 101,
+    paddingTop: 50, paddingBottom: 20,
+    shadowColor: Colors.shadow.dark, shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.3, shadowRadius: 10, elevation: 10,
   },
   menuHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 30,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, marginBottom: 30,
   },
-  menuProfile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  menuProfile: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4F46E5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary,
+    justifyContent: 'center', alignItems: 'center',
   },
-  menuAvatarText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  menuName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  menuRole: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
-  menuItems: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
+  menuAvatarText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  menuName: { fontSize: 16, fontWeight: '700', color: Colors.text.primary },
+  menuRole: { fontSize: 12, color: Colors.text.tertiary },
+  menuItems: { flex: 1, paddingHorizontal: 20 },
   menuSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#9CA3AF',
-    textTransform: 'uppercase',
-    marginBottom: 12,
-    marginTop: 12,
+    fontSize: 12, fontWeight: '700', color: Colors.text.tertiary,
+    textTransform: 'uppercase', marginBottom: 12, marginTop: 12,
   },
   menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12,
   },
-  menuRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  menuRowText: {
-    fontSize: 15,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 12,
-  },
-  menuFooter: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-  },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#EF4444',
-  },
-  menuRowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
+  menuRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  menuRowText: { fontSize: 15, color: Colors.text.primary, fontWeight: '500' },
+  menuDivider: { height: 1, backgroundColor: Colors.border.medium, marginVertical: 12 },
+  menuFooter: { padding: 20, borderTopWidth: 1, borderTopColor: Colors.border.medium },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  logoutText: { fontSize: 15, fontWeight: '600', color: Colors.error },
+  menuRowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   kycBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.background.tertiary, borderRadius: 14, padding: 14,
+    marginBottom: 16, borderWidth: 1, borderColor: Colors.warning,
   },
-  kycBannerRejected: {
-    backgroundColor: '#FEE2E2',
-    borderColor: '#FCA5A5',
-  },
-  kycBannerReview: {
-    backgroundColor: '#DBEAFE',
-    borderColor: '#93C5FD',
-  },
-  kycBannerText: {
-    flex: 1,
-  },
-  kycBannerTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#92400E',
-  },
-  kycBannerSub: {
-    fontSize: 12,
-    color: '#92400EAA',
-    marginTop: 2,
-  },
-  kycBadge: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#EF4444',
-  },
+  kycBannerRejected: { backgroundColor: Colors.background.tertiary, borderColor: Colors.error },
+  kycBannerReview: { backgroundColor: Colors.background.tertiary, borderColor: Colors.primary },
+  kycBannerText: { flex: 1 },
+  kycBannerTitle: { fontSize: 14, fontWeight: '700', color: Colors.warning },
+  kycBannerSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
+  kycBadge: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.error },
 });

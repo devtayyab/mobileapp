@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type Category = {
   id: string;
@@ -427,61 +428,61 @@ function FieldError({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 14, color: '#64748B' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16,
-    backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
+    backgroundColor: Colors.background.secondary, borderBottomWidth: 1, borderBottomColor: '#F1F5F9',
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8FAFC',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
   errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, padding: 32 },
-  errorTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  errorTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
   errorSub: { fontSize: 14, color: '#64748B', textAlign: 'center' },
   retryBtn: { backgroundColor: '#1D4ED8', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, marginTop: 8 },
   retryBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
   content: { flex: 1 },
   form: { padding: 20 },
   section: {
-    backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginBottom: 16,
+    backgroundColor: Colors.background.secondary, borderRadius: 16, padding: 16, marginBottom: 16,
     borderWidth: 1, borderColor: '#F1F5F9',
   },
-  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: Colors.text.tertiary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 14 },
   fieldGroup: { marginBottom: 14 },
   row: { flexDirection: 'row' },
-  label: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 6 },
-  labelSub: { fontSize: 11, color: '#94A3B8', marginBottom: 6, marginTop: -4 },
-  required: { color: '#EF4444' },
+  label: { fontSize: 13, fontWeight: '700', color: Colors.text.primary, marginBottom: 6 },
+  labelSub: { fontSize: 11, color: Colors.text.tertiary, marginBottom: 6, marginTop: -4 },
+  required: { color: Colors.error },
   input: {
-    backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.primary, borderWidth: 1.5, borderColor: Colors.border.medium,
     borderRadius: 10, paddingVertical: 11, paddingHorizontal: 13,
-    fontSize: 14, color: '#111827',
+    fontSize: 14, color: Colors.text.primary,
   },
   inputError: { borderColor: '#EF4444', backgroundColor: '#FEF2F2' },
   textArea: { height: 90, textAlignVertical: 'top' },
   selectBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC', borderWidth: 1.5, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.primary, borderWidth: 1.5, borderColor: Colors.border.medium,
     borderRadius: 10, paddingVertical: 11, paddingHorizontal: 13,
   },
-  selectBtnText: { fontSize: 14, color: '#111827', fontWeight: '500' },
-  placeholderText: { color: '#94A3B8', fontWeight: '400' },
+  selectBtnText: { fontSize: 14, color: Colors.text.primary, fontWeight: '500' },
+  placeholderText: { color: Colors.text.tertiary, fontWeight: '400' },
   categoryDropdown: {
-    marginTop: 6, backgroundColor: '#FFF', borderRadius: 10,
-    borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden',
+    marginTop: 6, backgroundColor: Colors.background.secondary, borderRadius: 10,
+    borderWidth: 1, borderColor: Colors.border.medium, overflow: 'hidden',
   },
   categoryOption: { paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
   categoryOptionActive: { backgroundColor: '#EFF6FF' },
-  categoryOptionText: { fontSize: 14, color: '#374151' },
+  categoryOptionText: { fontSize: 14, color: Colors.text.primary },
   categoryOptionTextActive: { color: '#1D4ED8', fontWeight: '700' },
   fieldError: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 5 },
-  fieldErrorText: { fontSize: 12, color: '#EF4444', flex: 1 },
+  fieldErrorText: { fontSize: 12, color: Colors.error, flex: 1 },
   submitBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#1D4ED8', padding: 16, borderRadius: 14, gap: 8, marginTop: 4,

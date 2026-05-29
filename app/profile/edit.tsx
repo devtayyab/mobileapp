@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Save } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 export default function EditProfileScreen() {
   const { profile, user, refreshProfile } = useAuth();
@@ -82,7 +83,7 @@ export default function EditProfileScreen() {
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color="#000" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
+          <ArrowLeft size={24} color={Colors.text.primary} style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.editProfile}</Text>
         <View style={{ width: 40 }} />
@@ -211,91 +212,39 @@ export default function EditProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F9FAFB',
-  },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
+    backgroundColor: Colors.background.secondary,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
   },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  content: {
-    flex: 1,
-  },
+  backButton: { padding: 8 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: Colors.text.primary },
+  content: { flex: 1 },
   section: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    marginTop: 12,
+    backgroundColor: Colors.background.secondary, padding: 20, marginTop: 12,
+    borderBottomWidth: 1, borderBottomColor: Colors.border.light,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary, marginBottom: 16 },
+  label: { fontSize: 14, fontWeight: '600', color: Colors.text.primary, marginBottom: 8 },
   input: {
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#FFF',
+    borderWidth: 1, borderColor: Colors.border.medium, borderRadius: 8,
+    padding: 12, fontSize: 16, marginBottom: 16,
+    backgroundColor: Colors.background.primary, color: Colors.text.primary,
   },
-  inputDisabled: {
-    backgroundColor: '#F3F4F6',
-    color: '#9CA3AF',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  halfWidth: {
-    flex: 1,
-  },
+  inputDisabled: { backgroundColor: Colors.background.tertiary, color: Colors.text.tertiary },
+  row: { flexDirection: 'row', gap: 12 },
+  halfWidth: { flex: 1 },
   footer: {
-    backgroundColor: '#FFF',
-    padding: 20,
-    paddingBottom: 34,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    backgroundColor: Colors.background.secondary, padding: 20, paddingBottom: 34,
+    borderTopWidth: 1, borderTopColor: Colors.border.medium,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
+    backgroundColor: Colors.primary, flexDirection: 'row',
+    justifyContent: 'center', alignItems: 'center',
+    paddingVertical: 16, borderRadius: 12, gap: 8,
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 });

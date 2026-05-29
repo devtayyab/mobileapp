@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Image, ScrollView, TextInput
@@ -6,6 +6,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Star, ShoppingCart, Search, SlidersHorizontal, Zap } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -229,14 +230,14 @@ export default function ShopScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: Colors.border.medium,
   },
   headerTop: {
     flexDirection: 'row',
@@ -244,77 +245,78 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 14,
   },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 },
-  headerSub: { fontSize: 13, color: '#94A3B8', marginTop: 2, fontWeight: '500' },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: Colors.text.primary, letterSpacing: -0.5 },
+  headerSub: { fontSize: 13, color: Colors.text.tertiary, marginTop: 2, fontWeight: '500' },
   headerRight: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   filterBtn: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#DBEAFE',
+    backgroundColor: Colors.background.primary, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#F8FAFC', borderRadius: 12,
+    backgroundColor: Colors.background.primary, borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
-  searchInput: { flex: 1, fontSize: 14, color: '#0F172A', textAlignVertical: 'center' },
-  filterScroll: { backgroundColor: '#FFF', maxHeight: 60, minHeight: 60 },
+  searchInput: { flex: 1, fontSize: 14, color: Colors.text.primary, textAlignVertical: 'center' },
+  filterScroll: { backgroundColor: Colors.background.secondary, maxHeight: 60, minHeight: 60 },
   filterContent: { paddingHorizontal: 20, paddingVertical: 12, gap: 10, alignItems: 'center' },
   filterChip: {
     paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20,
-    backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0',
+    backgroundColor: Colors.background.primary, borderWidth: 1, borderColor: Colors.border.medium,
   },
-  filterChipActive: { backgroundColor: '#1D4ED8', borderColor: '#1D4ED8' },
-  filterChipText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  filterChipActive: { backgroundColor: Colors.secondary, borderColor: Colors.secondary },
+  filterChipText: { fontSize: 13, fontWeight: '600', color: Colors.text.tertiary },
   filterChipTextActive: { color: '#FFF' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { fontSize: 14, color: '#94A3B8' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, backgroundColor: Colors.background.primary },
+  loadingText: { fontSize: 14, color: Colors.text.tertiary },
   listContainer: { padding: 16, paddingBottom: 32 },
   columnWrapper: { gap: 12, marginBottom: 12 },
   productCard: {
-    flex: 1, backgroundColor: '#FFF', borderRadius: 16,
-    overflow: 'hidden', borderWidth: 1, borderColor: '#F1F5F9',
+    flex: 1, backgroundColor: Colors.background.secondary, borderRadius: 16,
+    overflow: 'hidden', borderWidth: 1, borderColor: Colors.border.medium,
   },
   productImageWrap: { position: 'relative' },
   productImage: { width: '100%', height: 170 },
   productImagePlaceholder: {
-    width: '100%', height: 170, backgroundColor: '#F8FAFC',
+    width: '100%', height: 170, backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
   },
   featuredBadge: {
     position: 'absolute', top: 10, left: 10,
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#FFFBEB', paddingHorizontal: 8, paddingVertical: 4,
-    borderRadius: 20, borderWidth: 1, borderColor: '#FDE68A',
+    backgroundColor: Colors.background.secondary, paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: Colors.secondary,
   },
-  featuredText: { fontSize: 10, fontWeight: '700', color: '#92400E' },
+  featuredText: { fontSize: 10, fontWeight: '700', color: Colors.secondary },
   outOfStockOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center',
   },
   outOfStockText: { color: '#FFF', fontSize: 14, fontWeight: '700' },
   lowStockBadge: {
     position: 'absolute', bottom: 8, right: 8,
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#FEF2F2', paddingHorizontal: 7, paddingVertical: 3,
-    borderRadius: 10, borderWidth: 1, borderColor: '#FECACA',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)', paddingHorizontal: 7, paddingVertical: 3,
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   lowStockBadgeText: { fontSize: 9, fontWeight: '700', color: '#EF4444' },
   productInfo: { padding: 12, gap: 6 },
-  productName: { fontSize: 13, fontWeight: '600', color: '#111827', lineHeight: 18 },
+  productName: { fontSize: 13, fontWeight: '600', color: Colors.text.primary, lineHeight: 18 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  productPrice: { fontSize: 16, fontWeight: '800', color: '#1D4ED8' },
-  b2bPrice: { color: '#059669' },
+  productPrice: { fontSize: 16, fontWeight: '800', color: Colors.secondary },
+  b2bPrice: { color: Colors.secondary },
   wholesaleBadge: {
-    backgroundColor: '#ECFDF5', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+    backgroundColor: 'rgba(0, 168, 107, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
   },
-  wholesaleBadgeText: { fontSize: 9, fontWeight: '700', color: '#059669' },
-  moqText: { fontSize: 10, color: '#94A3B8', marginTop: 2 },
+  wholesaleBadgeText: { fontSize: 9, fontWeight: '700', color: Colors.secondary },
+  moqText: { fontSize: 10, color: Colors.text.tertiary, marginTop: 2 },
   emptyContainer: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 40, gap: 10,
+    paddingHorizontal: 40, gap: 10, backgroundColor: Colors.background.primary,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151' },
-  emptySub: { fontSize: 14, color: '#94A3B8', textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
+  emptySub: { fontSize: 14, color: Colors.text.tertiary, textAlign: 'center' },
 });
+

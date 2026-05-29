@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Image
@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Grid3x3, Tag, ChevronRight } from 'lucide-react-native';
+import { Colors } from '@/constants/Colors';
 
 type Category = {
   id: string;
@@ -153,39 +154,39 @@ export default function CategoriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background.secondary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: Colors.border.medium,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#0F172A', letterSpacing: -0.5 },
-  headerSub: { fontSize: 13, color: '#94A3B8', marginTop: 2, fontWeight: '500' },
+  headerTitle: { fontSize: 28, fontWeight: '800', color: Colors.text.primary, letterSpacing: -0.5 },
+  headerSub: { fontSize: 13, color: Colors.text.tertiary, marginTop: 2, fontWeight: '500' },
   headerIcon: {
     width: 44, height: 44, borderRadius: 14,
-    backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#DBEAFE',
+    backgroundColor: Colors.background.primary, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   listContainer: { padding: 16, paddingBottom: 32, gap: 12 },
   bannerCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#EFF6FF', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: '#DBEAFE', marginBottom: 4,
+    backgroundColor: 'rgba(0, 168, 107, 0.1)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: Colors.border.medium, marginBottom: 4,
   },
   bannerText: { flex: 1 },
-  bannerTitle: { fontSize: 14, fontWeight: '700', color: '#1D4ED8' },
-  bannerSub: { fontSize: 12, color: '#64748B', marginTop: 1 },
+  bannerTitle: { fontSize: 14, fontWeight: '700', color: Colors.secondary },
+  bannerSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 1 },
   categoryCard: {
-    borderRadius: 18, overflow: 'hidden',
+    borderRadius: 20, overflow: 'hidden',
     height: 110, position: 'relative',
-    borderWidth: 1, borderColor: '#F1F5F9',
+    borderWidth: 1, borderColor: Colors.border.medium,
   },
   categoryCardLarge: { height: 180 },
   categoryImage: { width: '100%', height: '100%' },
@@ -196,7 +197,7 @@ const styles = StyleSheet.create({
   categoryLetterText: { fontSize: 48, fontWeight: '800' },
   categoryOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.52)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 16, paddingVertical: 12,
   },
   categoryOverlayName: { fontSize: 16, fontWeight: '800', color: '#FFF' },
@@ -204,9 +205,10 @@ const styles = StyleSheet.create({
   categoryArrow: {
     position: 'absolute', top: 12, right: 12,
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: Colors.secondary,
     justifyContent: 'center', alignItems: 'center',
   },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { fontSize: 15, color: '#94A3B8' },
+  emptyText: { fontSize: 15, color: Colors.text.tertiary },
 });
+
