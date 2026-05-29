@@ -4,10 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Logo } from '../../components/Logo';
 import { ShoppingBag, Truck, Shield, ArrowRight } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useMemo } from 'react';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function WelcomeScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const router = useRouter();
   const { t } = useLanguage();
   const { width, height } = useWindowDimensions();
@@ -68,7 +72,7 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,

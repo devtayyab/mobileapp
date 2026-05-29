@@ -1,12 +1,15 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList } from 'react-native';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ArrowLeft, Bell, Lock, Eye, Globe, Check } from 'lucide-react-native';
 import { useLanguage, LANGUAGES, Language } from '@/contexts/LanguageContext';
 import { useCurrency, CURRENCIES, Currency } from '@/contexts/CurrencyContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 export default function SettingsScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { language, t, setLanguage } = useLanguage();
   const { currency: activeCurrency, setCurrency } = useCurrency();
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -245,7 +248,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

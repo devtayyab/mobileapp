@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Image, Alert
@@ -9,7 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight, Tag } from 'lucide-react-native';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type CartItem = {
   id: string;
@@ -27,6 +28,8 @@ type CartItem = {
 };
 
 export default function CartScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
   const { formatPrice } = useCurrency();
@@ -231,7 +234,7 @@ export default function CartScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {

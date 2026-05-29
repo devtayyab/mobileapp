@@ -1,5 +1,5 @@
 import { useLocalSearchParams, router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image,
   TouchableOpacity, ActivityIndicator
@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface Product {
@@ -32,6 +33,8 @@ interface Product {
 }
 
 export default function ProductDetail() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { id } = useLocalSearchParams();
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
@@ -318,7 +321,7 @@ export default function ProductDetail() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, backgroundColor: Colors.background.primary },
   notFoundText: { fontSize: 16, color: Colors.text.tertiary, fontWeight: '500' },

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
@@ -10,7 +10,8 @@ import {
   ArrowLeft, FileText, CheckCircle, Clock, XCircle, Upload,
   Building2, User, CreditCard, AlertCircle, ChevronRight
 } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type KycDocument = {
   id: string;
@@ -37,12 +38,14 @@ const DOC_TYPES = [
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: any; label: string }> = {
   pending: { color: '#92400E', bg: '#FEF3C7', icon: Clock, label: 'Pending Review' },
-  under_review: { color: Colors.primary, bg: '#DBEAFE', icon: Clock, label: 'Under Review' },
+  under_review: { color: '#1E40AF', bg: '#DBEAFE', icon: Clock, label: 'Under Review' },
   approved: { color: '#065F46', bg: '#D1FAE5', icon: CheckCircle, label: 'Approved' },
   rejected: { color: '#991B1B', bg: '#FEE2E2', icon: XCircle, label: 'Rejected' },
 };
 
 export default function SupplierKycScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [supplier, setSupplier] = useState<SupplierInfo | null>(null);
@@ -359,7 +362,7 @@ export default function SupplierKycScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {

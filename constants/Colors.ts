@@ -1,84 +1,229 @@
 // ============================================================
-//  App Color System — "Deep Ocean" Theme
-//  Navy Blue + Vivid Cyan + Pearl White
+//  App Color System — Role-Based Light Themes
 //
-//  HOW TO USE:
-//   import { Colors } from '@/constants/Colors';
-//   backgroundColor: Colors.background.primary
+//  Three palettes share ONE shape (the `Palette` type) so any
+//  screen can render with whichever palette matches the signed-in
+//  user's role:
+//    • b2b      → Wholesale (Pink)
+//    • supplier → Retailer  (Blue)
+//    • customer → Customer  (Green)
+//    • admin    → Retailer  (Blue)
 //
-//  To change the entire app theme, only edit this file.
+//  HOW TO USE (inside a component):
+//    import { useTheme } from '@/contexts/ThemeContext';
+//    const Colors = useTheme();
+//    backgroundColor: Colors.background.primary
+//
+//  For module-level StyleSheet, wrap in a factory:
+//    const createStyles = (Colors: Palette) => StyleSheet.create({ ... });
+//    // then inside the component:
+//    const styles = useMemo(() => createStyles(Colors), [Colors]);
 // ============================================================
 
-export const Colors = {
-  // ── Primary Palette ─────────────────────────────────────
-  primary: '#00B4D8',      // Vivid Cyan   – main interactive color
-  primaryDark: '#0077B6',  // Ocean Blue   – pressed/dark variant
-  primaryLight: '#90E0EF', // Ice Blue     – light tint / muted accent
+export type Palette = {
+  primary: string;
+  primaryDark: string;
+  primaryLight: string;
 
-  // ── Secondary / Highlight ───────────────────────────────
-  secondary: '#00B4D8',    // Vivid Cyan   (same as primary for consistency)
-  secondaryDark: '#0096C7',
-  secondaryLight: '#CAF0F8', // Pale Cyan
+  secondary: string;
+  secondaryDark: string;
+  secondaryLight: string;
 
-  // ── Accent ──────────────────────────────────────────────
-  accent: '#48CAE4',        // Sky Cyan     – icons, underlines, highlights
-  accentDark: '#0096C7',
-  accentLight: '#ADE8F4',   // Soft Cyan glow
+  accent: string;
+  accentDark: string;
+  accentLight: string;
 
-  // ── Semantic Colors ─────────────────────────────────────
+  error: string;
+  errorDark: string;
+  errorLight: string;
+
+  success: string;
+  warning: string;
+  info: string;
+
+  background: { primary: string; secondary: string; tertiary: string };
+  text: { primary: string; secondary: string; tertiary: string; inverse: string };
+  border: { light: string; medium: string; dark: string };
+
+  status: {
+    pending: string;
+    processing: string;
+    shipped: string;
+    delivered: string;
+    cancelled: string;
+    refunded: string;
+  };
+
+  shadow: { light: string; medium: string; dark: string; cyan: string };
+
+  gradients: {
+    premium: [string, string];
+    cyan: [string, string];
+    dark: [string, string];
+    glow: [string, string];
+  };
+};
+
+// ── Shared neutrals / semantics (identical across all roles) ──
+const NEUTRAL = {
   error: '#EF4444',
   errorDark: '#DC2626',
   errorLight: '#FCA5A5',
-
-  success: '#22C55E',
-  warning: '#F59E0B',
-  info: '#00B4D8',
-
-  // ── Backgrounds ─────────────────────────────────────────
-  background: {
-    primary: '#0A0F1E',    // Deep Navy      – app background
-    secondary: '#111827',  // Dark Slate     – cards, sheets, panels
-    tertiary: '#1C2A40',   // Midnight Blue  – elevated surfaces
-  },
-
-  // ── Text ────────────────────────────────────────────────
-  text: {
-    primary: '#E8F4FD',    // Pearl White    – headlines, body text
-    secondary: '#FFFFFF',  // Pure White     – high-emphasis text
-    tertiary: '#7EA8C4',   // Muted Cyan     – placeholders, subtitles
-    inverse: '#0A0F1E',    // Dark navy      – text on bright buttons
-  },
-
-  // ── Borders ─────────────────────────────────────────────
-  border: {
-    light: '#1C2A40',      // Subtle edge
-    medium: '#1E2D4A',     // Standard card border
-    dark: '#2A3F5F',       // Emphasized divider
-  },
-
-  // ── Order / Status ──────────────────────────────────────
+  success: '#4CAF50',
+  warning: '#F59E0B', // also used for star / rating
+  info: '#2196F3',
+  // Order-status colors are role-independent across all three palettes.
   status: {
     pending: '#F59E0B',
-    processing: '#00B4D8',
-    shipped: '#0096C7',
-    delivered: '#22C55E',
+    processing: '#2196F3',
+    shipped: '#1976D2',
+    delivered: '#4CAF50',
     cancelled: '#EF4444',
     refunded: '#F97316',
   },
-
-  // ── Shadows ─────────────────────────────────────────────
-  shadow: {
-    light: 'rgba(0, 10, 30, 0.4)',
-    medium: 'rgba(0, 10, 30, 0.7)',
-    dark: 'rgba(0, 10, 30, 0.9)',
-    cyan: 'rgba(0, 180, 216, 0.25)', // Glowing cyan shadow for buttons
+  text: {
+    primary: '#1F2937',   // headings / body
+    secondary: '#111827', // high-emphasis / near black
+    tertiary: '#6B7280',  // subtext / placeholders
+    inverse: '#FFFFFF',   // text on colored buttons
   },
+  border: {
+    light: '#F1F5F9',
+    medium: '#E5E7EB',
+    dark: '#D1D5DB',
+  },
+  shadowBase: {
+    light: 'rgba(15, 23, 42, 0.06)',
+    medium: 'rgba(15, 23, 42, 0.12)',
+    dark: 'rgba(15, 23, 42, 0.20)',
+  },
+} as const;
 
-  // ── Gradients ───────────────────────────────────────────
+const lightBg = (tint: string) => ({
+  primary: '#F1F5F9',   // off-white app background
+  secondary: '#FFFFFF', // cards / sheets
+  tertiary: tint,       // role-tinted elevated surface
+});
+
+// ── 🔴 Wholesale (B2B) — Pink ─────────────────────────────
+export const ColorsWholesale: Palette = {
+  primary: '#FF4D8D',
+  primaryDark: '#E0306F',
+  primaryLight: '#FFB3C6',
+
+  secondary: '#2196F3',
+  secondaryDark: '#1976D2',
+  secondaryLight: '#E3F2FD',
+
+  accent: '#4CAF50', // growth / trend
+  accentDark: '#388E3C',
+  accentLight: '#E3F8E8',
+
+  error: NEUTRAL.error,
+  errorDark: NEUTRAL.errorDark,
+  errorLight: NEUTRAL.errorLight,
+  success: NEUTRAL.success,
+  warning: NEUTRAL.warning,
+  info: NEUTRAL.info,
+
+  background: lightBg('#FFE6EF'),
+  text: { ...NEUTRAL.text },
+  border: { ...NEUTRAL.border },
+
+  status: { ...NEUTRAL.status },
+
+  shadow: { ...NEUTRAL.shadowBase, cyan: 'rgba(255, 77, 141, 0.25)' },
+
   gradients: {
-    premium: ['#00B4D8', '#0077B6'] as [string, string],  // Cyan → Ocean Blue
-    cyan:    ['#48CAE4', '#00B4D8'] as [string, string],  // Sky → Vivid Cyan
-    dark:    ['#111827', '#0A0F1E'] as [string, string],  // Slate → Deep Navy
-    glow:   ['#0A0F1E', '#0E2040'] as [string, string],  // Dark glow card
+    premium: ['#FF4D8D', '#FFB3C6'],
+    cyan: ['#4CAF50', '#A8E6CF'],
+    dark: ['#FFFFFF', '#F1F5F9'],
+    glow: ['#FFE6EF', '#FFFFFF'],
   },
 };
+
+// ── 🔵 Retailer — Blue ────────────────────────────────────
+export const ColorsRetailer: Palette = {
+  primary: '#2196F3',
+  primaryDark: '#0D47A1',
+  primaryLight: '#E3F2FD',
+
+  secondary: '#4CAF50',
+  secondaryDark: '#388E3C',
+  secondaryLight: '#E3F8E8',
+
+  accent: '#FFB74D', // amber / orange
+  accentDark: '#FB8C00',
+  accentLight: '#FFF3E0',
+
+  error: NEUTRAL.error,
+  errorDark: NEUTRAL.errorDark,
+  errorLight: NEUTRAL.errorLight,
+  success: NEUTRAL.success,
+  warning: NEUTRAL.warning,
+  info: NEUTRAL.info,
+
+  background: lightBg('#E3F2FD'),
+  text: { ...NEUTRAL.text },
+  border: { ...NEUTRAL.border },
+
+  status: { ...NEUTRAL.status },
+
+  shadow: { ...NEUTRAL.shadowBase, cyan: 'rgba(33, 150, 243, 0.25)' },
+
+  gradients: {
+    premium: ['#2196F3', '#64B5F6'],
+    cyan: ['#64B5F6', '#2196F3'],
+    dark: ['#FFFFFF', '#F1F5F9'],
+    glow: ['#E3F2FD', '#FFFFFF'],
+  },
+};
+
+// ── 🟢 Customer (Shop) — Green ────────────────────────────
+export const ColorsCustomer: Palette = {
+  primary: '#4CAF50',
+  primaryDark: '#1B5E20',
+  primaryLight: '#EBF5E9',
+
+  secondary: '#2196F3',
+  secondaryDark: '#1976D2',
+  secondaryLight: '#E3F2FD',
+
+  accent: '#FFB300', // amber / yellow
+  accentDark: '#FF8F00',
+  accentLight: '#FFF3E0',
+
+  error: NEUTRAL.error,
+  errorDark: NEUTRAL.errorDark,
+  errorLight: NEUTRAL.errorLight,
+  success: NEUTRAL.success,
+  warning: NEUTRAL.warning,
+  info: NEUTRAL.info,
+
+  background: lightBg('#EBF5E9'),
+  text: { ...NEUTRAL.text },
+  border: { ...NEUTRAL.border },
+
+  status: { ...NEUTRAL.status },
+
+  shadow: { ...NEUTRAL.shadowBase, cyan: 'rgba(76, 175, 80, 0.25)' },
+
+  gradients: {
+    premium: ['#4CAF50', '#81C784'],
+    cyan: ['#81C784', '#4CAF50'],
+    dark: ['#FFFFFF', '#F1F5F9'],
+    glow: ['#EBF5E9', '#FFFFFF'],
+  },
+};
+
+export type Role = 'customer' | 'b2b' | 'supplier' | 'admin';
+
+export const PaletteForRole: Record<Role, Palette> = {
+  b2b: ColorsWholesale,
+  supplier: ColorsRetailer,
+  admin: ColorsRetailer,
+  customer: ColorsCustomer,
+};
+
+// Default palette (unauthenticated / fallback) — Customer green.
+export const Colors: Palette = ColorsCustomer;

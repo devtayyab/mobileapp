@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
   ActivityIndicator, Dimensions
@@ -11,7 +11,8 @@ import {
   Search, Bell, Star, ArrowRight, Flame, Tag,
   TrendingUp, ShoppingBag, Zap, ChevronRight
 } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -88,6 +89,8 @@ const CATEGORY_COLORS = [
 ];
 
 export default function HomeScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const router = useRouter();
   const { profile } = useAuth();
   const { t, language } = useLanguage();
@@ -450,7 +453,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {

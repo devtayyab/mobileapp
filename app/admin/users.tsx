@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, ScrollView, Modal, Alert, RefreshControl
@@ -10,7 +10,8 @@ import {
   ArrowLeft, Search, Users, ShoppingBag, Building2, User,
   Mail, Calendar, ChevronDown, RefreshCw, Shield, Edit
 } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type UserProfile = {
   id: string;
@@ -39,6 +40,8 @@ const ROLE_ICONS: Record<string, any> = {
 const ALL_ROLES = ['customer', 'b2b', 'supplier', 'admin'];
 
 export default function AdminUsersScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const insets = useSafeAreaInsets();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -326,7 +329,7 @@ export default function AdminUsersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fixedTopSection: {

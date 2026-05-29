@@ -1,11 +1,15 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Bell, ShoppingBag, Truck, Info, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 export default function NotificationsScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
   const { t, language } = useLanguage();
 
@@ -72,7 +76,7 @@ export default function NotificationsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
     backgroundColor: Colors.background.secondary, paddingTop: 60, paddingBottom: 16,

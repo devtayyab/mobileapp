@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
@@ -7,7 +7,8 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Plus, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type Category = {
   id: string;
@@ -27,6 +28,8 @@ type FormData = {
 };
 
 export default function AddProductScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -419,6 +422,8 @@ export default function AddProductScreen() {
 }
 
 function FieldError({ text }: { text: string }) {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   return (
     <View style={styles.fieldError}>
       <AlertCircle size={13} color="#EF4444" />
@@ -427,7 +432,7 @@ function FieldError({ text }: { text: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { fontSize: 14, color: '#64748B' },

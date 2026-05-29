@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Alert, I18nManager, Modal, Pressable
@@ -11,9 +11,12 @@ import {
   Store, Truck, ChevronRight, ShieldCheck,
   Package, LayoutDashboard, ArrowRight
 } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 export default function ProfileScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, profile, signOut } = useAuth();
   const { t, language } = useLanguage();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -188,6 +191,8 @@ function MenuItem({
   border?: boolean;
   rtl?: boolean;
 }) {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   return (
     <TouchableOpacity
       style={[styles.menuItem, border && styles.menuItemBorder]}
@@ -203,7 +208,7 @@ function MenuItem({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   header: { backgroundColor: Colors.background.secondary },
   headerGradient: {
