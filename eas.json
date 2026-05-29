@@ -1,16 +1,18 @@
-
 {
-    "build": {
-      "preview": {
-        "android": {
-          "buildType": "apk"
-        }
-      },
-      "production": {
-        "android": {
-          "buildType": "app-bundle"
-        }
+  "build": {
+    "preview": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
       }
     }
+  },
+  "cli": {
+    "appVersionSource": "remote"
   }
-  
+}
