@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert
+  TextInput, ActivityIndicator, Alert, Platform
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,14 @@ type CartItem = {
     b2b_price: number | null;
     currency: string;
     supplier_id: string;
+    suppliers?: {
+      id: string;
+      business_name: string;
+      user_id: string | null;
+      profiles?: {
+        address: any;
+      };
+    };
   };
 };
 
@@ -66,7 +74,15 @@ export default function CheckoutScreen() {
         .from('cart_items')
         .select(`
           id, product_id, quantity,
-          products (id, name, b2c_price, b2b_price, currency, supplier_id)
+          products (
+            id, name, b2c_price, b2b_price, currency, supplier_id,
+            suppliers (
+              id, business_name, user_id,
+              profiles (
+                address
+              )
+            )
+          )
         `)
         .eq('user_id', user.id);
 
@@ -84,14 +100,72 @@ export default function CheckoutScreen() {
   };
 
   const getPrice = (item: CartItem) => {
+    if (!item.products) return 0;
     if (profile?.role === 'b2b' && item.products.b2b_price) return item.products.b2b_price;
     return item.products.b2c_price;
   };
 
-  const calculateSubtotal = () =>
-    cartItems.reduce((sum, item) => sum + getPrice(item) * item.quantity, 0);
+  const getSupplierPackages = () => {
+    const packagesMap: {
+      [id: string]: {
+        supplierId: string;
+        supplierName: string;
+        originCountry: string;
+        items: CartItem[];
+        shippingFee: number;
+      };
+    } = {};
 
-  const calculateTotal = () => calculateSubtotal();
+    cartItems.forEach((item) => {
+      if (!item.products) return;
+      const supplier = item.products.suppliers;
+      const supplierId = item.products.supplier_id || 'unknown';
+      const supplierName = supplier?.business_name || 'Global Supplier';
+      
+      // Detect origin country dynamically
+      let originCountry = 'China';
+      if (supplierName.toLowerCase().includes('india')) {
+        originCountry = 'India';
+      } else if (supplierName.toLowerCase().includes('pakistan') || supplierName.toLowerCase().includes('pk')) {
+        originCountry = 'Pakistan';
+      } else if (supplier?.profiles?.address?.country) {
+        originCountry = supplier.profiles.address.country;
+      }
+
+      // Calc shipping fee based on origin
+      let shippingFee = 10.00;
+      const cleanCountry = originCountry.toLowerCase();
+      if (cleanCountry === 'china') shippingFee = 15.00;
+      else if (cleanCountry === 'india') shippingFee = 12.00;
+      else if (cleanCountry === 'pakistan') shippingFee = 5.00;
+
+      if (!packagesMap[supplierId]) {
+        packagesMap[supplierId] = {
+          supplierId,
+          supplierName,
+          originCountry,
+          items: [],
+          shippingFee,
+        };
+      }
+      packagesMap[supplierId].items.push(item);
+    });
+
+    return Object.values(packagesMap);
+  };
+
+  const calculateTotalShipping = () => {
+    const packages = getSupplierPackages();
+    return packages.reduce((sum, pkg) => sum + pkg.shippingFee, 0);
+  };
+
+  const calculateSubtotal = () =>
+    cartItems.reduce((sum, item) => {
+      if (!item.products) return sum;
+      return sum + getPrice(item) * item.quantity;
+    }, 0);
+
+  const calculateTotal = () => calculateSubtotal() + calculateTotalShipping();
 
   const validateAddress = () => {
     const newErrors: Partial<Address> = {};
@@ -120,6 +194,7 @@ export default function CheckoutScreen() {
     try {
       const orderNumber = `ORD-${Date.now()}`;
       const subtotal = calculateSubtotal();
+      const shippingFee = calculateTotalShipping();
       const platformCommission = subtotal * 0.1;
       const total = calculateTotal();
 
@@ -131,10 +206,10 @@ export default function CheckoutScreen() {
           status: 'pending',
           subtotal,
           tax: 0,
-          shipping_fee: 0,
+          shipping_fee: shippingFee,
           platform_commission: platformCommission,
           total,
-          currency: cartItems[0].products.currency,
+          currency: cartItems[0]?.products?.currency || 'USD',
           shipping_address: address,
           billing_address: address,
         })
@@ -143,17 +218,19 @@ export default function CheckoutScreen() {
 
       if (orderError) throw orderError;
 
-      const orderItems = cartItems.map(item => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        supplier_id: item.products.supplier_id,
-        product_name: item.products.name,
-        quantity: item.quantity,
-        unit_price: getPrice(item),
-        subtotal: getPrice(item) * item.quantity,
-        supplier_amount: getPrice(item) * item.quantity * 0.9,
-        platform_commission: getPrice(item) * item.quantity * 0.1,
-      }));
+      const orderItems = cartItems
+        .filter(item => item.products)
+        .map(item => ({
+          order_id: order.id,
+          product_id: item.product_id,
+          supplier_id: item.products.supplier_id,
+          product_name: item.products.name,
+          quantity: item.quantity,
+          unit_price: getPrice(item),
+          subtotal: getPrice(item) * item.quantity,
+          supplier_amount: getPrice(item) * item.quantity * 0.9,
+          platform_commission: getPrice(item) * item.quantity * 0.1,
+        }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
@@ -162,7 +239,7 @@ export default function CheckoutScreen() {
         order_id: order.id,
         payment_gateway: 'stripe',
         amount: total,
-        currency: cartItems[0].products.currency,
+        currency: cartItems[0]?.products?.currency || 'USD',
         status: 'completed',
         payment_method: paymentMethod,
       });
@@ -212,7 +289,7 @@ export default function CheckoutScreen() {
             <View style={[styles.orderCardRow, language.rtl && { flexDirection: 'row-reverse' }]}>
               <Text style={styles.orderCardLabel}>{t.totalPaid}</Text>
               <Text style={styles.orderCardAmount}>
-                {cartItems[0]?.products.currency} {placedTotal.toFixed(2)}
+                {cartItems[0]?.products?.currency || 'USD'} {placedTotal.toFixed(2)}
               </Text>
             </View>
             <View style={styles.orderCardDivider} />
@@ -338,33 +415,63 @@ export default function CheckoutScreen() {
         </View>
 
         <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
-          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.orderSummary}</Text>
-          {cartItems.map((item) => (
-            <View key={item.id} style={[styles.orderItem, language.rtl && { flexDirection: 'row-reverse' }]}>
-              <Text style={[styles.orderItemName, language.rtl && { textAlign: 'right' }]} numberOfLines={1}>
-                {item.products.name} x {item.quantity}
-              </Text>
-              <Text style={styles.orderItemPrice}>
-                {item.products.currency} {(getPrice(item) * item.quantity).toFixed(2)}
-              </Text>
+          <Text style={[styles.sectionTitle, { marginBottom: 16 }, language.rtl && { textAlign: 'right' }]}>{t.orderSummary}</Text>
+          
+          {/* Multi-Vendor Package Breakdown */}
+          {getSupplierPackages().map((pkg, idx) => (
+            <View key={pkg.supplierId} style={styles.packageCard}>
+              <View style={[styles.packageHeader, language.rtl && { flexDirection: 'row-reverse' }]}>
+                <View style={styles.packageHeaderLeft}>
+                  <Package size={16} color="#1D4ED8" />
+                  <Text style={styles.packageNameText}>{pkg.supplierName}</Text>
+                </View>
+                <View style={styles.originPill}>
+                  <Text style={styles.originPillText}>Origin: {pkg.originCountry}</Text>
+                </View>
+              </View>
+
+              {pkg.items.map((item) => (
+                <View key={item.id} style={[styles.orderItem, language.rtl && { flexDirection: 'row-reverse' }]}>
+                  <Text style={[styles.orderItemName, language.rtl && { textAlign: 'right' }]} numberOfLines={1}>
+                    {item.products?.name || 'Product'} x {item.quantity}
+                  </Text>
+                  <Text style={styles.orderItemPrice}>
+                    {item.products?.currency || 'USD'} {(getPrice(item) * item.quantity).toFixed(2)}
+                  </Text>
+                </View>
+              ))}
+
+              <View style={[styles.packageFooterRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                <Text style={styles.packageShippingLabel}>🚚 Package Shipping:</Text>
+                <Text style={styles.packageShippingValue}>
+                  {pkg.items[0]?.products?.currency || 'USD'} {pkg.shippingFee.toFixed(2)}
+                </Text>
+              </View>
             </View>
           ))}
+
           <View style={styles.divider} />
+          
           <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <Text style={styles.summaryLabel}>{t.subtotal}</Text>
             <Text style={styles.summaryValue}>
-              {cartItems[0]?.products.currency} {calculateSubtotal().toFixed(2)}
+              {cartItems[0]?.products?.currency || 'USD'} {calculateSubtotal().toFixed(2)}
             </Text>
           </View>
+          
           <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
-            <Text style={styles.summaryLabel}>{t.shipping}</Text>
-            <Text style={styles.summaryValueGreen}>{t.free}</Text>
+            <Text style={styles.summaryLabel}>Total Shipping (Split Consignments)</Text>
+            <Text style={styles.summaryValue}>
+              {cartItems[0]?.products?.currency || 'USD'} {calculateTotalShipping().toFixed(2)}
+            </Text>
           </View>
+          
           <View style={styles.divider} />
+          
           <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <Text style={styles.summaryLabelBold}>{t.total}</Text>
             <Text style={styles.summaryValueBold}>
-              {cartItems[0]?.products.currency} {calculateTotal().toFixed(2)}
+              {cartItems[0]?.products?.currency || 'USD'} {calculateTotal().toFixed(2)}
             </Text>
           </View>
         </View>
@@ -394,7 +501,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20,
+    paddingHorizontal: 20, paddingTop: Platform.OS === 'web' ? 16 : 55, paddingBottom: 20,
     backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
   backButton: {
@@ -494,4 +601,67 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   continueShoppingText: { fontSize: 15, fontWeight: '600', color: '#1D4ED8' },
+
+  /* Split Shipment styles */
+  packageCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    width: '100%',
+  },
+  packageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 8,
+  },
+  packageHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  packageNameText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  originPill: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  originPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4F46E5',
+  },
+  packageFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  packageShippingLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  packageShippingValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+  },
 });

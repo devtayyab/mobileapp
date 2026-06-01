@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   Alert, I18nManager, Modal, Pressable
@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   User, Settings, FileText, CircleHelp, LogOut,
   Store, Truck, ChevronRight, ShieldCheck,
-  Package, LayoutDashboard, ArrowRight
+  Package, LayoutDashboard, ArrowRight, MessageSquare
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -101,6 +101,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.account}</Text>
           <View style={styles.menuGroup}>
             <MenuItem icon={<User size={20} color="#1D4ED8" />} iconBg="#EFF6FF" label={t.editProfile} onPress={() => router.push('/profile/edit')} rtl={language.rtl} />
+            <MenuItem icon={<MessageSquare size={20} color="#F59E0B" />} iconBg="#FEF3C7" label="My Chats" onPress={() => router.push('/chat' as any)} border rtl={language.rtl} />
             <MenuItem icon={<Settings size={20} color="#059669" />} iconBg="#ECFDF5" label={t.settings} onPress={() => router.push('/profile/settings')} border rtl={language.rtl} />
           </View>
         </View>
@@ -129,7 +130,8 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.support}</Text>
           <View style={styles.menuGroup}>
-            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.helpCenter} onPress={() => {}} rtl={language.rtl} />
+            <MenuItem icon={<MessageSquare size={20} color="#F59E0B" />} iconBg="#FEF3C7" label="Chat with Owner" onPress={() => router.push('/chat' as any)} rtl={language.rtl} />
+            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.helpCenter} onPress={() => {}} border rtl={language.rtl} />
             <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.termsConditions} onPress={() => router.push('/terms')} border rtl={language.rtl} />
             <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.privacyPolicy} onPress={() => router.push('/privacy')} border rtl={language.rtl} />
           </View>

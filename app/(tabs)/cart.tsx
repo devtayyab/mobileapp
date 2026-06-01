@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, Image, Alert
+  ActivityIndicator, Image, Alert, Platform
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -239,7 +239,7 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {
     backgroundColor: Colors.background.secondary,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'web' ? 16 : 55,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,

@@ -18,7 +18,7 @@ export default function AuthOptionsScreen() {
   const isSmall = height < 700;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container as any}>
       {/* Decorative circles */}
       <View style={[styles.circle1, { width: width * 1.3, height: width * 1.3, top: -width * 0.5, right: -width * 0.4 }]} />
       <View style={[styles.circle2, { width: width * 1.1, height: width * 1.1, bottom: -width * 0.4, left: -width * 0.3 }]} />

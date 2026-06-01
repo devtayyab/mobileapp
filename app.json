@@ -4,7 +4,7 @@
     "slug": "marketplace-app",
     "version": "1.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.jpeg",
+    "icon": "./assets/images/icon.png",
     "scheme": "marketplace",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,7 +12,7 @@
       "enabled": false
     },
     "splash": {
-      "image": "./assets/images/splash.jpeg",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -26,7 +26,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.jpeg",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#000000"
       },
       "permissions": [
@@ -37,7 +37,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.jpeg"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -53,7 +53,7 @@
       "EXPO_PUBLIC_SUPABASE_URL": "https://bqjsimigctrfywqiflah.supabase.co",
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxanNpbWlnY3RyZnl3cWlmbGFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODU2NzQsImV4cCI6MjA4NDA2MTY3NH0.hmAFJDxrgFBTDi6yOz2pJ2jaMwp-f_7jrmSZNyljHso",
       "eas": {
-        "projectId": "34bf8cbf-0ed1-4546-acfa-7f4d77218b79"
+        "projectId": "649a70ab-0a60-4cdc-af4c-2598082a152a"
       }
     }
   }
