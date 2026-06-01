@@ -8,8 +8,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag, MessageSquare } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { Colors, Palette } from '@/constants/Colors';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface Product {
   id: string;
