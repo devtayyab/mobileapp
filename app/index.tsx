@@ -24,10 +24,17 @@ export default function Index() {
         router.replace('/(tabs)');
       }
     } else if (user && !inAuthGroup) {
-      // User is logged in and in app -> Check role alignment
+      // User is logged in and in app -> Check if they are at the root index page
+      const isAtRoot = !segments[0];
       const inSupplierGroup = segments[0] === 'supplier';
 
-      if (profile?.role === 'supplier' && !inSupplierGroup) {
+      if (isAtRoot) {
+        if (profile?.role === 'supplier') {
+          router.replace('/supplier/dashboard');
+        } else {
+          router.replace('/(tabs)');
+        }
+      } else if (profile?.role === 'supplier' && !inSupplierGroup) {
         router.replace('/supplier/dashboard');
       } else if (profile?.role !== 'supplier' && profile?.role !== 'admin' && inSupplierGroup) {
         // If regular user tries to access supplier, kick them out

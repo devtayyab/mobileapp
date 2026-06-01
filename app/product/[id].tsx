@@ -2,12 +2,12 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image,
-  TouchableOpacity, ActivityIndicator
+  TouchableOpacity, ActivityIndicator, Alert, Platform
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag } from 'lucide-react-native';
+import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag, MessageSquare } from 'lucide-react-native';
 import { Colors } from '@/constants/Colors';
 import { useCurrency } from '@/contexts/CurrencyContext';
 
@@ -68,6 +68,105 @@ export default function ProductDetail() {
       console.error('Error loading product:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startChatWithSupplier = async () => {
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to chat with the supplier.');
+      return;
+    }
+
+    let supplierUserId = product?.suppliers?.user_id;
+
+    // Fallback to Platform Admin if the product is seeded without a user account
+    if (!supplierUserId) {
+      try {
+        const { data: adminProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin')
+          .limit(1)
+          .single();
+        
+        if (adminProfile) {
+          supplierUserId = adminProfile.id;
+        }
+      } catch (err) {
+        console.error('Error fetching admin fallback:', err);
+      }
+    }
+
+    if (!supplierUserId) {
+      Alert.alert('Error', 'Unable to initiate chat. No active recipient found.');
+      return;
+    }
+
+    if (user.id === supplierUserId) {
+      Alert.alert('Chat Info', 'You cannot start a chat with yourself.');
+      return;
+    }
+
+    try {
+      // 1. Check if a p2p room already exists between these two users
+      const { data: rooms, error: findError } = await supabase
+        .from('chat_rooms')
+        .select(`
+          id,
+          chat_participants!inner(user_id)
+        `)
+        .eq('room_type', 'p2p')
+        .eq('chat_participants.user_id', user.id);
+
+      if (findError) throw findError;
+
+      // Filter rooms where the other participant is the supplier
+      let existingRoomId = null;
+      if (rooms) {
+        for (const room of rooms) {
+          const { data: participants } = await supabase
+            .from('chat_participants')
+            .select('user_id')
+            .eq('room_id', room.id);
+          
+          if (participants && participants.some(p => p.user_id === supplierUserId)) {
+            existingRoomId = room.id;
+            break;
+          }
+        }
+      }
+
+      if (existingRoomId) {
+        router.push(`/chat/${existingRoomId}` as any);
+        return;
+      }
+
+      // 2. Create a new p2p room
+      const { data: newRoom, error: createError } = await supabase
+        .from('chat_rooms')
+        .insert({
+          room_type: 'p2p',
+          created_by: user.id
+        })
+        .select('id')
+        .single();
+
+      if (createError) throw createError;
+
+      // 3. Add both participants
+      const { error: partError } = await supabase
+        .from('chat_participants')
+        .insert([
+          { room_id: newRoom.id, user_id: user.id },
+          { room_id: newRoom.id, user_id: supplierUserId }
+        ]);
+
+      if (partError) throw partError;
+
+      router.push(`/chat/${newRoom.id}` as any);
+    } catch (err) {
+      console.error('Error starting chat with supplier:', err);
+      Alert.alert('Error', 'Unable to initiate chat. Please try again.');
     }
   };
 
@@ -139,12 +238,15 @@ export default function ProductDetail() {
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <ArrowLeft size={22} color="#111827" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
+        <TouchableOpacity 
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/' as any)} 
+          style={styles.headerBtn}
+        >
+          <ArrowLeft size={22} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{product.name}</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/cart')} style={styles.headerBtn}>
-          <ShoppingCart size={22} color="#111827" />
+          <ShoppingCart size={22} color="#FFF" />
         </TouchableOpacity>
       </View>
 
@@ -227,6 +329,12 @@ export default function ProductDetail() {
                 )}
               </View>
             </View>
+            {user?.id !== product.suppliers?.user_id && (
+              <TouchableOpacity style={styles.supplierChatBtn} onPress={startChatWithSupplier}>
+                <MessageSquare size={16} color="#F59E0B" />
+                <Text style={styles.supplierChatBtnText}>Chat with Supplier</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={[styles.statsRow, language.rtl && { flexDirection: 'row-reverse' }]}>
@@ -324,7 +432,7 @@ const styles = StyleSheet.create({
   notFoundText: { fontSize: 16, color: Colors.text.tertiary, fontWeight: '500' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 58, paddingBottom: 14,
+    paddingHorizontal: 16, paddingTop: Platform.OS === 'web' ? 16 : 45, paddingBottom: 14,
     backgroundColor: Colors.background.secondary, borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
     gap: 10,
   },
@@ -379,6 +487,23 @@ const styles = StyleSheet.create({
   supplierCard: {
     backgroundColor: Colors.background.secondary, borderRadius: 14, padding: 14, marginBottom: 16,
     borderWidth: 1, borderColor: Colors.border.medium,
+  },
+  supplierChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    paddingVertical: 10,
+    borderRadius: 10,
+    justifyContent: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  supplierChatBtnText: {
+    color: '#F59E0B',
+    fontSize: 14,
+    fontWeight: '700',
   },
   supplierHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   supplierIconWrap: {
