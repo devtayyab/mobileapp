@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions
@@ -9,13 +9,16 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Briefcase, Store } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 const { width } = Dimensions.get('window');
 
 type UserRole = 'customer' | 'b2b' | 'supplier';
 
 export default function RegisterScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,9 +31,10 @@ export default function RegisterScreen() {
   const { t } = useLanguage();
 
   const ROLES: Array<{ key: UserRole; label: string; sub: string; icon: any; color: string; bg: string }> = [
-    { key: 'customer', label: t.customerRole || 'Buyer', sub: t.customerSub || 'Shop products', icon: ShoppingBag, color: Colors.secondary, bg: 'rgba(0, 168, 107, 0.1)' },
-    { key: 'b2b', label: t.wholesaleRole || 'B2B', sub: t.wholesaleSub || 'Business trade', icon: Briefcase, color: Colors.primary, bg: 'rgba(192, 192, 192, 0.1)' },
-    { key: 'supplier', label: t.supplierRole || 'Supplier', sub: t.supplierSub || 'Sell products', icon: Store, color: Colors.secondaryLight, bg: 'rgba(80, 200, 120, 0.1)' },
+    // Each role shows its own theme's brand color (Customer=green, B2B=pink, Supplier=blue).
+    { key: 'customer', label: t.customerRole || 'Buyer', sub: t.customerSub || 'Shop products', icon: ShoppingBag, color: '#4CAF50', bg: 'rgba(76, 175, 80, 0.1)' },
+    { key: 'b2b', label: t.wholesaleRole || 'B2B', sub: t.wholesaleSub || 'Business trade', icon: Briefcase, color: '#FF4D8D', bg: 'rgba(255, 77, 141, 0.1)' },
+    { key: 'supplier', label: t.supplierRole || 'Supplier', sub: t.supplierSub || 'Sell products', icon: Store, color: '#2196F3', bg: 'rgba(33, 150, 243, 0.1)' },
   ];
 
   const handleRegister = async () => {
@@ -210,7 +214,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   scrollContent: { flexGrow: 1 },
   topSection: {

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Switch
@@ -7,7 +7,8 @@ import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Save, Store, AlertCircle } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type SupplierData = {
   id: string;
@@ -23,6 +24,8 @@ type SupplierData = {
 };
 
 export default function BusinessSettingsScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -274,7 +277,7 @@ export default function BusinessSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {

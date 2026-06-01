@@ -1,10 +1,14 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 export default function TermsScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { t, language } = useLanguage();
 
   const handleBack = () => {
@@ -80,7 +84,7 @@ export default function TermsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

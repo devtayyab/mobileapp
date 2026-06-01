@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Dimensions, Image, Modal, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type KycStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | null;
 
@@ -26,6 +27,8 @@ type DashboardData = {
 };
 
 export default function SupplierDashboard() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, profile, signOut } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData>({
@@ -244,7 +247,7 @@ export default function SupplierDashboard() {
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { backgroundColor: Colors.background.secondary }]}>
               <View style={[styles.statIconWrapper, { backgroundColor: Colors.background.tertiary }]}>
-                <TrendingUp size={20} color={Colors.primaryLight} />
+                <TrendingUp size={20} color={Colors.primary} />
               </View>
               <Text style={styles.statLabel}>Pending</Text>
               <Text style={styles.statValue}>{data.pendingOrders}</Text>
@@ -290,7 +293,7 @@ export default function SupplierDashboard() {
             onPress={() => { /* Navigate to analytics */ }}
           >
             <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
-              <TrendingUp size={24} color={Colors.primaryLight} />
+              <TrendingUp size={24} color={Colors.primary} />
             </View>
             <Text style={styles.actionTitle}>Analytics</Text>
           </TouchableOpacity>
@@ -326,7 +329,7 @@ export default function SupplierDashboard() {
                   <Text style={styles.orderDate}>{new Date(order.created_at).toLocaleDateString()}</Text>
                 </View>
                 <View style={styles.orderMeta}>
-                  <Text style={[styles.statusBadge, { color: getStatusColor(order.status) }]}>{order.status}</Text>
+                  <Text style={[styles.statusBadge, { color: getStatusColor(order.status, Colors) }]}>{order.status}</Text>
                 </View>
               </TouchableOpacity>
             ))
@@ -450,7 +453,7 @@ export default function SupplierDashboard() {
   );
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string, Colors: Palette) => {
   switch (status) {
     case 'delivered': return Colors.success;
     case 'shipped': return Colors.primary;
@@ -460,7 +463,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary },
   header: {

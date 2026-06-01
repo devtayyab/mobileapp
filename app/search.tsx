@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import { X, Search as SearchIcon } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type Product = {
   id: string;
@@ -20,6 +21,8 @@ type Product = {
 };
 
 export default function SearchScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const router = useRouter();
   const { profile } = useAuth();
   const { t, language } = useLanguage();
@@ -159,7 +162,7 @@ export default function SearchScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   header: {
     backgroundColor: Colors.background.secondary,

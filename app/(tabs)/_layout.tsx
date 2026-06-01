@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Hop as Home, Store, Grid2x2 as Grid, ShoppingCart, Package, User } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function TabLayout() {
+  const Colors = useTheme();
   const insets = useSafeAreaInsets();
   const { t, language } = useLanguage();
   const tabBarHeight = 56 + insets.bottom;

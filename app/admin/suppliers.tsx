@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, Modal, ScrollView, Alert, RefreshControl
@@ -11,7 +11,8 @@ import {
   FileText, Mail, Phone, Building2, Calendar, Percent, RefreshCw
 } from 'lucide-react-native';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type Supplier = {
   id: string;
@@ -54,6 +55,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function AdminSuppliersScreen() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const insets = useSafeAreaInsets();
   const { t, language } = useLanguage();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -561,6 +564,8 @@ export default function AdminSuppliersScreen() {
 }
 
 function DetailRow({ icon, label, value }: { icon: any; label: string; value: string }) {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   return (
     <View style={styles.detailRow}>
       <View style={styles.detailIconLabel}>
@@ -572,7 +577,7 @@ function DetailRow({ icon, label, value }: { icon: any; label: string; value: st
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   centerLoader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fixedTopSection: {

@@ -2,7 +2,7 @@
   "expo": {
     "name": "SATHUN",
     "slug": "marketplace-app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "marketplace",
@@ -18,7 +18,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.marketplace.app"
+      "buildNumber": "2",
+      "bundleIdentifier": "com.devtayyab.marketplace",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -46,6 +50,8 @@
     },
     "extra": {
       "router": {},
+      "EXPO_PUBLIC_SUPABASE_URL": "https://bqjsimigctrfywqiflah.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxanNpbWlnY3RyZnl3cWlmbGFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODU2NzQsImV4cCI6MjA4NDA2MTY3NH0.hmAFJDxrgFBTDi6yOz2pJ2jaMwp-f_7jrmSZNyljHso",
       "eas": {
         "projectId": "649a70ab-0a60-4cdc-af4c-2598082a152a"
       }

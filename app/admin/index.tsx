@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl, Platform
@@ -12,7 +12,8 @@ import {
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
   Store, Shield, RefreshCw, Activity
 } from 'lucide-react-native';
-import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { Palette } from '@/constants/Colors';
 
 type AdminStats = {
   totalUsers: number;
@@ -28,6 +29,8 @@ type AdminStats = {
 };
 
 export default function AdminDashboard() {
+  const Colors = useTheme();
+  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { signOut, profile } = useAuth();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
@@ -122,7 +125,7 @@ export default function AdminDashboard() {
     {
       label: 'Revenue Reports',
       subtitle: 'Platform earnings & commission',
-      icon: BarChart2, color: Colors.primaryLight, bg: Colors.background.tertiary,
+      icon: BarChart2, color: Colors.primary, bg: Colors.background.tertiary,
       route: '/admin/reports',
     },
     {
@@ -197,7 +200,7 @@ export default function AdminDashboard() {
             { label: 'Suppliers', value: stats.totalSuppliers, sub: `${stats.approvedSuppliers} approved`, color: Colors.success, bg: Colors.background.tertiary, icon: Store },
             { label: 'Total Orders', value: stats.totalOrders, color: Colors.warning, bg: Colors.background.tertiary, icon: ShoppingBag },
             { label: 'Pending Orders', value: stats.pendingOrders, color: Colors.error, bg: Colors.background.tertiary, icon: Clock },
-            { label: 'Products', value: stats.totalProducts, sub: `${stats.activeProducts} active`, color: Colors.primaryLight, bg: Colors.background.tertiary, icon: Package },
+            { label: 'Products', value: stats.totalProducts, sub: `${stats.activeProducts} active`, color: Colors.primary, bg: Colors.background.tertiary, icon: Package },
             { label: 'KYC Pending', value: stats.pendingKyc, color: Colors.warning, bg: Colors.background.tertiary, icon: Activity },
           ].map((item) => {
             const Icon = item.icon;
@@ -250,7 +253,7 @@ export default function AdminDashboard() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, backgroundColor: Colors.background.primary },
   loadingText: { fontSize: 14, color: Colors.text.tertiary },
