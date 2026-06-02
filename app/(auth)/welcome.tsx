@@ -195,7 +195,7 @@ export default function WelcomeScreen() {
           {/* ========= LOGO SECTION ========= */}
           <View style={styles.logoSection}>
             <Image
-              source={require('@/assets/images/logo1.png')}
+              source={require('@/assets/images/logo1.jpg')}
               style={{
                 width: isSmall ? 300 : 380,
                 height: isSmall ? 300 : 380,
