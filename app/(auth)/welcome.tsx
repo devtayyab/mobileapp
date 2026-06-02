@@ -25,8 +25,6 @@ import Svg, {
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function WelcomeScreen() {
-  const Colors = useTheme();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const router = useRouter();
   const { t } = useLanguage();
   const { width, height } = useWindowDimensions();
@@ -197,7 +195,7 @@ export default function WelcomeScreen() {
           {/* ========= LOGO SECTION ========= */}
           <View style={styles.logoSection}>
             <Image
-              source={require('@/assets/images/logo1.png')}
+              source={require('@/assets/images/logo1.jpg')}
               style={{
                 width: isSmall ? 300 : 380,
                 height: isSmall ? 300 : 380,
