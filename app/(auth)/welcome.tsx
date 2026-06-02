@@ -25,8 +25,6 @@ import Svg, {
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function WelcomeScreen() {
-  const Colors = useTheme();
-  const styles = useMemo(() => createStyles(Colors), [Colors]);
   const router = useRouter();
   const { t } = useLanguage();
   const { width, height } = useWindowDimensions();
