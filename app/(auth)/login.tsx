@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -18,6 +18,7 @@ export default function LoginScreen() {
   const Colors = useTheme();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,13 +27,13 @@ export default function LoginScreen() {
   const { t, language } = useLanguage();
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!email || !phone || !password) {
       Alert.alert(t.error, t.fillAllFields);
       return;
     }
 
     setLoading(true);
-    const { data, error } = await signIn(email, password);
+    const { data, error } = await signIn(email, phone, password);
     setLoading(false);
 
     if (error) {
@@ -55,7 +56,7 @@ export default function LoginScreen() {
           </TouchableOpacity>
           <View style={styles.topContent}>
             <View style={styles.iconWrap}>
-              <Lock size={32} color={Colors.secondary} />
+              <Lock size={24} color={Colors.secondary} />
             </View>
             <Text style={styles.welcomeTitle}>{t.welcome || 'Welcome Back'}</Text>
             <Text style={styles.welcomeSub}>{t.loginSubtitle || 'Sign in to your account'}</Text>
@@ -74,6 +75,22 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>{t.phone || 'Phone Number'}</Text>
+            <View style={styles.inputRow}>
+              <User size={18} color={Colors.text.tertiary} />
+              <TextInput
+                style={styles.input}
+                placeholder="+1234567890"
+                placeholderTextColor={Colors.text.tertiary}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
                 autoCapitalize="none"
               />
             </View>
@@ -140,56 +157,56 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   scrollContent: { flexGrow: 1 },
   topSection: {
-    paddingTop: 20,
-    paddingBottom: 30,
+    paddingTop: 10,
+    paddingBottom: 16,
     paddingHorizontal: 24,
   },
   backBtn: {
     width: 44, height: 44, borderRadius: 14,
     backgroundColor: Colors.background.secondary,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: Colors.border.medium,
   },
-  topContent: { alignItems: 'center', gap: 10 },
+  topContent: { alignItems: 'center', gap: 6 },
   iconWrap: {
-    width: 70, height: 70, borderRadius: 24,
+    width: 50, height: 50, borderRadius: 16,
     backgroundColor: 'rgba(0, 168, 107, 0.1)',
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  welcomeTitle: { fontSize: 30, fontWeight: '800', color: Colors.text.primary, letterSpacing: -1 },
-  welcomeSub: { fontSize: 16, color: Colors.text.tertiary, textAlign: 'center' },
+  welcomeTitle: { fontSize: 24, fontWeight: '800', color: Colors.text.primary, letterSpacing: -1 },
+  welcomeSub: { fontSize: 14, color: Colors.text.tertiary, textAlign: 'center' },
   formCard: {
     backgroundColor: Colors.background.secondary,
     marginHorizontal: 20,
-    borderRadius: 28,
-    padding: 24,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
     borderColor: Colors.border.medium,
-    gap: 20,
+    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
   },
-  inputGroup: { gap: 10 },
+  inputGroup: { gap: 6 },
   label: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: Colors.background.primary, borderRadius: 16,
-    paddingHorizontal: 16, paddingVertical: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: Colors.background.primary, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1.5, borderColor: Colors.border.medium,
   },
-  input: { flex: 1, fontSize: 16, color: Colors.text.secondary },
+  input: { flex: 1, fontSize: 14, color: Colors.text.secondary },
   eyeBtn: { padding: 4 },
   signInBtn: {
-    height: 60,
-    borderRadius: 18,
+    height: 48,
+    borderRadius: 14,
     overflow: 'hidden',
-    marginTop: 10,
+    marginTop: 6,
     shadowColor: Colors.secondary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -203,11 +220,11 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  signInBtnText: { color: Colors.text.inverse, fontSize: 18, fontWeight: '700' },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
-  footerText: { fontSize: 15, color: Colors.text.tertiary },
-  linkText: { fontSize: 15, color: Colors.secondary, fontWeight: '700' },
-  guestBtn: { alignItems: 'center', paddingVertical: 30 },
-  guestBtnText: { fontSize: 15, color: Colors.text.tertiary, fontWeight: '500' },
+  signInBtnText: { color: Colors.text.inverse, fontSize: 16, fontWeight: '700' },
+  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 6 },
+  footerText: { fontSize: 14, color: Colors.text.tertiary },
+  linkText: { fontSize: 14, color: Colors.secondary, fontWeight: '700' },
+  guestBtn: { alignItems: 'center', paddingVertical: 16 },
+  guestBtnText: { fontSize: 14, color: Colors.text.tertiary, fontWeight: '500' },
 });
 

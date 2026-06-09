@@ -9,8 +9,8 @@ type AuthContextType = {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUp: (email: string, password: string, role?: 'customer' | 'b2b' | 'supplier', name?: string) => Promise<{ error: any }>;
+  signIn: (email: string, phone: string, password: string) => Promise<{ data: any; error: any }>;
+  signUp: (email: string, phone: string, password: string, role?: 'customer' | 'b2b' | 'supplier', name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -82,26 +82,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+  const signIn = async (email: string, phone: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error || !data.user) {
+      return { data, error };
+    }
+
+    // Verify phone number matches the user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone')
+      .eq('id', data.user.id)
+      .single();
+
+    if (!profile || profile.phone !== phone) {
+      await supabase.auth.signOut();
+      return { data: null, error: new Error('Phone number does not match our records.') };
+    }
+
+    return { data, error: null };
   };
 
-  const signUp = async (email: string, password: string, role: 'customer' | 'b2b' | 'supplier' = 'customer', name?: string) => {
+  const signUp = async (email: string, phone: string, password: string, role: 'customer' | 'b2b' | 'supplier' = 'customer', name?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: name || '' },
+        data: { full_name: name || '', phone },
       },
     });
 
     if (data.user && !error) {
       const updateData: any = { role };
       if (name) updateData.full_name = name;
+      if (phone) updateData.phone = phone;
+      
       await supabase
         .from('profiles')
         .update(updateData)

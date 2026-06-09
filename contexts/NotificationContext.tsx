@@ -32,12 +32,19 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [activeToasts, setActiveToasts] = useState<Notification[]>([]);
 
   useEffect(() => {
+    let channel: any;
     if (user) {
       fetchNotifications();
-      subscribeToNotifications();
+      channel = subscribeToNotifications();
     } else {
       setNotifications([]);
     }
+    
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, [user]);
 
   const fetchNotifications = async () => {
@@ -52,9 +59,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   };
 
   const subscribeToNotifications = () => {
-    if (!user) return;
+    if (!user) return null;
     
-    return supabase
+    const channel = supabase
       .channel(`user-notifications-${user.id}`)
       .on(
         'postgres_changes',
@@ -71,6 +78,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
       )
       .subscribe();
+      
+    return channel;
   };
 
   const showToast = (notif: Notification) => {

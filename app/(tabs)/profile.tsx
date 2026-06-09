@@ -4,6 +4,7 @@ import {
   Alert, I18nManager, Modal, Pressable
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
@@ -54,13 +55,17 @@ export default function ProfileScreen() {
     return (
       <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
         <View style={styles.header}>
-          <View style={styles.headerGradient}>
-            <View style={[styles.avatarCircle, { backgroundColor: '#475569' }]}>
-              <User size={36} color="#FFF" />
+          <LinearGradient colors={['#f1f5f9', Colors.background.secondary]} style={styles.headerGradient}>
+            <View style={[styles.avatarOuter, { borderColor: '#cbd5e1' }]}>
+              <View style={[styles.avatarCircle, { backgroundColor: '#475569', borderColor: Colors.background.primary }]}>
+                <User size={28} color="#FFF" />
+              </View>
             </View>
-            <Text style={styles.guestName}>{t.guestUser}</Text>
-            <Text style={styles.guestSub}>{t.notSignedIn}</Text>
-          </View>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.guestName}>{t.guestUser}</Text>
+              <Text style={styles.guestSub}>{t.notSignedIn}</Text>
+            </View>
+          </LinearGradient>
         </View>
         <View style={styles.guestContent}>
           <View style={styles.guestCard}>
@@ -84,16 +89,25 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
-        <View style={styles.headerGradient}>
-          <View style={[styles.avatarCircle, { backgroundColor: avatarColor }]}>
-            <Text style={styles.avatarInitials}>{getInitials()}</Text>
+        <LinearGradient 
+          colors={[`${avatarColor}15`, Colors.background.secondary]} 
+          style={styles.headerGradient}
+        >
+          <View style={[styles.avatarOuter, { borderColor: `${avatarColor}40` }]}>
+            <View style={[styles.avatarCircle, { backgroundColor: avatarColor, borderColor: Colors.background.primary }]}>
+              <Text style={styles.avatarInitials}>{getInitials()}</Text>
+            </View>
           </View>
-          <Text style={styles.headerName}>{profile?.full_name || 'User'}</Text>
-          <Text style={styles.headerEmail}>{profile?.email}</Text>
-          <View style={[styles.roleBadge, { backgroundColor: roleConfig.bg }]}>
-            <Text style={[styles.roleBadgeText, { color: roleConfig.color }]}>{roleConfig.label}</Text>
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerName} numberOfLines={1}>{profile?.full_name || 'User'}</Text>
+            <Text style={styles.headerEmail} numberOfLines={1}>{profile?.email}</Text>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={[styles.roleBadge, { backgroundColor: roleConfig.bg }]}>
+                <Text style={[styles.roleBadgeText, { color: roleConfig.color }]}>{roleConfig.label}</Text>
+              </View>
+            </View>
           </View>
-        </View>
+        </LinearGradient>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -131,7 +145,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.support}</Text>
           <View style={styles.menuGroup}>
             <MenuItem icon={<MessageSquare size={20} color="#F59E0B" />} iconBg="#FEF3C7" label="Chat with Owner" onPress={() => router.push('/chat' as any)} rtl={language.rtl} />
-            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.helpCenter} onPress={() => {}} border rtl={language.rtl} />
+            <MenuItem icon={<CircleHelp size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.helpCenter} onPress={() => router.push('/help')} border rtl={language.rtl} />
             <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.termsConditions} onPress={() => router.push('/terms')} border rtl={language.rtl} />
             <MenuItem icon={<FileText size={20} color="#64748B" />} iconBg="#F1F5F9" label={t.privacyPolicy} onPress={() => router.push('/privacy')} border rtl={language.rtl} />
           </View>
@@ -214,29 +228,42 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background.primary },
   header: { backgroundColor: Colors.background.secondary },
   headerGradient: {
-    paddingTop: 64,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border.medium,
   },
+  avatarOuter: {
+    padding: 3,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
   avatarCircle: {
-    width: 80, height: 80, borderRadius: 40,
+    width: 64, height: 64, borderRadius: 32,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 3, borderColor: Colors.border.medium,
+    borderWidth: 3, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  avatarInitials: { fontSize: 28, fontWeight: '800', color: '#FFF' },
+  avatarInitials: { fontSize: 24, fontWeight: '800', color: '#FFF' },
+  headerTextWrap: { flex: 1, justifyContent: 'center' },
   headerName: { fontSize: 22, fontWeight: '800', color: Colors.text.primary, letterSpacing: -0.3 },
-  headerEmail: { fontSize: 14, color: Colors.text.tertiary },
+  headerEmail: { fontSize: 14, color: Colors.text.secondary, marginTop: 2 },
   roleBadge: {
-    marginTop: 6, paddingHorizontal: 14, paddingVertical: 5, borderRadius: 20,
+    marginTop: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)', alignSelf: 'flex-start',
   },
-  roleBadgeText: { fontSize: 12, fontWeight: '700' },
-  guestName: { fontSize: 22, fontWeight: '700', color: Colors.text.primary },
-  guestSub: { fontSize: 14, color: Colors.text.tertiary },
+  roleBadgeText: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  guestName: { fontSize: 20, fontWeight: '700', color: Colors.text.primary },
+  guestSub: { fontSize: 14, color: Colors.text.tertiary, marginTop: 2 },
   guestContent: { flex: 1, padding: 20 },
   guestCard: {
     backgroundColor: Colors.background.secondary, borderRadius: 24, padding: 24,

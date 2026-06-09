@@ -193,14 +193,14 @@ export default function WelcomeScreen() {
         >
 
           {/* ========= LOGO SECTION ========= */}
-          <View style={styles.logoSection}>
+          <View style={[styles.logoSection, { marginHorizontal: -width * 0.07, marginTop: 0 }]}>
             <Image
               source={require('@/assets/images/logo1.jpg')}
               style={{
-                width: isSmall ? 300 : 380,
-                height: isSmall ? 300 : 380,
+                width: width,
+                height: isSmall ? 320 : 400,
               }}
-              resizeMode="contain"
+              resizeMode="cover"
             />
           </View>
 
@@ -227,7 +227,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={styles.featureIconCircle}>
-                <Globe size={18} color="#DAA520" strokeWidth={1.8} />
+                <Globe size={14} color="#DAA520" strokeWidth={1.8} />
               </View>
               <Text style={styles.featureLabel}>Global Reach</Text>
             </View>
@@ -236,7 +236,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={styles.featureIconCircle}>
-                <Truck size={18} color="#DAA520" strokeWidth={1.8} />
+                <Truck size={14} color="#DAA520" strokeWidth={1.8} />
               </View>
               <Text style={styles.featureLabel}>Fast Delivery</Text>
             </View>
@@ -245,7 +245,7 @@ export default function WelcomeScreen() {
 
             <View style={styles.featureItem}>
               <View style={[styles.featureIconCircle, styles.featureIconCirclePurple]}>
-                <ShieldCheck size={18} color="#C77DFF" strokeWidth={1.8} />
+                <ShieldCheck size={14} color="#C77DFF" strokeWidth={1.8} />
               </View>
               <Text style={styles.featureLabel}>Secure Trade</Text>
             </View>
@@ -367,13 +367,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    paddingVertical: 20,
+    paddingVertical: 12,
     paddingHorizontal: 8,
-    borderRadius: 20,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
     borderColor: 'rgba(200, 162, 78, 0.2)',
-    marginTop: 18,
+    marginTop: 10,
     position: 'relative',
     overflow: 'visible',
   },
@@ -391,19 +391,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featureIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: 'rgba(218, 165, 32, 0.1)',
-    borderWidth: 1.8,
+    borderWidth: 1.5,
     borderColor: 'rgba(218, 165, 32, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   featureIconCirclePurple: {
     backgroundColor: 'rgba(157, 78, 221, 0.1)',
@@ -419,28 +419,28 @@ const styles = StyleSheet.create({
   },
   featureDivider: {
     width: 1,
-    height: 30,
+    height: 20,
     backgroundColor: 'rgba(200, 162, 78, 0.15)',
   },
 
   /* ---- Buttons ---- */
   buttonsSection: {
     alignItems: 'center',
-    gap: 12,
-    marginTop: 20,
+    gap: 8,
+    marginTop: 12,
   },
   signInBtn: {
     width: '100%',
-    height: 50,
-    borderRadius: 26,
+    height: 42,
+    borderRadius: 21,
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(218, 165, 32, 0.6)',
     shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 6,
+    elevation: 3,
   },
   signInGradient: {
     flex: 1,
@@ -450,20 +450,20 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   signInText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#f59e0b',
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
   signInArrow: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '400',
     color: '#F59E0B',
   },
   createAccountBtn: {
     width: '100%',
-    height: 50,
-    borderRadius: 26,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
@@ -472,13 +472,13 @@ const styles = StyleSheet.create({
     shadowColor: '#6A3DE8',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
-    shadowRadius: 6,
+    shadowRadius: 4,
   },
   createAccountText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: '#A67FFF',
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   guestBtn: {
     paddingVertical: 0,
