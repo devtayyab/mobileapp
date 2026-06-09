@@ -12,7 +12,7 @@ export default function PrivacyScreen() {
   const { t, language } = useLanguage();
 
   const handleBack = () => {
-    if (router.canGoBack()) { router.back(); }
+    if (router.canGoBack()) { (router.canGoBack() ? router.back() : router.replace('/')); }
     else { router.replace('/(tabs)/profile'); }
   };
 

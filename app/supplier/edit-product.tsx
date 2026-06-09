@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
@@ -6,7 +6,8 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, UploadCloud } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -22,6 +23,7 @@ type FormData = {
   stock_quantity: string;
   sku: string;
   image_url: string;
+  shipping_cost: string;
 };
 
 export default function EditProductScreen() {
@@ -33,6 +35,7 @@ export default function EditProductScreen() {
   const [initializing, setInitializing] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -44,6 +47,7 @@ export default function EditProductScreen() {
     stock_quantity: '',
     sku: '',
     image_url: '',
+    shipping_cost: '0',
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -61,7 +65,7 @@ export default function EditProductScreen() {
         .from('products')
         .select(`
           id, name, description, category_id, b2c_price, b2b_price,
-          moq, stock_quantity, sku, currency, is_active,
+          moq, stock_quantity, sku, currency, is_active, shipping_cost,
           product_images (image_url, is_primary, display_order)
         `)
         .eq('id', id)
@@ -91,6 +95,7 @@ export default function EditProductScreen() {
         stock_quantity: p.stock_quantity?.toString() || '',
         sku: p.sku || '',
         image_url: imageUrl,
+        shipping_cost: p.shipping_cost?.toString() || '0',
       });
     }
 
@@ -127,6 +132,10 @@ export default function EditProductScreen() {
       newErrors.moq = 'MOQ must be at least 1';
     }
 
+    if (formData.shipping_cost && (isNaN(parseFloat(formData.shipping_cost)) || parseFloat(formData.shipping_cost) < 0)) {
+      newErrors.shipping_cost = 'Enter a valid shipping cost';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -151,6 +160,7 @@ export default function EditProductScreen() {
           moq: formData.moq ? parseInt(formData.moq) : 1,
           stock_quantity: parseInt(formData.stock_quantity),
           sku: formData.sku.trim() || null,
+          shipping_cost: formData.shipping_cost ? parseFloat(formData.shipping_cost) : 0,
         })
         .eq('id', id);
 
@@ -180,7 +190,7 @@ export default function EditProductScreen() {
       }
 
       Alert.alert('Saved', 'Product updated successfully.', [
-        { text: 'OK', onPress: () => router.back() },
+        { text: 'OK', onPress: () => router.canGoBack() ? router.back() : router.replace('/supplier/products') },
       ]);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update product. Please try again.');
@@ -196,6 +206,52 @@ export default function EditProductScreen() {
 
   const selectedCategory = categories.find(c => c.id === formData.category_id);
 
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        uploadImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const uploadImage = async (uri: string) => {
+    setUploadingImage(true);
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${user?.id}/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, blob, {
+          contentType: `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      updateField('image_url', publicUrl);
+    } catch (error: any) {
+      Alert.alert('Upload Failed', error.message || 'Could not upload image.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   if (initializing) {
     return (
       <View style={styles.loadingContainer}>
@@ -208,7 +264,7 @@ export default function EditProductScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/supplier/products')} style={styles.backBtn}>
           <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Product</Text>
@@ -317,6 +373,20 @@ export default function EditProductScreen() {
               />
               {errors.moq && <FieldError text={errors.moq} />}
             </View>
+
+            <View style={[styles.fieldGroup, { marginTop: 14 }]}>
+              <Text style={styles.label}>Shipping Cost (USD)</Text>
+              <Text style={styles.labelSub}>Flat shipping fee for this product</Text>
+              <TextInput
+                style={[styles.input, errors.shipping_cost && styles.inputError]}
+                placeholder="0.00"
+                placeholderTextColor="#94A3B8"
+                value={formData.shipping_cost}
+                onChangeText={(t) => updateField('shipping_cost', t)}
+                keyboardType="decimal-pad"
+              />
+              {errors.shipping_cost && <FieldError text={errors.shipping_cost} />}
+            </View>
           </View>
 
           <View style={styles.section}>
@@ -350,7 +420,29 @@ export default function EditProductScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Image</Text>
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Image URL</Text>
+              <Text style={styles.label}>Product Image</Text>
+              
+              <TouchableOpacity 
+                style={[styles.uploadBtn, uploadingImage && styles.submitBtnDisabled]} 
+                onPress={pickImage}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? (
+                  <ActivityIndicator color="#1D4ED8" size="small" />
+                ) : (
+                  <>
+                    <UploadCloud size={20} color="#1D4ED8" />
+                    <Text style={styles.uploadBtnText}>Upload from Gallery</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
               <Text style={styles.labelSub}>Paste a public image link (Pexels, Unsplash, etc.)</Text>
               <TextInput
                 style={styles.input}
@@ -454,4 +546,14 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   },
   submitBtnDisabled: { opacity: 0.6 },
   submitBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  uploadBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#EFF6FF', padding: 14, borderRadius: 10, gap: 8,
+    borderWidth: 1, borderColor: '#BFDBFE', borderStyle: 'dashed',
+    marginBottom: 8,
+  },
+  uploadBtnText: { fontSize: 14, fontWeight: '600', color: '#1D4ED8' },
+  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
+  dividerText: { marginHorizontal: 10, fontSize: 12, color: '#94A3B8', fontWeight: '600' },
 });

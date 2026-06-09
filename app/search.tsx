@@ -127,7 +127,7 @@ export default function SearchScreen() {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity onPress={() => router.back()} style={styles.cancelButton}>
+        <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.cancelButton}>
           <Text style={styles.cancelText}>{t.cancel}</Text>
         </TouchableOpacity>
       </View>

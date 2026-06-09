@@ -22,6 +22,7 @@ type CartItem = {
     b2b_price: number | null;
     currency: string;
     supplier_id: string;
+    shipping_cost: number;
     suppliers?: {
       id: string;
       business_name: string;
@@ -75,7 +76,7 @@ export default function CheckoutScreen() {
         .select(`
           id, product_id, quantity,
           products (
-            id, name, b2c_price, b2b_price, currency, supplier_id,
+            id, name, b2c_price, b2b_price, currency, supplier_id, shipping_cost,
             suppliers (
               id, business_name, user_id,
               profiles (
@@ -132,23 +133,20 @@ export default function CheckoutScreen() {
         originCountry = supplier.profiles.address.country;
       }
 
-      // Calc shipping fee based on origin
-      let shippingFee = 10.00;
-      const cleanCountry = originCountry.toLowerCase();
-      if (cleanCountry === 'china') shippingFee = 15.00;
-      else if (cleanCountry === 'india') shippingFee = 12.00;
-      else if (cleanCountry === 'pakistan') shippingFee = 5.00;
-
+      // We will sum the shipping fee from each product in this package
       if (!packagesMap[supplierId]) {
         packagesMap[supplierId] = {
           supplierId,
           supplierName,
           originCountry,
           items: [],
-          shippingFee,
+          shippingFee: 0,
         };
       }
       packagesMap[supplierId].items.push(item);
+      
+      const itemShippingCost = item.products.shipping_cost || 0;
+      packagesMap[supplierId].shippingFee += itemShippingCost * item.quantity;
     });
 
     return Object.values(packagesMap);

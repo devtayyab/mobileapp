@@ -103,7 +103,7 @@ export default function BusinessSettingsScreen() {
       if (error) throw error;
 
       Alert.alert('Saved', 'Business settings updated successfully.', [
-        { text: 'OK', onPress: () => router.back() },
+        { text: 'OK', onPress: () => (router.canGoBack() ? router.back() : router.replace('/')) },
       ]);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save. Please try again.');
@@ -124,7 +124,7 @@ export default function BusinessSettingsScreen() {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.backBtn}>
             <ArrowLeft size={22} color="#111827" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Business Settings</Text>
@@ -142,7 +142,7 @@ export default function BusinessSettingsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.backBtn}>
           <ArrowLeft size={22} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Business Settings</Text>

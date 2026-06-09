@@ -50,7 +50,7 @@ export default function NotificationsScreen() {
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.backBtn}>
             <ArrowLeft size={24} color={Colors.text.primary} style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t.notifications || 'Notifications'}</Text>

@@ -71,7 +71,7 @@ export default function EditProfileScreen() {
       Alert.alert(t.success, t.profileUpdated, [
         {
           text: 'OK',
-          onPress: () => router.back(),
+          onPress: () => (router.canGoBack() ? router.back() : router.replace('/')),
         },
       ]);
     } catch (error) {
@@ -85,7 +85,7 @@ export default function EditProfileScreen() {
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={styles.backButton}>
           <ArrowLeft size={24} color={Colors.text.primary} style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t.editProfile}</Text>
