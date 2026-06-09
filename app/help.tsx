@@ -82,7 +82,7 @@ export default function HelpCenterScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background.primary }]}>
       <View style={[styles.header, { backgroundColor: Colors.background.secondary, borderBottomColor: Colors.border.medium }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
           <ArrowLeft size={24} color={Colors.text.primary} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: Colors.text.primary }]}>Help Center</Text>
@@ -208,7 +208,7 @@ export default function HelpCenterScreen() {
               Thank you for your patience and understanding. We appreciate your trust in our platform and will do our best to assist you as quickly as possible.
             </Text>
 
-            <TouchableOpacity style={styles.submitBtn} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.submitBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
               <Text style={styles.submitBtnText}>Go Back</Text>
             </TouchableOpacity>
           </>
