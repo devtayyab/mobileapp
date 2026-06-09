@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, ScrollView, Modal, Alert, RefreshControl
@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import {
   ArrowLeft, Search, Users, ShoppingBag, Building2, User,
-  Mail, Calendar, ChevronDown, RefreshCw, Shield, Edit
+  Mail, Calendar, ChevronDown, RefreshCw, Shield, Edit, MessageSquare
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -117,6 +117,32 @@ export default function AdminUsersScreen() {
       Alert.alert('Error', error.message);
     }
     setUpdatingRole(false);
+  };
+
+  const startChat = async (targetUserId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const currentUserId = userData?.user?.id;
+      if (!currentUserId || !targetUserId) return;
+
+      const { data: newRoom, error: createError } = await supabase
+        .from('chat_rooms')
+        .insert({ room_type: 'p2p', created_by: currentUserId })
+        .select('id')
+        .single();
+        
+      if (createError) throw createError;
+
+      await supabase.from('chat_participants').insert([
+        { room_id: newRoom.id, user_id: currentUserId },
+        { room_id: newRoom.id, user_id: targetUserId }
+      ]);
+
+      setSelectedUser(null);
+      router.push(`/chat/${newRoom.id}` as any);
+    } catch (err: any) {
+      Alert.alert('Error starting chat', err.message);
+    }
   };
 
   const filtered = users.filter((u) => {
@@ -317,6 +343,17 @@ export default function AdminUsersScreen() {
                     );
                   })}
                 </View>
+                
+                <TouchableOpacity 
+                  style={[styles.cancelBtn, { backgroundColor: Colors.primary, marginBottom: 12 }]} 
+                  onPress={() => startChat(selectedUser.id)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <MessageSquare size={18} color="#FFF" />
+                    <Text style={[styles.cancelBtnText, { color: '#FFF' }]}>Message User</Text>
+                  </View>
+                </TouchableOpacity>
+
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setSelectedUser(null)}>
                   <Text style={styles.cancelBtnText}>Cancel</Text>
                 </TouchableOpacity>

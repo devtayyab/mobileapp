@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   Users, Package, ShoppingBag, BarChart2, TrendingUp,
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
-  Store, Shield, RefreshCw, Activity
+  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -133,6 +133,18 @@ export default function AdminDashboard() {
       subtitle: 'All users, roles & analytics',
       icon: Users, color: Colors.error, bg: Colors.background.tertiary,
       route: '/admin/users',
+    },
+    {
+      label: 'Support Tickets',
+      subtitle: 'Manage user help requests',
+      icon: LifeBuoy, color: Colors.warning, bg: Colors.background.tertiary,
+      route: '/admin/support',
+    },
+    {
+      label: 'Live Chats',
+      subtitle: 'Direct messages with users',
+      icon: MessageSquare, color: Colors.success, bg: Colors.background.tertiary,
+      route: '/chat',
     },
   ];
 
