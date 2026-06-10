@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, UploadCloud } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { decode } from 'base64-arraybuffer';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -213,28 +214,31 @@ export default function EditProductScreen() {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
+        base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
-        uploadImage(result.assets[0].uri);
+        uploadImage(result.assets[0].uri, result.assets[0].base64);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick image');
     }
   };
 
-  const uploadImage = async (uri: string) => {
+  const uploadImage = async (uri: string, base64Data?: string | null) => {
     setUploadingImage(true);
     try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      if (!base64Data) {
+        throw new Error('Image data is missing. Please try again.');
+      }
+      
       const fileExt = uri.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user?.id}/${fileName}`;
 
       const { error } = await supabase.storage
         .from('product-images')
-        .upload(filePath, blob, {
+        .upload(filePath, decode(base64Data), {
           contentType: `image/${fileExt === 'png' ? 'png' : 'jpeg'}`,
         });
 
