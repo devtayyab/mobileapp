@@ -86,6 +86,43 @@ export type Database = {
           shipping_address: any;
           billing_address: any;
           notes: string | null;
+          shipping_country_id: string | null;
+          vat_amount: number;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      countries: {
+        Row: {
+          id: string;
+          name: string;
+          code: string;
+          vat_percentage: number;
+          vat_type: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      couriers: {
+        Row: {
+          id: string;
+          name: string;
+          code: string;
+          tracking_url_format: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      supplier_shipping_rates: {
+        Row: {
+          id: string;
+          supplier_id: string;
+          country_id: string;
+          shipping_charge: number;
+          delivery_time_days: number | null;
+          is_active: boolean;
           created_at: string;
           updated_at: string;
         };

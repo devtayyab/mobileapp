@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Platform
+  TextInput, ActivityIndicator, Alert, Platform, Modal, FlatList
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import {
-  ArrowLeft, MapPin, CreditCard, CheckCircle, Package, ArrowRight
+  ArrowLeft, MapPin, CreditCard, CheckCircle, Package, ArrowRight, ChevronDown, Globe, X
 } from 'lucide-react-native';
 
 type CartItem = {
@@ -27,9 +27,6 @@ type CartItem = {
       id: string;
       business_name: string;
       user_id: string | null;
-      profiles?: {
-        address: any;
-      };
     };
   };
 };
@@ -42,6 +39,19 @@ type Address = {
   country: string;
 };
 
+type Country = {
+  id: string;
+  name: string;
+  code: string;
+  vat_percentage: number;
+  vat_type: string;
+};
+
+type ShippingRate = {
+  supplier_id: string;
+  shipping_charge: number;
+};
+
 export default function CheckoutScreen() {
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
@@ -52,20 +62,29 @@ export default function CheckoutScreen() {
   const [placedOrderNumber, setPlacedOrderNumber] = useState('');
   const [placedTotal, setPlacedTotal] = useState(0);
   const [address, setAddress] = useState<Address>({
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: '',
+    street: '', city: '', state: '', zipCode: '', country: '',
   });
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [errors, setErrors] = useState<Partial<Address>>({});
+  
+  // New State for Shipping & VAT
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
+  const [supplierRates, setSupplierRates] = useState<Record<string, number>>({});
+  const [calculatingRates, setCalculatingRates] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadCheckoutData();
+      loadCountries();
     }
   }, [user]);
+
+  const loadCountries = async () => {
+    const { data } = await supabase.from('countries').select('*').eq('is_active', true).order('name');
+    if (data) setCountries(data);
+  };
 
   const loadCheckoutData = async () => {
     try {
@@ -77,12 +96,7 @@ export default function CheckoutScreen() {
           id, product_id, quantity,
           products (
             id, name, b2c_price, b2b_price, currency, supplier_id, shipping_cost,
-            suppliers (
-              id, business_name, user_id,
-              profiles (
-                address
-              )
-            )
+            suppliers (id, business_name, user_id)
           )
         `)
         .eq('user_id', user.id);
@@ -100,6 +114,50 @@ export default function CheckoutScreen() {
     }
   };
 
+  useEffect(() => {
+    if (selectedCountry && cartItems.length > 0) {
+      fetchShippingRates();
+    }
+  }, [selectedCountry, cartItems]);
+
+  const fetchShippingRates = async () => {
+    setCalculatingRates(true);
+    try {
+      const supplierIds = [...new Set(cartItems.map(item => item.products?.supplier_id).filter(Boolean))];
+      
+      if (supplierIds.length === 0 || !selectedCountry) return;
+
+      const { data, error } = await supabase
+        .from('supplier_shipping_rates')
+        .select('supplier_id, shipping_charge')
+        .eq('country_id', selectedCountry.id)
+        .eq('is_active', true)
+        .in('supplier_id', supplierIds);
+
+      if (error) throw error;
+
+      const ratesMap: Record<string, number> = {};
+      data?.forEach(rate => {
+        ratesMap[rate.supplier_id] = rate.shipping_charge;
+      });
+
+      // For suppliers without a configured rate to this country, we could default to high value or block.
+      // Let's default to product base shipping_cost as fallback.
+      setSupplierRates(ratesMap);
+    } catch (err) {
+      console.error('Error fetching rates', err);
+    } finally {
+      setCalculatingRates(false);
+    }
+  };
+
+  const selectCountry = (c: Country) => {
+    setSelectedCountry(c);
+    setAddress({ ...address, country: c.name });
+    setCountryModalVisible(false);
+    setErrors({ ...errors, country: undefined });
+  };
+
   const getPrice = (item: CartItem) => {
     if (!item.products) return 0;
     if (profile?.role === 'b2b' && item.products.b2b_price) return item.products.b2b_price;
@@ -111,9 +169,9 @@ export default function CheckoutScreen() {
       [id: string]: {
         supplierId: string;
         supplierName: string;
-        originCountry: string;
         items: CartItem[];
         shippingFee: number;
+        hasRate: boolean;
       };
     } = {};
 
@@ -122,31 +180,32 @@ export default function CheckoutScreen() {
       const supplier = item.products.suppliers;
       const supplierId = item.products.supplier_id || 'unknown';
       const supplierName = supplier?.business_name || 'Global Supplier';
-      
-      // Detect origin country dynamically
-      let originCountry = 'China';
-      if (supplierName.toLowerCase().includes('india')) {
-        originCountry = 'India';
-      } else if (supplierName.toLowerCase().includes('pakistan') || supplierName.toLowerCase().includes('pk')) {
-        originCountry = 'Pakistan';
-      } else if (supplier?.profiles?.address?.country) {
-        originCountry = supplier.profiles.address.country;
-      }
 
-      // We will sum the shipping fee from each product in this package
       if (!packagesMap[supplierId]) {
+        // Use exact configured rate if available, otherwise fallback to item.shipping_cost * qty
+        let pkgShippingFee = 0;
+        let hasRate = false;
+        
+        if (selectedCountry && supplierRates[supplierId] !== undefined) {
+          pkgShippingFee = supplierRates[supplierId];
+          hasRate = true;
+        }
+
         packagesMap[supplierId] = {
           supplierId,
           supplierName,
-          originCountry,
           items: [],
-          shippingFee: 0,
+          shippingFee: pkgShippingFee,
+          hasRate,
         };
       }
       packagesMap[supplierId].items.push(item);
-      
-      const itemShippingCost = item.products.shipping_cost || 0;
-      packagesMap[supplierId].shippingFee += itemShippingCost * item.quantity;
+
+      // If we don't have a configured rate from the DB, fallback to legacy product logic
+      if (!packagesMap[supplierId].hasRate) {
+        const itemShippingCost = item.products.shipping_cost || 0;
+        packagesMap[supplierId].shippingFee += itemShippingCost * item.quantity;
+      }
     });
 
     return Object.values(packagesMap);
@@ -163,7 +222,18 @@ export default function CheckoutScreen() {
       return sum + getPrice(item) * item.quantity;
     }, 0);
 
-  const calculateTotal = () => calculateSubtotal() + calculateTotalShipping();
+  const calculateVat = (subtotal: number) => {
+    if (!selectedCountry) return 0;
+    if (selectedCountry.vat_type === 'included') return 0; // Don't add to total
+    return (subtotal * selectedCountry.vat_percentage) / 100;
+  };
+
+  const calculateTotal = () => {
+    const sub = calculateSubtotal();
+    const ship = calculateTotalShipping();
+    const vat = calculateVat(sub);
+    return sub + ship + vat;
+  };
 
   const validateAddress = () => {
     const newErrors: Partial<Address> = {};
@@ -171,14 +241,14 @@ export default function CheckoutScreen() {
     if (!address.city.trim()) newErrors.city = 'Required';
     if (!address.state.trim()) newErrors.state = 'Required';
     if (!address.zipCode.trim()) newErrors.zipCode = 'Required';
-    if (!address.country.trim()) newErrors.country = 'Required';
+    if (!selectedCountry) newErrors.country = 'Required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handlePlaceOrder = async () => {
     if (!validateAddress()) {
-      Alert.alert(t.error, t.shippingAddress);
+      Alert.alert(t.error, 'Please complete shipping address and select a destination country.');
       return;
     }
 
@@ -187,12 +257,21 @@ export default function CheckoutScreen() {
       return;
     }
 
+    // Check if any supplier lacks a configured shipping rate for this country
+    const packages = getSupplierPackages();
+    const missingRates = packages.filter(p => !p.hasRate);
+    if (missingRates.length > 0) {
+      // In a real strict B2B, we might block this. But for now, we'll allow fallback.
+      // Just log it or show a warning if we wanted strict mode.
+    }
+
     setPlacing(true);
 
     try {
       const orderNumber = `ORD-${Date.now()}`;
       const subtotal = calculateSubtotal();
       const shippingFee = calculateTotalShipping();
+      const vatAmount = calculateVat(subtotal);
       const platformCommission = subtotal * 0.1;
       const total = calculateTotal();
 
@@ -205,6 +284,8 @@ export default function CheckoutScreen() {
           subtotal,
           tax: 0,
           shipping_fee: shippingFee,
+          vat_amount: vatAmount,
+          shipping_country_id: selectedCountry?.id,
           platform_commission: platformCommission,
           total,
           currency: cartItems[0]?.products?.currency || 'USD',
@@ -326,6 +407,10 @@ export default function CheckoutScreen() {
     );
   }
 
+  const subtotalAmount = calculateSubtotal();
+  const vatAmount = calculateVat(subtotalAmount);
+  const isVatIncluded = selectedCountry?.vat_type === 'included';
+
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
@@ -345,6 +430,19 @@ export default function CheckoutScreen() {
             <MapPin size={20} color="#1D4ED8" />
             <Text style={styles.sectionTitle}>{t.shippingAddress}</Text>
           </View>
+
+          <TouchableOpacity 
+            style={[styles.countryDropdown, errors.country && styles.inputError, language.rtl && { flexDirection: 'row-reverse' }]}
+            onPress={() => setCountryModalVisible(true)}
+          >
+            <View style={[styles.row, { flex: 1, alignItems: 'center' }, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Globe size={18} color={selectedCountry ? "#111827" : "#94A3B8"} />
+              <Text style={[styles.countryText, !selectedCountry && { color: '#94A3B8' }]}>
+                {selectedCountry ? selectedCountry.name : "Select Destination Country"}
+              </Text>
+            </View>
+            <ChevronDown size={20} color="#94A3B8" />
+          </TouchableOpacity>
 
           <TextInput
             style={[styles.input, errors.street && styles.inputError, language.rtl && { textAlign: 'right' }]}
@@ -376,13 +474,6 @@ export default function CheckoutScreen() {
               onChangeText={(v) => { setAddress({ ...address, zipCode: v }); setErrors({ ...errors, zipCode: undefined }); }}
             />
           </View>
-          <TextInput
-            style={[styles.input, errors.country && styles.inputError, language.rtl && { textAlign: 'right' }]}
-            placeholder={t.country}
-            placeholderTextColor="#94A3B8"
-            value={address.country || ''}
-            onChangeText={(v) => { setAddress({ ...address, country: v }); setErrors({ ...errors, country: undefined }); }}
-          />
         </View>
 
         <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
@@ -423,9 +514,6 @@ export default function CheckoutScreen() {
                   <Package size={16} color="#1D4ED8" />
                   <Text style={styles.packageNameText}>{pkg.supplierName}</Text>
                 </View>
-                <View style={styles.originPill}>
-                  <Text style={styles.originPillText}>Origin: {pkg.originCountry}</Text>
-                </View>
               </View>
 
               {pkg.items.map((item) => (
@@ -440,7 +528,9 @@ export default function CheckoutScreen() {
               ))}
 
               <View style={[styles.packageFooterRow, language.rtl && { flexDirection: 'row-reverse' }]}>
-                <Text style={styles.packageShippingLabel}>🚚 Package Shipping:</Text>
+                <Text style={styles.packageShippingLabel}>
+                  {calculatingRates ? 'Calculating...' : !pkg.hasRate ? '🚚 Standard Shipping:' : '🚚 Supplier Direct Shipping:'}
+                </Text>
                 <Text style={styles.packageShippingValue}>
                   {pkg.items[0]?.products?.currency || 'USD'} {pkg.shippingFee.toFixed(2)}
                 </Text>
@@ -453,16 +543,28 @@ export default function CheckoutScreen() {
           <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
             <Text style={styles.summaryLabel}>{t.subtotal}</Text>
             <Text style={styles.summaryValue}>
-              {cartItems[0]?.products?.currency || 'USD'} {calculateSubtotal().toFixed(2)}
+              {cartItems[0]?.products?.currency || 'USD'} {subtotalAmount.toFixed(2)}
             </Text>
           </View>
           
           <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
-            <Text style={styles.summaryLabel}>Total Shipping (Split Consignments)</Text>
+            <Text style={styles.summaryLabel}>Total Shipping</Text>
             <Text style={styles.summaryValue}>
               {cartItems[0]?.products?.currency || 'USD'} {calculateTotalShipping().toFixed(2)}
             </Text>
           </View>
+
+          {selectedCountry && (
+            <View style={[styles.summaryRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+              <Text style={styles.summaryLabel}>
+                VAT/Tax ({selectedCountry.vat_percentage}%)
+                {isVatIncluded ? ' (Included in price)' : ''}
+              </Text>
+              <Text style={styles.summaryValue}>
+                {isVatIncluded ? 'Included' : `+ ${cartItems[0]?.products?.currency || 'USD'} ${vatAmount.toFixed(2)}`}
+              </Text>
+            </View>
+          )}
           
           <View style={styles.divider} />
           
@@ -479,9 +581,9 @@ export default function CheckoutScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.placeOrderButton, placing && styles.placeOrderButtonDisabled]}
+          style={[styles.placeOrderButton, (placing || calculatingRates) && styles.placeOrderButtonDisabled]}
           onPress={handlePlaceOrder}
-          disabled={placing}
+          disabled={placing || calculatingRates}
         >
           {placing ? (
             <ActivityIndicator color="#FFF" />
@@ -490,6 +592,30 @@ export default function CheckoutScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Country Selection Modal */}
+      <Modal visible={countryModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Destination Country</Text>
+              <TouchableOpacity onPress={() => setCountryModalVisible(false)}>
+                <X size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={countries}
+              keyExtractor={c => c.id}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.countryRow} onPress={() => selectCountry(item)}>
+                  <Text style={styles.countryRowText}>{item.name}</Text>
+                  {selectedCountry?.id === item.id && <CheckCircle size={20} color="#1D4ED8" />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -504,14 +630,19 @@ const styles = StyleSheet.create({
   },
   backButton: {
     width: 40, height: 40, borderRadius: 12, backgroundColor: '#F8FAFC',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: '#E2E8F0',
+    justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0',
   },
   headerTitle: { fontSize: 20, fontWeight: '700', color: '#111827' },
   content: { flex: 1 },
   section: { backgroundColor: '#FFF', padding: 20, marginTop: 12 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   sectionTitle: { fontSize: 17, fontWeight: '700', color: '#111827', marginLeft: 8 },
+  countryDropdown: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 10,
+    padding: 12, marginBottom: 12, backgroundColor: '#F8FAFC',
+  },
+  countryText: { fontSize: 15, color: '#111827', marginLeft: 8 },
   input: {
     borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 10,
     padding: 12, fontSize: 15, marginBottom: 12,
@@ -600,66 +731,27 @@ const styles = StyleSheet.create({
   },
   continueShoppingText: { fontSize: 15, fontWeight: '600', color: '#1D4ED8' },
 
-  /* Split Shipment styles */
   packageCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    width: '100%',
+    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: '#E2E8F0', width: '100%',
   },
   packageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingBottom: 8,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 10, borderBottomWidth: 1, borderBottomColor: '#E2E8F0', paddingBottom: 8,
   },
-  packageHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  packageNameText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  originPill: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
-  },
-  originPillText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#4F46E5',
-  },
+  packageHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  packageNameText: { fontSize: 14, fontWeight: '700', color: '#1E293B' },
   packageFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    borderStyle: 'dashed',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0', borderStyle: 'dashed',
   },
-  packageShippingLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  packageShippingValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#10B981',
-  },
+  packageShippingLabel: { fontSize: 12, fontWeight: '600', color: '#64748B' },
+  packageShippingValue: { fontSize: 13, fontWeight: '700', color: '#10B981' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  countryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  countryRowText: { fontSize: 16, color: '#1E293B' },
 });

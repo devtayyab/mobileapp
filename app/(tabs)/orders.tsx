@@ -35,6 +35,9 @@ type Order = {
   currency: string;
   created_at: string;
   shipping_address: any;
+  subtotal: number;
+  shipping_fee: number;
+  vat_amount: number;
   order_items: OrderItem[];
   shipments: Shipment[];
 };
@@ -73,7 +76,7 @@ export default function OrdersScreen() {
     const { data } = await supabase
       .from('orders')
       .select(`
-        id, order_number, status, total, currency, created_at, shipping_address,
+        id, order_number, status, subtotal, shipping_fee, vat_amount, total, currency, created_at, shipping_address,
         order_items (product_name, quantity, unit_price, supplier_amount),
         shipments (tracking_number, carrier, status, estimated_delivery)
       `)
@@ -271,6 +274,30 @@ export default function OrdersScreen() {
                     <Text style={styles.orderItemPrice}>${(item.unit_price * item.quantity).toFixed(2)}</Text>
                   </View>
                 ))}
+                
+                <View style={styles.divider} />
+                
+                {selectedOrder.subtotal !== undefined && (
+                  <View style={[styles.detailRow, language.rtl && { flexDirection: 'row-reverse' }, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.detailLabel}>{t.subtotal || 'Subtotal'}</Text>
+                    <Text style={styles.detailValue}>{selectedOrder.currency} {selectedOrder.subtotal?.toFixed(2)}</Text>
+                  </View>
+                )}
+                
+                {selectedOrder.shipping_fee !== undefined && (
+                  <View style={[styles.detailRow, language.rtl && { flexDirection: 'row-reverse' }, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.detailLabel}>{t.shipping || 'Shipping Fee'}</Text>
+                    <Text style={styles.detailValue}>{selectedOrder.currency} {selectedOrder.shipping_fee?.toFixed(2)}</Text>
+                  </View>
+                )}
+                
+                {selectedOrder.vat_amount ? (
+                  <View style={[styles.detailRow, language.rtl && { flexDirection: 'row-reverse' }, { borderBottomWidth: 0 }]}>
+                    <Text style={styles.detailLabel}>{(t as any).vat || 'VAT/Tax'}</Text>
+                    <Text style={styles.detailValue}>{selectedOrder.currency} {selectedOrder.vat_amount?.toFixed(2)}</Text>
+                  </View>
+                ) : null}
+
                 <View style={[styles.orderTotalRow, language.rtl && { flexDirection: 'row-reverse' }]}>
                   <Text style={styles.orderTotalLabel}>{t.total}</Text>
                   <Text style={styles.orderTotalAmount}>{selectedOrder.currency} {selectedOrder.total?.toFixed(2)}</Text>
@@ -406,4 +433,5 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: Colors.border.light },
   detailLabel: { fontSize: 14, color: Colors.text.tertiary },
   detailValue: { fontSize: 14, fontWeight: '600', color: Colors.text.primary },
+  divider: { height: 1, backgroundColor: Colors.border.medium, marginVertical: 8 },
 });
