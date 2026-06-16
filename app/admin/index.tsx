@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   Users, Package, ShoppingBag, BarChart2, TrendingUp,
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
-  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy
+  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -145,6 +145,18 @@ export default function AdminDashboard() {
       subtitle: 'Direct messages with users',
       icon: MessageSquare, color: Colors.success, bg: Colors.background.tertiary,
       route: '/chat',
+    },
+    {
+      label: 'Global Shipping & VAT',
+      subtitle: 'Manage countries and taxes',
+      icon: Globe, color: Colors.primary, bg: Colors.background.tertiary,
+      route: '/admin/countries',
+    },
+    {
+      label: 'Couriers',
+      subtitle: 'Manage tracking and couriers',
+      icon: Truck, color: Colors.warning, bg: Colors.background.tertiary,
+      route: '/admin/couriers',
     },
   ];
 

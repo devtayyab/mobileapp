@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -127,7 +127,10 @@ export default function SupplierOrders() {
     const [orderId, order] = item;
 
     return (
-      <TouchableOpacity style={styles.orderCard}>
+      <TouchableOpacity 
+        style={styles.orderCard} 
+        onPress={() => router.push(('/supplier/orders/' + orderId) as any)}
+      >
         <View style={styles.orderHeader}>
           <View style={styles.orderNumberContainer}>
             <Text style={styles.orderNumber}>#{order.orderNumber}</Text>

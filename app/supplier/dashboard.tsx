@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock } from 'lucide-react-native';
+import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -300,6 +300,16 @@ export default function SupplierDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
+            onPress={() => router.push('/supplier/shipping-rates')}
+          >
+            <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
+              <Globe size={24} color={Colors.success} />
+            </View>
+            <Text style={styles.actionTitle}>Shipping Rates</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
             onPress={() => router.push('/supplier/business-settings')}
           >
             <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
@@ -388,6 +398,14 @@ export default function SupplierDashboard() {
             <View style={styles.menuRowLeft}>
               <ShoppingCart size={20} color="#4B5563" />
               <Text style={styles.menuRowText}>Orders</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/supplier/shipping-rates'); }}>
+            <View style={styles.menuRowLeft}>
+              <Globe size={20} color="#4B5563" />
+              <Text style={styles.menuRowText}>Shipping Rates</Text>
             </View>
             <ChevronRight size={16} color="#9CA3AF" />
           </TouchableOpacity>
