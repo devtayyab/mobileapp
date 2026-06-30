@@ -36,11 +36,13 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     let pollInterval: any;
+    let cleanupHeartbeat: any;
+    let cleanupSubscription: any;
     if (user && roomId) {
       loadRoomDetails();
       loadMessages();
-      subscribeToMessages();
-      startOnlineHeartbeat();
+      cleanupSubscription = subscribeToMessages();
+      cleanupHeartbeat = startOnlineHeartbeat();
 
       pollInterval = setInterval(() => {
         fetchNewMessagesOnly();
@@ -48,6 +50,8 @@ export default function ChatRoomScreen() {
     }
     return () => {
       if (pollInterval) clearInterval(pollInterval);
+      if (cleanupHeartbeat) cleanupHeartbeat();
+      if (cleanupSubscription) cleanupSubscription();
     };
   }, [user, roomId]);
 
@@ -56,17 +60,17 @@ export default function ChatRoomScreen() {
     if (!user?.id) return;
 
     // 1. Instantly mark as online
-    supabase.from('profiles').update({ is_online: true, last_seen_at: new Date().toISOString() }).eq('id', user.id).then();
+    supabase.from('profiles').update({ is_online: true, last_seen_at: new Date().toISOString() }).eq('id', user.id).then(({ error }) => { if (error) console.log(error); });
 
     // 2. Set interval to update every 30 seconds
     const interval = setInterval(() => {
-      supabase.from('profiles').update({ is_online: true, last_seen_at: new Date().toISOString() }).eq('id', user.id).then();
+      supabase.from('profiles').update({ is_online: true, last_seen_at: new Date().toISOString() }).eq('id', user.id).then(({ error }) => { if (error) console.log(error); });
     }, 30000);
 
     // 3. Mark offline on unmount
     return () => {
       clearInterval(interval);
-      supabase.from('profiles').update({ is_online: false, last_seen_at: new Date().toISOString() }).eq('id', user.id).then();
+      supabase.from('profiles').update({ is_online: false, last_seen_at: new Date().toISOString() }).eq('id', user.id).then(({ error }) => { if (error) console.log(error); });
     };
   };
 
@@ -249,6 +253,16 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const h = hours % 12 || 12;
+    const m = minutes < 10 ? `0${minutes}` : minutes;
+    return `${h}:${m} ${ampm}`;
+  };
+
   const renderMessageItem = ({ item }: { item: Message }) => {
     const isMine = item.sender_id === user?.id;
 
@@ -271,7 +285,7 @@ export default function ChatRoomScreen() {
             styles.messageTime,
             isMine ? styles.myMessageTime : styles.otherMessageTime
           ]}>
-            {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {formatTime(item.created_at)}
           </Text>
         </View>
       </View>

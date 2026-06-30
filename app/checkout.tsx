@@ -314,6 +314,26 @@ export default function CheckoutScreen() {
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
 
+      // Update product stock quantities
+      await Promise.all(
+        cartItems.map(async (item) => {
+          if (!item.product_id || !item.quantity) return;
+          const { data: pData } = await supabase
+            .from('products')
+            .select('stock_quantity')
+            .eq('id', item.product_id)
+            .single();
+
+          if (pData && typeof pData.stock_quantity === 'number') {
+            const newStock = Math.max(0, pData.stock_quantity - item.quantity);
+            await supabase
+              .from('products')
+              .update({ stock_quantity: newStock })
+              .eq('id', item.product_id);
+          }
+        })
+      );
+
       await supabase.from('payments').insert({
         order_id: order.id,
         payment_gateway: 'stripe',
