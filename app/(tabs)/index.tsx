@@ -418,7 +418,7 @@ export default function HomeScreen() {
                         <Image source={{ uri: img }} style={styles.gridImg} resizeMode="cover" />
                       ) : (
                         <View style={styles.gridImgPlaceholder}>
-                          <ShoppingBag size={18} color="#D1D5DB" />
+                          <ShoppingBag size={28} color="#CBD5E1" />
                         </View>
                       )}
                     </View>
@@ -591,9 +591,9 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   },
   promoTitle: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
   promoSub: { fontSize: 12, color: Colors.text.tertiary },
-  grid3: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  grid3: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   gridCard: {
-    width: (width - 32 - 20) / 3, backgroundColor: Colors.background.secondary,
+    width: (width - 46) / 2, backgroundColor: Colors.background.secondary,
     borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: Colors.border.medium,
   },
   gridImgWrap: { width: '100%', aspectRatio: 1 },
@@ -602,8 +602,8 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     width: '100%', height: '100%', backgroundColor: Colors.background.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  gridName: { fontSize: 11, fontWeight: '600', color: Colors.text.primary, padding: 7, paddingBottom: 2 },
-  gridPrice: { fontSize: 12, fontWeight: '800', color: Colors.secondary, paddingHorizontal: 7, paddingBottom: 8 },
+  gridName: { fontSize: 13, fontWeight: '600', color: Colors.text.primary, padding: 10, paddingBottom: 4 },
+  gridPrice: { fontSize: 14, fontWeight: '800', color: Colors.secondary, paddingHorizontal: 10, paddingBottom: 10 },
   bottomBanner: {
     height: 170, marginHorizontal: 16, marginTop: 22, borderRadius: 20,
     overflow: 'hidden', position: 'relative',
