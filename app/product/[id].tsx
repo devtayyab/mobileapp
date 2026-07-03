@@ -2,7 +2,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Image,
-  TouchableOpacity, ActivityIndicator, Alert, Platform
+  TouchableOpacity, ActivityIndicator, Alert, Platform, Modal, TextInput
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +24,7 @@ interface Product {
   category_id: string;
   supplier_id: string;
   categories: { name: string };
+  countries?: { name: string };
   suppliers: {
     business_name: string;
     user_id: string;
@@ -44,10 +45,39 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [averageRating, setAverageRating] = useState(0);
 
   useEffect(() => {
     loadProduct();
+    loadReviews();
   }, [id]);
+
+  const loadReviews = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*, profiles(full_name)')
+        .eq('product_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      if (data) {
+        setReviews(data);
+        if (data.length > 0) {
+          const sum = data.reduce((acc, rev) => acc + rev.rating, 0);
+          setAverageRating(sum / data.length);
+        } else {
+          setAverageRating(0);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading reviews:', err);
+    }
+  };
 
   const loadProduct = async () => {
     try {
@@ -56,6 +86,7 @@ export default function ProductDetail() {
         .select(`
           *,
           categories(name),
+          countries!origin_country_id(name),
           suppliers(business_name, user_id, profiles(address)),
           product_images(image_url, is_primary, display_order)
         `)
@@ -91,7 +122,7 @@ export default function ProductDetail() {
           .eq('role', 'admin')
           .limit(1)
           .single();
-        
+
         if (adminProfile) {
           supplierUserId = adminProfile.id;
         }
@@ -131,7 +162,7 @@ export default function ProductDetail() {
             .from('chat_participants')
             .select('user_id')
             .eq('room_id', room.id);
-          
+
           if (participants && participants.some(p => p.user_id === supplierUserId)) {
             existingRoomId = room.id;
             break;
@@ -215,6 +246,30 @@ export default function ProductDetail() {
     }
   };
 
+  const submitReview = async () => {
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to write a review.');
+      return;
+    }
+    try {
+      const { error } = await supabase.from('product_reviews').insert({
+        product_id: id,
+        user_id: user.id,
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      if (error) throw error;
+      setShowReviewModal(false);
+      setReviewComment('');
+      setReviewRating(5);
+      loadReviews();
+      Alert.alert('Success', 'Thank you for your review!');
+    } catch (err) {
+      console.error('Error submitting review:', err);
+      Alert.alert('Error', 'Unable to submit review. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -241,8 +296,8 @@ export default function ProductDetail() {
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>
       <View style={[styles.header, language.rtl && { flexDirection: 'row-reverse' }]}>
-        <TouchableOpacity 
-          onPress={() => router.canGoBack() ? router.back() : router.replace('/' as any)} 
+        <TouchableOpacity
+          onPress={() => router.canGoBack() ? router.back() : router.replace('/' as any)}
           style={styles.headerBtn}
         >
           <ArrowLeft size={22} color="#FFF" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
@@ -286,6 +341,16 @@ export default function ProductDetail() {
             {isLowStock && (
               <View style={styles.lowStockPill}>
                 <Text style={styles.lowStockPillText}>{t.onlyLeft.replace('{count}', product.stock_quantity.toString())}</Text>
+              </View>
+            )}
+            {product.categories?.name && (
+              <View style={styles.categoryPill}>
+                <Text style={styles.categoryPillText}>{product.categories.name}</Text>
+              </View>
+            )}
+            {product.countries?.name && (
+              <View style={styles.categoryPill}>
+                <Text style={styles.categoryPillText}>Origin: {product.countries.name}</Text>
               </View>
             )}
             {product.stock_quantity === 0 && (
@@ -349,7 +414,7 @@ export default function ProductDetail() {
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Star size={16} color="#F59E0B" fill="#F59E0B" />
-              <Text style={styles.statValue}>4.8</Text>
+              <Text style={styles.statValue}>{averageRating > 0 ? averageRating.toFixed(1) : '-'}</Text>
               <Text style={styles.statLabel}>{t.rating}</Text>
             </View>
             <View style={styles.statDivider} />
@@ -365,6 +430,36 @@ export default function ProductDetail() {
             <Text style={[styles.description, language.rtl && { textAlign: 'right' }]}>
               {product.description || t.noProductsFound}
             </Text>
+          </View>
+
+          <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 12 }}>
+              <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }, { marginBottom: 0 }]}>Reviews ({reviews.length})</Text>
+              {user && (
+                <TouchableOpacity onPress={() => setShowReviewModal(true)} style={styles.addReviewBtn}>
+                  <Text style={styles.addReviewBtnText}>Write a Review</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            
+            {reviews.length === 0 ? (
+              <Text style={styles.description}>No reviews yet.</Text>
+            ) : (
+              reviews.map(review => (
+                <View key={review.id} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <Text style={styles.reviewerName}>{review.profiles?.full_name || 'Anonymous'}</Text>
+                    <View style={styles.reviewStars}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star key={star} size={14} color="#F59E0B" fill={star <= review.rating ? "#F59E0B" : "transparent"} />
+                      ))}
+                    </View>
+                  </View>
+                  <Text style={styles.reviewDate}>{new Date(review.created_at).toLocaleDateString()}</Text>
+                  {review.comment ? <Text style={styles.reviewComment}>{review.comment}</Text> : null}
+                </View>
+              ))
+            )}
           </View>
 
           <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
@@ -425,6 +520,38 @@ export default function ProductDetail() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Review Modal */}
+      <Modal visible={showReviewModal} transparent animationType="slide" onRequestClose={() => setShowReviewModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Write a Review</Text>
+            <View style={styles.ratingSelector}>
+              {[1, 2, 3, 4, 5].map(star => (
+                <TouchableOpacity key={star} onPress={() => setReviewRating(star)} style={{ padding: 4 }}>
+                  <Star size={32} color="#F59E0B" fill={star <= reviewRating ? "#F59E0B" : "transparent"} />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.reviewInput}
+              placeholder="What did you think of this product?"
+              placeholderTextColor={Colors.text.tertiary}
+              multiline
+              value={reviewComment}
+              onChangeText={setReviewComment}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowReviewModal(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSubmitBtn} onPress={submitReview}>
+                <Text style={styles.modalSubmitText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -566,5 +693,23 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   },
   addToCartBtnDisabled: { backgroundColor: Colors.border.medium, opacity: 0.5 },
   addToCartBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  addReviewBtn: { backgroundColor: Colors.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  addReviewBtnText: { color: '#FFF', fontSize: 13, fontWeight: '600' },
+  reviewCard: { backgroundColor: Colors.background.secondary, padding: 12, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: Colors.border.light },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  reviewerName: { fontSize: 14, fontWeight: '600', color: Colors.text.primary },
+  reviewStars: { flexDirection: 'row', gap: 2 },
+  reviewDate: { fontSize: 12, color: Colors.text.tertiary, marginBottom: 8 },
+  reviewComment: { fontSize: 14, color: Colors.text.secondary, lineHeight: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalContent: { backgroundColor: Colors.background.primary, width: '100%', borderRadius: 12, padding: 20, alignItems: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary, marginBottom: 16 },
+  ratingSelector: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  reviewInput: { width: '100%', backgroundColor: Colors.background.secondary, borderRadius: 8, padding: 12, height: 100, textAlignVertical: 'top', color: Colors.text.primary, borderColor: Colors.border.light, borderWidth: 1, marginBottom: 20 },
+  modalActions: { flexDirection: 'row', gap: 12, width: '100%' },
+  modalCancelBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: Colors.background.tertiary },
+  modalCancelText: { color: Colors.text.secondary, fontWeight: '600' },
+  modalSubmitBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: Colors.primary },
+  modalSubmitText: { color: '#FFF', fontWeight: '600' },
 });
 

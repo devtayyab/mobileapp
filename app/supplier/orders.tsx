@@ -102,6 +102,7 @@ export default function SupplierOrders() {
   };
 
   const groupedOrders = orderItems.reduce((acc, item) => {
+    if (!item.orders) return acc;
     const orderId = item.order_id;
     if (!acc[orderId]) {
       acc[orderId] = {

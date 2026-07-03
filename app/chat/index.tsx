@@ -25,6 +25,7 @@ type ChatRoom = {
     created_at: string;
     sender_id: string;
   };
+  unread_count?: number;
 };
 
 export default function ChatListScreen() {
@@ -43,6 +44,26 @@ export default function ChatListScreen() {
       }
     }, [user])
   );
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Subscribe to chat_messages table to update last_message and unread_count
+    const channel = supabase.channel('chat_list_updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'chat_messages'
+      }, () => {
+        // Refetch chat rooms whenever a message is added or updated (e.g. marked as read)
+        fetchChatRooms();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const fetchChatRooms = async () => {
     setLoading(true);
@@ -112,6 +133,14 @@ export default function ChatListScreen() {
               .limit(1)
               .maybeSingle();
 
+            // Fetch unread count for this room (messages sent by the OTHER person that are not read)
+            const { count: unreadCount } = await supabase
+              .from('chat_messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('room_id', room.id)
+              .eq('is_read', false)
+              .neq('sender_id', user.id);
+
             return {
               id: room.id,
               room_type: room.room_type,
@@ -130,7 +159,8 @@ export default function ChatListScreen() {
                 message: msgData.message,
                 created_at: msgData.created_at,
                 sender_id: msgData.sender_id
-              } : undefined
+              } : undefined,
+              unread_count: unreadCount || 0
             };
           })
         );
@@ -253,9 +283,16 @@ export default function ChatListScreen() {
             ) : null}
           </View>
           
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.last_message ? item.last_message.message : 'No messages yet'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={[styles.lastMessage, item.unread_count && item.unread_count > 0 ? styles.lastMessageUnread : null]} numberOfLines={1}>
+              {item.last_message ? item.last_message.message : 'No messages yet'}
+            </Text>
+            {item.unread_count && item.unread_count > 0 ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>{item.unread_count}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -375,4 +412,20 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   fabText: { color: '#000', fontWeight: '800', fontSize: 15 },
+  lastMessageUnread: { color: '#FFFFFF', fontWeight: '600' },
+  unreadBadge: {
+    backgroundColor: '#F59E0B',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 8,
+  },
+  unreadBadgeText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
 });

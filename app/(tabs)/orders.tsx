@@ -40,6 +40,7 @@ type Order = {
   vat_amount: number;
   order_items: OrderItem[];
   shipments: Shipment[];
+  countries?: { name: string } | null;
 };
 
 const ORDER_STEPS = ['pending', 'processing', 'confirmed', 'shipped', 'delivered'];
@@ -78,7 +79,8 @@ export default function OrdersScreen() {
       .select(`
         id, order_number, status, subtotal, shipping_fee, vat_amount, total, currency, created_at, shipping_address,
         order_items (product_name, quantity, unit_price, supplier_amount),
-        shipments (tracking_number, carrier, status, estimated_delivery)
+        shipments (tracking_number, carrier, status, estimated_delivery, courier_id, couriers(name, code, tracking_url_format)),
+        countries (name)
       `)
       .eq('user_id', user?.id)
       .order('created_at', { ascending: false });
@@ -253,14 +255,28 @@ export default function OrdersScreen() {
               {selectedOrder.shipments?.[0]?.tracking_number && (
                 <View style={[styles.detailCard, language.rtl && { alignItems: 'flex-end' }]}>
                   <Text style={[styles.cardSectionTitle, language.rtl && { textAlign: 'right' }]}>{t.shipmentTracking}</Text>
-                  <View style={[styles.trackingRow, language.rtl && { flexDirection: 'row-reverse' }]}>
-                    <Truck size={16} color="#3B82F6" />
-                    <View style={language.rtl && { alignItems: 'flex-end' }}>
-                      <Text style={styles.trackingNum}>{selectedOrder.shipments[0].tracking_number}</Text>
-                      {selectedOrder.shipments[0].carrier && (
-                        <Text style={styles.trackingCarrier}>{t.via} {selectedOrder.shipments[0].carrier}</Text>
-                      )}
+
+                  {/* Courier Badge */}
+                  {(selectedOrder.shipments[0] as any).couriers?.name || selectedOrder.shipments[0].carrier ? (
+                    <View style={styles.courierBadgeRow}>
+                      <View style={styles.courierBadge}>
+                        <Truck size={13} color="#3B82F6" />
+                        <Text style={styles.courierBadgeText}>
+                          {(selectedOrder.shipments[0] as any).couriers?.name || selectedOrder.shipments[0].carrier}
+                        </Text>
+                      </View>
+                      <View style={[styles.shipStatusChip, { backgroundColor: STATUS_COLORS[selectedOrder.shipments[0].status] + '20' || '#F3F4F6' }]}>
+                        <Text style={[styles.shipStatusText, { color: STATUS_COLORS[selectedOrder.shipments[0].status] || '#6B7280' }]}>
+                          {selectedOrder.shipments[0].status?.replace('_',' ').toUpperCase()}
+                        </Text>
+                      </View>
                     </View>
+                  ) : null}
+
+                  {/* Tracking Number Box */}
+                  <View style={styles.trackingBox}>
+                    <Text style={styles.trackingBoxLabel}>TRACKING NUMBER</Text>
+                    <Text style={styles.trackingBoxNumber}>{selectedOrder.shipments[0].tracking_number}</Text>
                   </View>
                 </View>
               )}
@@ -307,6 +323,14 @@ export default function OrdersScreen() {
               {selectedOrder.shipping_address && (
                 <View style={[styles.detailCard, language.rtl && { alignItems: 'flex-end' }]}>
                   <Text style={[styles.cardSectionTitle, language.rtl && { textAlign: 'right' }]}>{t.deliveryAddress}</Text>
+
+                  {/* Destination Country */}
+                  {selectedOrder.countries?.name && (
+                    <View style={styles.countryChip}>
+                      <Text style={styles.countryChipText}>🌍 {selectedOrder.countries.name}</Text>
+                    </View>
+                  )}
+
                   <Text style={[styles.addressText, language.rtl && { textAlign: 'right' }]}>
                     {selectedOrder.shipping_address.street}{'\n'}
                     {selectedOrder.shipping_address.city}, {selectedOrder.shipping_address.state} {selectedOrder.shipping_address.zip}{'\n'}
@@ -419,6 +443,16 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border.medium,
   },
   cardSectionTitle: { fontSize: 13, fontWeight: '700', color: Colors.text.primary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 },
+  courierBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  courierBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#DBEAFE', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  courierBadgeText: { fontSize: 13, fontWeight: '700', color: '#1D4ED8' },
+  shipStatusChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  shipStatusText: { fontSize: 11, fontWeight: '800' },
+  trackingBox: { backgroundColor: Colors.background.primary, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: Colors.border.medium },
+  trackingBoxLabel: { fontSize: 10, fontWeight: '700', color: Colors.text.tertiary, letterSpacing: 1, marginBottom: 4 },
+  trackingBoxNumber: { fontSize: 15, fontWeight: '800', color: Colors.text.primary, letterSpacing: 0.8 },
+  countryChip: { backgroundColor: Colors.background.primary, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.border.medium, marginBottom: 10 },
+  countryChipText: { fontSize: 13, fontWeight: '600', color: Colors.text.primary },
   trackingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   trackingNum: { fontSize: 14, fontWeight: '600', color: Colors.text.primary },
   trackingCarrier: { fontSize: 12, color: Colors.text.tertiary },

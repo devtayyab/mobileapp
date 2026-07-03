@@ -9,7 +9,7 @@ type AuthContextType = {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, phone: string, password: string) => Promise<{ data: any; error: any }>;
+  signIn: (identifier: string, password: string) => Promise<{ data: any; error: any }>;
   signUp: (email: string, phone: string, password: string, role?: 'customer' | 'b2b' | 'supplier', name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -82,23 +82,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, phone: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (identifier: string, password: string) => {
+    let authResult;
+    
+    if (identifier.includes('@')) {
+      authResult = await supabase.auth.signInWithPassword({ email: identifier, password });
+    } else {
+      authResult = await supabase.auth.signInWithPassword({ phone: identifier, password });
+    }
+
+    const { data, error } = authResult;
     
     if (error || !data.user) {
       return { data, error };
-    }
-
-    // Verify phone number matches the user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('phone')
-      .eq('id', data.user.id)
-      .single();
-
-    if (!profile || profile.phone !== phone) {
-      await supabase.auth.signOut();
-      return { data: null, error: new Error('Phone number does not match our records.') };
     }
 
     return { data, error: null };

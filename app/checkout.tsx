@@ -50,7 +50,10 @@ type Country = {
 type ShippingRate = {
   supplier_id: string;
   shipping_charge: number;
+  delivery_time_days: number | null;
 };
+
+type SupplierRateMap = Record<string, { charge: number; deliveryDays: number | null }>;
 
 export default function CheckoutScreen() {
   const { user, profile } = useAuth();
@@ -71,7 +74,7 @@ export default function CheckoutScreen() {
   const [countries, setCountries] = useState<Country[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
-  const [supplierRates, setSupplierRates] = useState<Record<string, number>>({});
+  const [supplierRates, setSupplierRates] = useState<SupplierRateMap>({});
   const [calculatingRates, setCalculatingRates] = useState(false);
 
   useEffect(() => {
@@ -129,20 +132,21 @@ export default function CheckoutScreen() {
 
       const { data, error } = await supabase
         .from('supplier_shipping_rates')
-        .select('supplier_id, shipping_charge')
+        .select('supplier_id, shipping_charge, delivery_time_days')
         .eq('country_id', selectedCountry.id)
         .eq('is_active', true)
         .in('supplier_id', supplierIds);
 
       if (error) throw error;
 
-      const ratesMap: Record<string, number> = {};
+      const ratesMap: SupplierRateMap = {};
       data?.forEach(rate => {
-        ratesMap[rate.supplier_id] = rate.shipping_charge;
+        ratesMap[rate.supplier_id] = {
+          charge: rate.shipping_charge,
+          deliveryDays: rate.delivery_time_days ?? null,
+        };
       });
 
-      // For suppliers without a configured rate to this country, we could default to high value or block.
-      // Let's default to product base shipping_cost as fallback.
       setSupplierRates(ratesMap);
     } catch (err) {
       console.error('Error fetching rates', err);
@@ -171,6 +175,7 @@ export default function CheckoutScreen() {
         supplierName: string;
         items: CartItem[];
         shippingFee: number;
+        deliveryDays: number | null;
         hasRate: boolean;
       };
     } = {};
@@ -182,12 +187,13 @@ export default function CheckoutScreen() {
       const supplierName = supplier?.business_name || 'Global Supplier';
 
       if (!packagesMap[supplierId]) {
-        // Use exact configured rate if available, otherwise fallback to item.shipping_cost * qty
         let pkgShippingFee = 0;
+        let deliveryDays: number | null = null;
         let hasRate = false;
         
         if (selectedCountry && supplierRates[supplierId] !== undefined) {
-          pkgShippingFee = supplierRates[supplierId];
+          pkgShippingFee = supplierRates[supplierId].charge;
+          deliveryDays = supplierRates[supplierId].deliveryDays;
           hasRate = true;
         }
 
@@ -196,12 +202,12 @@ export default function CheckoutScreen() {
           supplierName,
           items: [],
           shippingFee: pkgShippingFee,
+          deliveryDays,
           hasRate,
         };
       }
       packagesMap[supplierId].items.push(item);
 
-      // If we don't have a configured rate from the DB, fallback to legacy product logic
       if (!packagesMap[supplierId].hasRate) {
         const itemShippingCost = item.products.shipping_cost || 0;
         packagesMap[supplierId].shippingFee += itemShippingCost * item.quantity;
@@ -555,6 +561,12 @@ export default function CheckoutScreen() {
                   {pkg.items[0]?.products?.currency || 'USD'} {pkg.shippingFee.toFixed(2)}
                 </Text>
               </View>
+              {pkg.hasRate && pkg.deliveryDays && (
+                <View style={[styles.packageFooterRow, { marginTop: 4 }, language.rtl && { flexDirection: 'row-reverse' }]}>
+                  <Text style={styles.packageShippingLabel}>⏱ Est. Delivery:</Text>
+                  <Text style={styles.packageDeliveryValue}>{pkg.deliveryDays} days</Text>
+                </View>
+              )}
             </View>
           ))}
 
@@ -767,6 +779,7 @@ const styles = StyleSheet.create({
   },
   packageShippingLabel: { fontSize: 12, fontWeight: '600', color: '#64748B' },
   packageShippingValue: { fontSize: 13, fontWeight: '700', color: '#10B981' },
+  packageDeliveryValue: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
