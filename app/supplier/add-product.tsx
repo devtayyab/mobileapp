@@ -17,6 +17,11 @@ type Category = {
   name: string;
 };
 
+type Country = {
+  id: string;
+  name: string;
+};
+
 type FormData = {
   name: string;
   description: string;
@@ -28,6 +33,7 @@ type FormData = {
   sku: string;
   image_url: string;
   shipping_cost: string;
+  origin_country_id: string;
 };
 
 export default function AddProductScreen() {
@@ -37,9 +43,11 @@ export default function AddProductScreen() {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
   const [supplierId, setSupplierId] = useState<string | null>(null);
   const [supplierError, setSupplierError] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
@@ -53,6 +61,7 @@ export default function AddProductScreen() {
     sku: '',
     image_url: '',
     shipping_cost: '0',
+    origin_country_id: '',
   });
 
   const [errors, setErrors] = useState<Partial<FormData>>({});
@@ -98,14 +107,14 @@ export default function AddProductScreen() {
 
     setSupplierId(supplier.id);
 
-    const { data: categoriesData } = await supabase
-      .from('categories')
-      .select('id, name')
-      .eq('is_active', true)
-      .is('parent_id', null)
-      .order('name');
+    // Load Categories
+    const { data: catData } = await supabase.from('categories').select('id, name').eq('is_active', true).order('name');
+    if (catData) setCategories(catData);
 
-    if (categoriesData) setCategories(categoriesData);
+    // Load Countries
+    const { data: countData } = await supabase.from('countries').select('id, name').eq('is_active', true).order('name');
+    if (countData) setCountries(countData);
+
     setInitializing(false);
   };
 
@@ -177,6 +186,7 @@ export default function AddProductScreen() {
         sku: formData.sku.trim() || null,
         currency: 'USD',
         shipping_cost: formData.shipping_cost ? parseFloat(formData.shipping_cost) : 0,
+        origin_country_id: formData.origin_country_id || null,
         is_active: true,
         is_featured: false,
       };
@@ -200,7 +210,7 @@ export default function AddProductScreen() {
 
       Alert.alert('Product Added', 'Your product has been listed successfully.', [
         { text: 'Add Another', onPress: () => {
-          setFormData({ name: '', description: '', category_id: '', b2c_price: '', b2b_price: '', moq: '1', stock_quantity: '', sku: '', image_url: '', shipping_cost: '0' });
+          setFormData({ name: '', description: '', category_id: '', b2c_price: '', b2b_price: '', moq: '1', stock_quantity: '', sku: '', image_url: '', shipping_cost: '0', origin_country_id: '' });
           setErrors({});
         }},
         { text: 'Done', onPress: () => router.canGoBack() ? router.back() : router.replace('/supplier/dashboard') },
@@ -218,6 +228,7 @@ export default function AddProductScreen() {
   };
 
   const selectedCategory = categories.find(c => c.id === formData.category_id);
+  const selectedCountry = countries.find(c => c.id === formData.origin_country_id);
 
   const pickImage = async () => {
     try {
@@ -362,6 +373,35 @@ export default function AddProductScreen() {
                     >
                       <Text style={[styles.categoryOptionText, formData.category_id === cat.id && styles.categoryOptionTextActive]}>
                         {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View style={[styles.fieldGroup, { marginTop: 16 }]}>
+              <Text style={styles.label}>Country of Origin</Text>
+              <TouchableOpacity
+                style={[styles.selectBtn, errors.origin_country_id && styles.inputError]}
+                onPress={() => setShowCountryPicker(!showCountryPicker)}
+              >
+                <Text style={[styles.selectBtnText, !selectedCountry && styles.placeholderText]}>
+                  {selectedCountry ? selectedCountry.name : 'Select a country'}
+                </Text>
+                {showCountryPicker ? <ChevronUp size={18} color="#64748B" /> : <ChevronDown size={18} color="#64748B" />}
+              </TouchableOpacity>
+              {errors.origin_country_id && <FieldError text={errors.origin_country_id} />}
+              {showCountryPicker && (
+                <View style={styles.categoryDropdown}>
+                  {countries.map((cnt) => (
+                    <TouchableOpacity
+                      key={cnt.id}
+                      style={[styles.categoryOption, formData.origin_country_id === cnt.id && styles.categoryOptionActive]}
+                      onPress={() => { updateField('origin_country_id', cnt.id); setShowCountryPicker(false); }}
+                    >
+                      <Text style={[styles.categoryOptionText, formData.origin_country_id === cnt.id && styles.categoryOptionTextActive]}>
+                        {cnt.name}
                       </Text>
                     </TouchableOpacity>
                   ))}

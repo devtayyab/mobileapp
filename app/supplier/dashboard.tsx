@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe } from 'lucide-react-native';
+import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe, Home, Star } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -290,7 +290,7 @@ export default function SupplierDashboard() {
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => { /* Navigate to analytics */ }}
+            onPress={() => router.push('/supplier/analytics')}
           >
             <View style={[styles.actionIcon, { backgroundColor: Colors.background.tertiary }]}>
               <TrendingUp size={24} color={Colors.primary} />
@@ -410,6 +410,14 @@ export default function SupplierDashboard() {
             <ChevronRight size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/supplier/reviews'); }}>
+            <View style={styles.menuRowLeft}>
+              <Star size={20} color="#4B5563" />
+              <Text style={styles.menuRowText}>Product Reviews</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/supplier/kyc'); }}>
             <View style={styles.menuRowLeft}>
               <ShieldCheck size={20} color={kycStatus === 'approved' ? '#10B981' : kycStatus === 'rejected' ? '#EF4444' : '#4B5563'} />
@@ -461,6 +469,10 @@ export default function SupplierDashboard() {
         </ScrollView>
 
         <View style={styles.menuFooter}>
+          <TouchableOpacity style={styles.backButton} onPress={() => { toggleMenu(); router.replace('/(tabs)'); }}>
+            <Home size={20} color="#4B5563" />
+            <Text style={styles.backText}>Back to Main App</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.logoutButton} onPress={handleSignOut}>
             <LogOut size={20} color="#EF4444" />
             <Text style={styles.logoutText}>Sign Out</Text>
@@ -589,7 +601,9 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   menuRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuRowText: { fontSize: 15, color: Colors.text.primary, fontWeight: '500' },
   menuDivider: { height: 1, backgroundColor: Colors.border.medium, marginVertical: 12 },
-  menuFooter: { padding: 20, borderTopWidth: 1, borderTopColor: Colors.border.medium },
+  menuFooter: { padding: 24, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
+  backButton: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
+  backText: { fontSize: 16, fontWeight: '600', color: '#4B5563' },
   logoutButton: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   logoutText: { fontSize: 15, fontWeight: '600', color: Colors.error },
   menuRowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -17,8 +17,7 @@ const { width } = Dimensions.get('window');
 export default function LoginScreen() {
   const Colors = useTheme();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -27,13 +26,13 @@ export default function LoginScreen() {
   const { t, language } = useLanguage();
 
   const handleLogin = async () => {
-    if (!email || !phone || !password) {
+    if (!identifier || !password) {
       Alert.alert(t.error, t.fillAllFields);
       return;
     }
 
     setLoading(true);
-    const { data, error } = await signIn(email, phone, password);
+    const { data, error } = await signIn(identifier, password);
     setLoading(false);
 
     if (error) {
@@ -65,32 +64,16 @@ export default function LoginScreen() {
 
         <View style={styles.formCard}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.emailAddress}</Text>
-            <View style={styles.inputRow}>
-              <Mail size={18} color={Colors.text.tertiary} />
-              <TextInput
-                style={styles.input}
-                placeholder={t.emailPlaceholder}
-                placeholderTextColor={Colors.text.tertiary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.phone || 'Phone Number'}</Text>
+            <Text style={styles.label}>{t.emailAddress} / {t.phone || 'Phone'}</Text>
             <View style={styles.inputRow}>
               <User size={18} color={Colors.text.tertiary} />
               <TextInput
                 style={styles.input}
-                placeholder="+1234567890"
+                placeholder={`${t.emailPlaceholder} / +1234567890`}
                 placeholderTextColor={Colors.text.tertiary}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
+                value={identifier}
+                onChangeText={setIdentifier}
+                keyboardType="default"
                 autoCapitalize="none"
               />
             </View>

@@ -6,7 +6,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Send, User, MessageSquare } from 'lucide-react-native';
+import { ArrowLeft, Send, User, MessageSquare, Check, CheckCheck } from 'lucide-react-native';
 
 type Message = {
   id: string;
@@ -14,6 +14,7 @@ type Message = {
   sender_id: string;
   message: string;
   created_at: string;
+  is_read?: boolean;
 };
 
 export default function ChatRoomScreen() {
@@ -41,6 +42,7 @@ export default function ChatRoomScreen() {
     if (user && roomId) {
       loadRoomDetails();
       loadMessages();
+      markMessagesAsRead();
       cleanupSubscription = subscribeToMessages();
       cleanupHeartbeat = startOnlineHeartbeat();
 
@@ -54,6 +56,20 @@ export default function ChatRoomScreen() {
       if (cleanupSubscription) cleanupSubscription();
     };
   }, [user, roomId]);
+
+  const markMessagesAsRead = async () => {
+    if (!roomId || !user) return;
+    try {
+      await supabase
+        .from('chat_messages')
+        .update({ is_read: true })
+        .eq('room_id', roomId)
+        .eq('is_read', false)
+        .neq('sender_id', user.id);
+    } catch (err) {
+      console.log('Error marking as read:', err);
+    }
+  };
 
   // Heartbeat to mark this user as online/offline dynamically
   const startOnlineHeartbeat = () => {
@@ -175,21 +191,30 @@ export default function ChatRoomScreen() {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
-          tableName: 'chat_messages'
+          table: 'chat_messages',
+          filter: `room_id=eq.${roomId}`
         },
         (payload: any) => {
-          const newMessage = payload.new as Message;
-          if (newMessage.room_id !== roomId) return;
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as Message;
 
-          setMessages((prev) => {
-            // Guard against duplicate inserts from real-time events
-            if (prev.some(m => m.id === newMessage.id)) return prev;
-            return [...prev, newMessage];
-          });
-          // Scroll to end on new message
-          setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+            setMessages((prev) => {
+              if (prev.some(m => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+            setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+            if (newMessage.sender_id !== user?.id) {
+              markMessagesAsRead();
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const updatedMessage = payload.new as Message;
+            setMessages((prev) => 
+              prev.map(msg => msg.id === updatedMessage.id ? { ...msg, is_read: updatedMessage.is_read } : msg)
+            );
+          }
         }
       )
       .subscribe();
@@ -240,12 +265,6 @@ export default function ChatRoomScreen() {
         );
       }
 
-      // Update room's updated_at timestamp to bubble it up in chats list
-      await supabase
-        .from('chat_rooms')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', roomId);
-
     } catch (err) {
       console.error('Error sending message:', err);
       // Remove optimistic message if insert failed
@@ -281,12 +300,21 @@ export default function ChatRoomScreen() {
           ]}>
             {item.message}
           </Text>
-          <Text style={[
-            styles.messageTime,
-            isMine ? styles.myMessageTime : styles.otherMessageTime
-          ]}>
-            {formatTime(item.created_at)}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: 4 }}>
+            <Text style={[
+              styles.messageTime,
+              isMine ? styles.myMessageTime : styles.otherMessageTime
+            ]}>
+              {formatTime(item.created_at)}
+            </Text>
+            {isMine && (
+              item.is_read ? (
+                <CheckCheck size={14} color="#3B82F6" />
+              ) : (
+                <Check size={14} color="rgba(0, 0, 0, 0.4)" />
+              )
+            )}
+          </View>
         </View>
       </View>
     );
@@ -305,8 +333,8 @@ export default function ChatRoomScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+      keyboardVerticalOffset={0}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -342,9 +370,16 @@ export default function ChatRoomScreen() {
         data={messages}
         renderItem={renderMessageItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
+        contentContainerStyle={[styles.messagesList, messages.length === 0 && styles.messagesListEmpty]}
         showsVerticalScrollIndicator={false}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={() => messages.length > 0 && flatListRef.current?.scrollToEnd({ animated: true })}
+        ListEmptyComponent={
+          <View style={styles.emptyMessages}>
+            <MessageSquare size={48} color="#374151" />
+            <Text style={styles.emptyMessagesTitle}>No messages yet</Text>
+            <Text style={styles.emptyMessagesSub}>Start the conversation by sending a message below.</Text>
+          </View>
+        }
       />
 
       {/* Input bar */}
@@ -393,6 +428,10 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
   headerSubtitle: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
   messagesList: { padding: 16, gap: 14, paddingBottom: 24 },
+  messagesListEmpty: { flex: 1 },
+  emptyMessages: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12, paddingHorizontal: 40 },
+  emptyMessagesTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF' },
+  emptyMessagesSub: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
   messageRow: { flexDirection: 'row', width: '100%', marginVertical: 2 },
   myMessageRow: { justifyContent: 'flex-end' },
   otherMessageRow: { justifyContent: 'flex-start' },
