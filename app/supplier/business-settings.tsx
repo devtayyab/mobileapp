@@ -1,12 +1,12 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Switch
+  TextInput, ActivityIndicator, Alert, Switch, Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Save, Store, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Save, Store, AlertCircle, CreditCard, CheckCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -39,6 +39,9 @@ export default function BusinessSettingsScreen() {
   const [businessAddress, setBusinessAddress] = useState('');
   const [website, setWebsite] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [stripeOnboardingComplete, setStripeOnboardingComplete] = useState(false);
+  const [stripeLoading, setStripeLoading] = useState(false);
 
   useEffect(() => {
     loadSupplierData();
@@ -50,7 +53,7 @@ export default function BusinessSettingsScreen() {
 
     const { data, error } = await supabase
       .from('suppliers')
-      .select('id, business_name, business_description, business_email, business_phone, business_address, website, is_active, kyc_status, commission_rate')
+      .select('id, business_name, business_description, business_email, business_phone, business_address, website, is_active, kyc_status, commission_rate, stripe_account_id, stripe_onboarding_complete')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -74,7 +77,39 @@ export default function BusinessSettingsScreen() {
     setBusinessAddress(data.business_address || '');
     setWebsite(data.website || '');
     setIsActive(data.is_active ?? true);
+    setStripeAccountId(data.stripe_account_id || null);
+    setStripeOnboardingComplete(data.stripe_onboarding_complete || false);
     setInitializing(false);
+  };
+
+  const handleSetupStripe = async () => {
+    try {
+      setStripeLoading(true);
+      
+      const { data: connectData, error: connectError } = await supabase.functions.invoke('create-stripe-connect-account');
+      if (connectError) throw new Error(connectError.message || 'Failed to initialize Stripe account');
+      
+      // Update local state if needed
+      if (connectData?.stripeAccountId) {
+        setStripeAccountId(connectData.stripeAccountId);
+      }
+      
+      const { data: linkData, error: linkError } = await supabase.functions.invoke('create-stripe-account-link', {
+        body: {
+          refresh_url: 'exp://localhost:8081', // Fallback for dev
+          return_url: 'exp://localhost:8081',
+        }
+      });
+      if (linkError) throw new Error(linkError.message || 'Failed to create Stripe link');
+      
+      if (linkData?.url) {
+        Linking.openURL(linkData.url);
+      }
+    } catch (error: any) {
+      Alert.alert('Stripe Setup Error', error.message);
+    } finally {
+      setStripeLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -240,6 +275,42 @@ export default function BusinessSettingsScreen() {
           </View>
 
           <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Payout Settings</Text>
+            <View style={styles.payoutContainer}>
+              <View style={styles.payoutInfo}>
+                <CreditCard size={24} color={stripeOnboardingComplete ? '#10B981' : '#64748B'} />
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={styles.toggleLabel}>Stripe Connected Account</Text>
+                  <Text style={styles.toggleSub}>
+                    {stripeOnboardingComplete 
+                      ? 'Your account is verified and ready to receive payouts.' 
+                      : 'Set up your bank details to receive payouts securely.'}
+                  </Text>
+                </View>
+              </View>
+
+              {!stripeOnboardingComplete ? (
+                <TouchableOpacity 
+                  style={[styles.stripeBtn, stripeLoading && styles.submitBtnDisabled]} 
+                  onPress={handleSetupStripe}
+                  disabled={stripeLoading}
+                >
+                  {stripeLoading ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <Text style={styles.stripeBtnText}>Set up Payouts</Text>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.completedBadge}>
+                  <CheckCircle size={16} color="#10B981" />
+                  <Text style={styles.completedText}>Verified</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.section}>
             <Text style={styles.sectionTitle}>Store Status</Text>
             <View style={styles.toggleRow}>
               <View style={styles.toggleInfo}>
@@ -320,4 +391,17 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   },
   submitBtnDisabled: { opacity: 0.6 },
   submitBtnText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
+  payoutContainer: { gap: 16 },
+  payoutInfo: { flexDirection: 'row', alignItems: 'center' },
+  stripeBtn: {
+    backgroundColor: '#635BFF', padding: 12, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stripeBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },
+  completedBadge: { 
+    flexDirection: 'row', alignItems: 'center', gap: 6, 
+    backgroundColor: '#D1FAE5', paddingHorizontal: 12, paddingVertical: 6, 
+    borderRadius: 8, alignSelf: 'flex-start' 
+  },
+  completedText: { color: '#10B981', fontWeight: '600', fontSize: 13 },
 });

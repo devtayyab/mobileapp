@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   Users, Package, ShoppingBag, BarChart2, TrendingUp,
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
-  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck
+  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck, CreditCard
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -157,6 +157,12 @@ export default function AdminDashboard() {
       subtitle: 'Manage tracking and couriers',
       icon: Truck, color: Colors.warning, bg: Colors.background.tertiary,
       route: '/admin/couriers',
+    },
+    {
+      label: 'Payment Settings',
+      subtitle: 'Manage Stripe API keys & config',
+      icon: CreditCard, color: Colors.primary, bg: Colors.background.tertiary,
+      route: '/admin/payment-settings',
     },
   ];
 
