@@ -7,6 +7,9 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { StripeProvider } from '@stripe/stripe-react-native';
+
+const STRIPE_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy_key_replace_me';
 
 function RootNavigator() {
   const Colors = useTheme();
@@ -46,7 +49,9 @@ export default function RootLayout() {
         <AuthProvider>
           <ThemeProvider>
             <NotificationProvider>
-              <RootNavigator />
+              <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
+                <RootNavigator />
+              </StripeProvider>
             </NotificationProvider>
           </ThemeProvider>
         </AuthProvider>

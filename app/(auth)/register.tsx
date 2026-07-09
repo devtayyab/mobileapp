@@ -1,16 +1,17 @@
 import { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, FlatList
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Briefcase, Store } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Briefcase, Store, ChevronDown, CheckCircle, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
+import { countryCodes } from '@/constants/Countries';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,8 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>('customer');
   const [loading, setLoading] = useState(false);
+  const [countryCode, setCountryCode] = useState('+1');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
   const { t } = useLanguage();
@@ -57,7 +60,8 @@ export default function RegisterScreen() {
     }
 
     setLoading(true);
-    const { error } = await signUp(email, phone, password, role, name.trim());
+    const fullPhone = `${countryCode}${phone.replace(/^0+/, '')}`;
+    const { error } = await signUp(email, fullPhone, password, role, name.trim());
     setLoading(false);
 
     if (error) {
@@ -141,11 +145,18 @@ export default function RegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.phone || 'Phone Number'} <Text style={{ color: Colors.secondary }}>*</Text></Text>
-            <View style={styles.inputRow}>
-              <User size={18} color={Colors.text.tertiary} />
+            <View style={[styles.inputRow, { paddingHorizontal: 0, paddingVertical: 0 }]}>
+              <TouchableOpacity
+                style={styles.countrySelector}
+                onPress={() => setShowCountryPicker(true)}
+              >
+                <Text style={styles.countrySelectorText}>{countryCode}</Text>
+                <ChevronDown size={16} color={Colors.text.tertiary} />
+              </TouchableOpacity>
+              <View style={styles.verticalDivider} />
               <TextInput
-                style={styles.input}
-                placeholder="+1234567890"
+                style={[styles.input, { paddingVertical: 10, paddingHorizontal: 10 }]}
+                placeholder="1234567890"
                 placeholderTextColor={Colors.text.tertiary}
                 value={phone}
                 onChangeText={setPhone}
@@ -227,6 +238,35 @@ export default function RegisterScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showCountryPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Country Code</Text>
+              <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+                <X size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={countryCodes}
+              keyExtractor={c => c.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.countryRow} 
+                  onPress={() => {
+                    setCountryCode(item.dial_code);
+                    setShowCountryPicker(false);
+                  }}
+                >
+                  <Text style={styles.countryRowText}>{item.name} ({item.dial_code})</Text>
+                  {countryCode === item.dial_code && <CheckCircle size={20} color={Colors.secondary} />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -320,5 +360,18 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     paddingHorizontal: 20, marginTop: 12, lineHeight: 18,
   },
   termsLink: { color: Colors.secondary, fontWeight: '600' },
+  countrySelector: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 14, paddingVertical: 10,
+    backgroundColor: 'transparent',
+  },
+  countrySelectorText: { fontSize: 14, color: Colors.text.secondary, fontWeight: '600' },
+  verticalDivider: { width: 1, height: '60%', backgroundColor: Colors.border.medium },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.background.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
+  countryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.border.light },
+  countryRowText: { fontSize: 16, color: Colors.text.secondary },
 });
 

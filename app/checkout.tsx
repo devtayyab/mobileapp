@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   ArrowLeft, MapPin, CreditCard, CheckCircle, Package, ArrowRight, ChevronDown, Globe, X
 } from 'lucide-react-native';
+import { useStripe } from '@stripe/stripe-react-native';
 
 type CartItem = {
   id: string;
@@ -76,6 +77,7 @@ export default function CheckoutScreen() {
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [supplierRates, setSupplierRates] = useState<SupplierRateMap>({});
   const [calculatingRates, setCalculatingRates] = useState(false);
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   useEffect(() => {
     if (user) {
@@ -280,6 +282,36 @@ export default function CheckoutScreen() {
       const vatAmount = calculateVat(subtotal);
       const platformCommission = subtotal * 0.1;
       const total = calculateTotal();
+      const currency = cartItems[0]?.products?.currency || 'USD';
+
+      if (paymentMethod === 'card') {
+        // Stripe Payment Flow
+        const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
+
+        const { data: paymentIntentData, error: paymentIntentError } = await supabase.functions.invoke('create-payment-intent', {
+          body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId },
+        });
+
+        if (paymentIntentError || !paymentIntentData?.clientSecret) {
+          throw new Error('Failed to initialize payment.');
+        }
+
+        const { error: initError } = await initPaymentSheet({
+          merchantDisplayName: 'B2B Marketplace',
+          paymentIntentClientSecret: paymentIntentData.clientSecret,
+        });
+
+        if (initError) throw initError;
+
+        const { error: presentError } = await presentPaymentSheet();
+        if (presentError) {
+          if (presentError.code === 'Canceled') {
+             setPlacing(false);
+             return;
+          }
+          throw presentError;
+        }
+      }
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -294,7 +326,7 @@ export default function CheckoutScreen() {
           shipping_country_id: selectedCountry?.id,
           platform_commission: platformCommission,
           total,
-          currency: cartItems[0]?.products?.currency || 'USD',
+          currency,
           shipping_address: address,
           billing_address: address,
         })
@@ -342,10 +374,10 @@ export default function CheckoutScreen() {
 
       await supabase.from('payments').insert({
         order_id: order.id,
-        payment_gateway: 'stripe',
+        payment_gateway: paymentMethod === 'card' ? 'stripe' : 'cash',
         amount: total,
-        currency: cartItems[0]?.products?.currency || 'USD',
-        status: 'completed',
+        currency,
+        status: paymentMethod === 'card' ? 'completed' : 'pending',
         payment_method: paymentMethod,
       });
 
