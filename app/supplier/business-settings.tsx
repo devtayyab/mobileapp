@@ -42,6 +42,7 @@ export default function BusinessSettingsScreen() {
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeOnboardingComplete, setStripeOnboardingComplete] = useState(false);
   const [stripeLoading, setStripeLoading] = useState(false);
+  const [stripeError, setStripeError] = useState('');
 
   useEffect(() => {
     loadSupplierData();
@@ -85,9 +86,19 @@ export default function BusinessSettingsScreen() {
   const handleSetupStripe = async () => {
     try {
       setStripeLoading(true);
+      setStripeError('');
       
       const { data: connectData, error: connectError } = await supabase.functions.invoke('create-stripe-connect-account');
-      if (connectError) throw new Error(connectError.message || 'Failed to initialize Stripe account');
+      if (connectError) {
+        let errorMsg = connectError.message;
+        if (connectError.context) {
+          try {
+            const contextObj = await connectError.context.json();
+            if (contextObj.error) errorMsg = contextObj.error;
+          } catch(e) {}
+        }
+        throw new Error('Stripe Error: ' + errorMsg);
+      }
       
       // Update local state if needed
       if (connectData?.stripeAccountId) {
@@ -106,6 +117,7 @@ export default function BusinessSettingsScreen() {
         Linking.openURL(linkData.url);
       }
     } catch (error: any) {
+      setStripeError(error.message);
       Alert.alert('Stripe Setup Error', error.message);
     } finally {
       setStripeLoading(false);
@@ -290,17 +302,22 @@ export default function BusinessSettingsScreen() {
               </View>
 
               {!stripeOnboardingComplete ? (
-                <TouchableOpacity 
-                  style={[styles.stripeBtn, stripeLoading && styles.submitBtnDisabled]} 
-                  onPress={handleSetupStripe}
-                  disabled={stripeLoading}
-                >
-                  {stripeLoading ? (
-                    <ActivityIndicator color="#FFF" size="small" />
-                  ) : (
-                    <Text style={styles.stripeBtnText}>Set up Payouts</Text>
+                <View>
+                  <TouchableOpacity 
+                    style={[styles.stripeBtn, stripeLoading && styles.submitBtnDisabled]} 
+                    onPress={handleSetupStripe}
+                    disabled={stripeLoading}
+                  >
+                    {stripeLoading ? (
+                      <ActivityIndicator color="#FFF" size="small" />
+                    ) : (
+                      <Text style={styles.stripeBtnText}>Set up Payouts</Text>
+                    )}
+                  </TouchableOpacity>
+                  {stripeError && (
+                    <Text style={{color: 'red', marginTop: 10, fontWeight: 'bold'}}>{stripeError}</Text>
                   )}
-                </TouchableOpacity>
+                </View>
               ) : (
                 <View style={styles.completedBadge}>
                   <CheckCircle size={16} color="#10B981" />

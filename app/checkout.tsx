@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   ArrowLeft, MapPin, CreditCard, CheckCircle, Package, ArrowRight, ChevronDown, Globe, X
 } from 'lucide-react-native';
-import { useStripe } from '@stripe/stripe-react-native';
+import { useStripe } from '@/hooks/useStripe';
 
 type CartItem = {
   id: string;
@@ -245,10 +245,10 @@ export default function CheckoutScreen() {
 
   const validateAddress = () => {
     const newErrors: Partial<Address> = {};
-    if (!address.street.trim()) newErrors.street = 'Required';
-    if (!address.city.trim()) newErrors.city = 'Required';
-    if (!address.state.trim()) newErrors.state = 'Required';
-    if (!address.zipCode.trim()) newErrors.zipCode = 'Required';
+    if (!(address?.street || '').trim()) newErrors.street = 'Required';
+    if (!(address?.city || '').trim()) newErrors.city = 'Required';
+    if (!(address?.state || '').trim()) newErrors.state = 'Required';
+    if (!(address?.zipCode || '').trim()) newErrors.zipCode = 'Required';
     if (!selectedCountry) newErrors.country = 'Required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -292,7 +292,17 @@ export default function CheckoutScreen() {
           body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId },
         });
 
-        if (paymentIntentError || !paymentIntentData?.clientSecret) {
+        if (paymentIntentError) {
+          let errMsg = paymentIntentError.message;
+          if (paymentIntentError.context) {
+            try {
+              const b = await paymentIntentError.context.json();
+              if (b.error) errMsg = b.error;
+            } catch(e){}
+          }
+          throw new Error('Stripe Error: ' + errMsg);
+        }
+        if (!paymentIntentData?.clientSecret) {
           throw new Error('Failed to initialize payment.');
         }
 
@@ -391,9 +401,9 @@ export default function CheckoutScreen() {
       setPlacedOrderNumber(orderNumber);
       setPlacedTotal(total);
       setOrderSuccess(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error placing order:', error);
-      Alert.alert(t.error, t.error);
+      Alert.alert(t.error, error.message || t.error);
     } finally {
       setPlacing(false);
     }

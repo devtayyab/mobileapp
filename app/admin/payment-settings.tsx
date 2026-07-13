@@ -50,12 +50,12 @@ export default function PaymentSettingsScreen() {
     try {
       const { error } = await supabase
         .from('payment_settings')
-        .update({
+        .upsert({
+          id: 1,
           stripe_secret_key: secretKey.trim() || null,
           stripe_publishable_key: publishableKey.trim() || null,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', 1);
+        });
 
       if (error) throw error;
 
