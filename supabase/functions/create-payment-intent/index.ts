@@ -73,7 +73,6 @@ Deno.serve(async (req: Request) => {
     let paymentIntentParams: any = {
       amount: Math.round(amount * 100), // Stripe expects amounts in cents
       currency,
-      customer: user.id, // Ideally, you'd map this to a Stripe Customer ID
       payment_method_types: ['card'],
       metadata: {
         userId: user.id,
@@ -82,15 +81,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // If there's a supplier ID, fetch their Stripe Connected Account ID from database
-    // This assumes you have a `stripe_account_id` column in the `suppliers` table
     if (supplier_id) {
       const { data: supplierData } = await supabase
         .from('suppliers')
-        .select('stripe_account_id')
+        .select('stripe_account_id, stripe_onboarding_complete')
         .eq('id', supplier_id)
         .single()
 
-      if (supplierData?.stripe_account_id) {
+      if (supplierData?.stripe_account_id && supplierData?.stripe_onboarding_complete) {
         // Stripe Connect: Separate Charges and Transfers or Destination Charges
         // 10% platform fee
         const applicationFeeAmount = Math.round((amount * 0.10) * 100) 
