@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import {
   Users, Package, ShoppingBag, BarChart2, TrendingUp,
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
-  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck, CreditCard
+  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck, CreditCard, FolderTree
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -113,6 +113,12 @@ export default function AdminDashboard() {
       subtitle: 'Feature, activate & manage listings',
       icon: Package, color: Colors.success, bg: Colors.background.tertiary,
       route: '/admin/products',
+    },
+    {
+      label: 'Categories',
+      subtitle: 'Manage product categories',
+      icon: FolderTree, color: Colors.primary, bg: Colors.background.tertiary,
+      route: '/admin/categories',
     },
     {
       label: 'Order Monitoring',

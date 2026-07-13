@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert
+  TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, UploadCloud } from 'lucide-react-native';
+import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, UploadCloud, X } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -38,6 +38,10 @@ export default function EditProductScreen() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [addingCategory, setAddingCategory] = useState(false);
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     description: '',
@@ -56,6 +60,31 @@ export default function EditProductScreen() {
   useEffect(() => {
     loadData();
   }, [id]);
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) {
+      Alert.alert('Validation', 'Category name is required');
+      return;
+    }
+    setAddingCategory(true);
+    const slug = newCategoryName.trim().toLowerCase().replace(/\s+/g, '-');
+    const { data, error } = await supabase.from('categories').insert([{
+      name: newCategoryName.trim(),
+      slug: slug,
+      is_active: true,
+      display_order: 0
+    }]).select().single();
+
+    if (error) {
+      Alert.alert('Error', error.message || 'Could not create category');
+    } else if (data) {
+      setCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
+      updateField('category_id', data.id);
+      setShowAddCategoryModal(false);
+      setNewCategoryName('');
+    }
+    setAddingCategory(false);
+  };
 
   const loadData = async () => {
     if (!id) return;
@@ -307,7 +336,12 @@ export default function EditProductScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Category <Text style={styles.required}>*</Text></Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 6 }}>
+                <Text style={[styles.label, { marginBottom: 0 }]}>Category <Text style={styles.required}>*</Text></Text>
+                <TouchableOpacity onPress={() => setShowAddCategoryModal(true)}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#1D4ED8' }}>+ Add New</Text>
+                </TouchableOpacity>
+              </View>
               <TouchableOpacity
                 style={[styles.selectBtn, errors.category_id && styles.inputError]}
                 onPress={() => setShowCategoryPicker(!showCategoryPicker)}
@@ -478,6 +512,30 @@ export default function EditProductScreen() {
           <View style={{ height: 32 }} />
         </View>
       </ScrollView>
+
+      {/* Add Category Modal */}
+      <Modal visible={showAddCategoryModal} transparent animationType="slide">
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Category</Text>
+              <TouchableOpacity onPress={() => setShowAddCategoryModal(false)}>
+                <X size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.label}>Category Name</Text>
+            <TextInput 
+              style={styles.input} 
+              value={newCategoryName} 
+              onChangeText={setNewCategoryName} 
+              placeholder="e.g. Electronics" 
+            />
+            <TouchableOpacity style={styles.modalSaveBtn} onPress={handleAddCategory} disabled={addingCategory}>
+              {addingCategory ? <ActivityIndicator color="#FFF" /> : <Text style={styles.modalSaveBtnText}>Save Category</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -560,4 +618,10 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#E2E8F0' },
   dividerText: { marginHorizontal: 10, fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: Colors.background.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
+  modalSaveBtn: { backgroundColor: '#1D4ED8', height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 24, marginBottom: 20 },
+  modalSaveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });
