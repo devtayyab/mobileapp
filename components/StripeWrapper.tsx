@@ -16,7 +16,10 @@ export default function StripeWrapper({ children, publishableKey: fallbackKey }:
   }, []);
 
   return (
-    <StripeProvider publishableKey={pubKey}>
+    <StripeProvider
+      publishableKey={pubKey}
+      merchantIdentifier="merchant.com.devtayyab.marketplace"
+    >
       <>{children}</>
     </StripeProvider>
   );
