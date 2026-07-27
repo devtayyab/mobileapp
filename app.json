@@ -32,7 +32,7 @@
       "permissions": [
         "INTERNET"
       ],
-      "package": "com.marketplace.app"
+      "package": "com.devtayyab.sathun"
     },
     "web": {
       "bundler": "metro",
@@ -47,7 +47,7 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "com.marketplace.app",
+          "merchantIdentifier": "com.devtayyab.sathun",
           "enableGooglePay": false
         }
       ]
