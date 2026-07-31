@@ -145,7 +145,7 @@ export default function RegisterScreen() {
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{t.phone || 'Phone Number'} <Text style={{ color: Colors.secondary }}>*</Text></Text>
-            <View style={[styles.inputRow, { paddingHorizontal: 0, paddingVertical: 0 }]}>
+            <View style={[styles.inputRow, { paddingHorizontal: 0 }]}>
               <TouchableOpacity
                 style={styles.countrySelector}
                 onPress={() => setShowCountryPicker(true)}
@@ -155,7 +155,7 @@ export default function RegisterScreen() {
               </TouchableOpacity>
               <View style={styles.verticalDivider} />
               <TextInput
-                style={[styles.input, { paddingVertical: 10, paddingHorizontal: 10 }]}
+                style={[styles.input, { paddingHorizontal: 10 }]}
                 placeholder="1234567890"
                 placeholderTextColor={Colors.text.tertiary}
                 value={phone}
@@ -328,10 +328,10 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   inputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     backgroundColor: Colors.background.primary, borderRadius: 14,
-    paddingHorizontal: 14, paddingVertical: 10,
+    paddingHorizontal: 14, height: 50,
     borderWidth: 1.5, borderColor: Colors.border.medium,
   },
-  input: { flex: 1, fontSize: 14, color: Colors.text.secondary },
+  input: { flex: 1, fontSize: 14, color: Colors.text.secondary, paddingVertical: 0 },
   eyeBtn: { padding: 4 },
   createBtn: {
     height: 48,

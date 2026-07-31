@@ -452,14 +452,14 @@ export default function SupplierDashboard() {
 
           <View style={styles.menuDivider} />
 
-          <TouchableOpacity style={styles.menuRow}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/help'); }}>
             <View style={styles.menuRowLeft}>
               <HelpCircle size={20} color="#4B5563" />
               <Text style={styles.menuRowText}>Help & Support</Text>
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.menuRow}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/terms'); }}>
             <View style={styles.menuRowLeft}>
               <FileText size={20} color="#4B5563" />
               <Text style={styles.menuRowText}>Terms & Policy</Text>
