@@ -311,6 +311,9 @@ export default function CheckoutScreen() {
         const { error: initError } = await initPaymentSheet({
           merchantDisplayName: 'B2B Marketplace',
           paymentIntentClientSecret: paymentIntentData.clientSecret,
+          applePay: {
+            merchantCountryCode: 'DE',
+          },
         });
 
         if (initError) throw initError;
