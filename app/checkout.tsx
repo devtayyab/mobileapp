@@ -11,6 +11,7 @@ import {
   ArrowLeft, MapPin, CreditCard, CheckCircle, Package, ArrowRight, ChevronDown, Globe, X
 } from 'lucide-react-native';
 import { useStripe } from '@/hooks/useStripe';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type CartItem = {
   id: string;
@@ -57,6 +58,7 @@ type ShippingRate = {
 type SupplierRateMap = Record<string, { charge: number; deliveryDays: number | null }>;
 
 export default function CheckoutScreen() {
+  const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
   const { t, language } = useLanguage();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -563,7 +565,8 @@ export default function CheckoutScreen() {
             <Text style={styles.paymentOptionText}>{t.creditDebitCard}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* Cash on Delivery option hidden for now */}
+          {/* <TouchableOpacity
             style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionActive, language.rtl && { flexDirection: 'row-reverse' }]}
             onPress={() => setPaymentMethod('cash')}
           >
@@ -571,7 +574,7 @@ export default function CheckoutScreen() {
               {paymentMethod === 'cash' && <View style={styles.radioButtonInner} />}
             </View>
             <Text style={styles.paymentOptionText}>{t.cashOnDelivery}</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
@@ -656,7 +659,7 @@ export default function CheckoutScreen() {
         <View style={{ height: 24 }} />
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom + 16, 34) }]}>
         <TouchableOpacity
           style={[styles.placeOrderButton, (placing || calculatingRates) && styles.placeOrderButtonDisabled]}
           onPress={handlePlaceOrder}
@@ -758,7 +761,7 @@ const styles = StyleSheet.create({
   summaryLabelBold: { fontSize: 16, fontWeight: '700', color: '#111827' },
   summaryValueBold: { fontSize: 18, fontWeight: '800', color: '#1D4ED8' },
   footer: {
-    backgroundColor: '#FFF', padding: 20, paddingBottom: 34,
+    backgroundColor: '#FFF', padding: 20,
     borderTopWidth: 1, borderTopColor: '#E5E7EB',
   },
   placeOrderButton: {

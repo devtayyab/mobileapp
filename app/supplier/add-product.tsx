@@ -548,6 +548,7 @@ export default function AddProductScreen() {
                   </>
                 )}
               </TouchableOpacity>
+              <Text style={{ textAlign: 'center', fontSize: 12, color: '#64748B', marginTop: -2, marginBottom: 8 }}>Recommended size: 800x800px (1:1 Ratio)</Text>
               
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />

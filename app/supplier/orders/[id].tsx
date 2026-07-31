@@ -37,6 +37,7 @@ export default function SupplierOrderDetail() {
   const [selectedCourierId, setSelectedCourierId] = useState<string>('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [saving, setSaving] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (user?.id && orderId) {
@@ -54,7 +55,11 @@ export default function SupplierOrderDetail() {
         .eq('user_id', user!.id)
         .single();
 
-      if (!supplier) throw new Error('Supplier not found');
+      if (!supplier) {
+        setLoading(false);
+        setNotFound(true);
+        return;
+      }
 
       // Load Order & Items
       const { data: orderItems, error: itemsError } = await supabase
@@ -150,6 +155,24 @@ export default function SupplierOrderDetail() {
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator size="large" color={Colors.primary} /></View>;
+  }
+
+  if (notFound || !order) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <ArrowLeft size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Order Details</Text>
+          <View style={styles.headerRight} />
+        </View>
+        <View style={styles.center}>
+          <Package size={48} color={Colors.border.dark} />
+          <Text style={{ marginTop: 12, fontSize: 16, color: Colors.text.tertiary }}>Order not found or access denied.</Text>
+        </View>
+      </View>
+    );
   }
 
   const payoutAmount = items.reduce((sum, item) => sum + Number(item.supplier_amount), 0);
