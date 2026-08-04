@@ -347,7 +347,7 @@ export default function HomeScreen() {
                   <TouchableOpacity key={p.id} style={styles.featCard} onPress={() => router.push(`/product/${p.id}`)}>
                     <View style={styles.featImgWrap}>
                       {img ? (
-                        <Image source={{ uri: img }} style={styles.featImg} resizeMode="cover" />
+                        <Image source={{ uri: img }} style={styles.featImg} resizeMode="contain" />
                       ) : (
                         <View style={styles.featImgPlaceholder}>
                           <ShoppingBag size={26} color="#D1D5DB" />

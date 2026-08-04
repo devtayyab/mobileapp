@@ -2,7 +2,7 @@
   "expo": {
     "name": "SATHUN",
     "slug": "marketplace-app",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "marketplace",
@@ -25,6 +25,7 @@
       }
     },
     "android": {
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#000000"

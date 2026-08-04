@@ -241,7 +241,6 @@ export default function EditProductScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
         quality: 0.8,
         base64: true,
       });

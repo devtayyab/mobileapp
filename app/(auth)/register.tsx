@@ -30,9 +30,18 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [countryCode, setCountryCode] = useState('+1');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { signUp } = useAuth();
   const router = useRouter();
   const { t } = useLanguage();
+
+  const filteredCountries = useMemo(() => {
+    if (!searchQuery.trim()) return countryCodes;
+    const q = searchQuery.toLowerCase().trim();
+    return countryCodes.filter(
+      c => c.name.toLowerCase().includes(q) || c.dial_code.includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
 
   const ROLES: Array<{ key: UserRole; label: string; sub: string; icon: any; color: string; bg: string }> = [
     // Each role shows its own theme's brand color (Customer=green, B2B=pink, Supplier=blue).
@@ -244,12 +253,19 @@ export default function RegisterScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Country Code</Text>
-              <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+              <TouchableOpacity onPress={() => { setShowCountryPicker(false); setSearchQuery(''); }}>
                 <X size={24} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search country or code..."
+              placeholderTextColor={Colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
             <FlatList
-              data={countryCodes}
+              data={filteredCountries}
               keyExtractor={c => c.code}
               renderItem={({ item }) => (
                 <TouchableOpacity 
@@ -257,9 +273,12 @@ export default function RegisterScreen() {
                   onPress={() => {
                     setCountryCode(item.dial_code);
                     setShowCountryPicker(false);
+                    setSearchQuery('');
                   }}
                 >
-                  <Text style={styles.countryRowText}>{item.name} ({item.dial_code})</Text>
+                  <Text style={styles.countryRowText}>
+                    {item.flag ? `${item.flag}  ` : ''}{item.name} ({item.dial_code})
+                  </Text>
                   {countryCode === item.dial_code && <CheckCircle size={20} color={Colors.secondary} />}
                 </TouchableOpacity>
               )}
@@ -373,5 +392,16 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
   countryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.border.light },
   countryRowText: { fontSize: 16, color: Colors.text.secondary },
+  searchInput: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.text.primary,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
+  },
 });
 

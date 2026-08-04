@@ -314,7 +314,7 @@ export default function ProductDetail() {
             <Image
               source={{ uri: images[selectedImageIdx]?.image_url }}
               style={styles.mainImage}
-              resizeMode="cover"
+              resizeMode="contain"
             />
           ) : (
             <View style={styles.imagePlaceholder}>
@@ -326,7 +326,7 @@ export default function ProductDetail() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbScroll} contentContainerStyle={styles.thumbContent}>
               {images.map((img, idx) => (
                 <TouchableOpacity key={idx} onPress={() => setSelectedImageIdx(idx)} style={[styles.thumb, idx === selectedImageIdx && styles.thumbActive]}>
-                  <Image source={{ uri: img.image_url }} style={styles.thumbImage} resizeMode="cover" />
+                  <Image source={{ uri: img.image_url }} style={styles.thumbImage} resizeMode="contain" />
                 </TouchableOpacity>
               ))}
             </ScrollView>
