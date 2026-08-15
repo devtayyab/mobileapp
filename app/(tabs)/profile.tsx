@@ -10,7 +10,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   User, Settings, FileText, CircleHelp, LogOut,
   Store, Truck, ChevronRight, ShieldCheck,
-  Package, LayoutDashboard, ArrowRight, MessageSquare
+  Package, LayoutDashboard, ArrowRight, MessageSquare, UserX
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -18,9 +18,10 @@ import type { Palette } from '@/constants/Colors';
 export default function ProfileScreen() {
   const Colors = useTheme();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, deleteAccount } = useAuth();
   const { t, language } = useLanguage();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -31,6 +32,18 @@ export default function ProfileScreen() {
       router.replace('/(auth)/welcome');
     } catch (error) {
       console.error('Sign out error:', error);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setShowDeleteAccountModal(false);
+    console.log('Initiating account deletion...');
+    try {
+      await deleteAccount();
+      router.replace('/(auth)/welcome');
+    } catch (error) {
+      console.error('Delete account error:', error);
+      Alert.alert('Error', 'Failed to delete account. Please try again.');
     }
   };
 
@@ -156,6 +169,11 @@ export default function ProfileScreen() {
           <Text style={styles.signOutText}>{t.signOut}</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={[styles.deleteAccountBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => setShowDeleteAccountModal(true)}>
+          <UserX size={16} color="#94A3B8" style={[{ marginRight: 6 }, language.rtl && { transform: [{ rotate: '180deg' }], marginLeft: 6, marginRight: 0 }]} />
+          <Text style={styles.deleteAccountText}>Delete Account</Text>
+        </TouchableOpacity>
+
         {/* Custom Sign Out Modal */}
         <Modal
           visible={showSignOutModal}
@@ -184,6 +202,40 @@ export default function ProfileScreen() {
                   onPress={handleSignOut}
                 >
                   <Text style={styles.modalSignOutText}>{t.signOut}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Pressable>
+        </Modal>
+
+        {/* Delete Account Modal */}
+        <Modal
+          visible={showDeleteAccountModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowDeleteAccountModal(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setShowDeleteAccountModal(false)}>
+            <View style={styles.modalContent}>
+              <View style={[styles.modalIconWrap, { backgroundColor: 'rgba(220, 38, 38, 0.1)' }]}>
+                <UserX size={32} color="#DC2626" />
+              </View>
+              <Text style={styles.modalTitle}>Delete Account</Text>
+              <Text style={styles.modalSub}>Are you sure you want to delete your account? This action cannot be undone.</Text>
+              
+              <View style={styles.modalButtons}>
+                <TouchableOpacity 
+                  style={styles.modalCancelBtn} 
+                  onPress={() => setShowDeleteAccountModal(false)}
+                >
+                  <Text style={styles.modalCancelText}>{t.cancel}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.modalDeleteBtn} 
+                  onPress={handleDeleteAccount}
+                >
+                  <Text style={styles.modalDeleteText}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -342,5 +394,15 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     backgroundColor: '#EF4444', alignItems: 'center',
   },
   modalSignOutText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
+  deleteAccountBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    marginTop: 16, paddingVertical: 14,
+  },
+  deleteAccountText: { fontSize: 14, fontWeight: '600', color: '#94A3B8' },
+  modalDeleteBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12,
+    backgroundColor: '#DC2626', alignItems: 'center',
+  },
+  modalDeleteText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
 });
 

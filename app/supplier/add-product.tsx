@@ -264,7 +264,6 @@ export default function AddProductScreen() {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1],
         quality: 0.8,
         base64: true,
       });
@@ -548,7 +547,7 @@ export default function AddProductScreen() {
                   </>
                 )}
               </TouchableOpacity>
-              <Text style={{ textAlign: 'center', fontSize: 12, color: '#64748B', marginTop: -2, marginBottom: 8 }}>Recommended size: 800x800px (1:1 Ratio)</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12, color: '#64748B', marginTop: -2, marginBottom: 8 }}>Upload full size or high quality product image</Text>
               
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />

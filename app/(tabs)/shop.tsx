@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Image, ScrollView, TextInput
@@ -107,7 +107,7 @@ export default function ShopScreen() {
       >
         <View style={styles.productImageWrap}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="cover" />
+            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="contain" />
           ) : (
             <View style={styles.productImagePlaceholder}>
               <ShoppingCart size={28} color="#CBD5E1" />

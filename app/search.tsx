@@ -75,7 +75,7 @@ export default function SearchScreen() {
       >
         <View style={styles.productImageContainer}>
           {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="cover" />
+            <Image source={{ uri: imageUrl }} style={styles.productImage} resizeMode="contain" />
           ) : (
             <View style={styles.productImagePlaceholder}>
               <Text style={styles.placeholderText}>{t.noImage}</Text>

@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Dimensions, Image, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Animated, Dimensions, Image, Modal, Alert, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe, Home, Star } from 'lucide-react-native';
+import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe, Home, Star, RefreshCw } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -40,6 +40,7 @@ export default function SupplierDashboard() {
   });
   const [kycStatus, setKycStatus] = useState<KycStatus>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const menuAnim = useRef(new Animated.Value(-width * 0.8)).current;
 
   useFocusEffect(
@@ -64,6 +65,12 @@ export default function SupplierDashboard() {
       }).start();
     }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadDashboardData();
+    setRefreshing(false);
+  }, [user?.id]);
 
   const loadDashboardData = async () => {
     try {
@@ -171,13 +178,24 @@ export default function SupplierDashboard() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
-        <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={24} color={Colors.text.primary} />
-          <View style={styles.badge} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <TouchableOpacity style={styles.notificationButton} onPress={onRefresh}>
+            <RefreshCw size={24} color={Colors.text.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.notificationButton}>
+              <Bell size={24} color={Colors.text.primary} />
+            <View style={styles.badge} />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+        }
+      >
         {/* KYC Status Banner */}
         {kycStatus !== 'approved' && (
           <TouchableOpacity

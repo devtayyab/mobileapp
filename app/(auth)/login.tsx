@@ -22,15 +22,26 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [countryCode, setCountryCode] = useState('+1');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { signIn } = useAuth();
   const router = useRouter();
   const { t, language } = useLanguage();
 
+  const filteredCountries = useMemo(() => {
+    if (!searchQuery.trim()) return countryCodes;
+    const q = searchQuery.toLowerCase().trim();
+    return countryCodes.filter(
+      c => c.name.toLowerCase().includes(q) || c.dial_code.includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
+
   const handleLogin = async () => {
+    setErrorMsg('');
     if (!identifier || !password) {
-      Alert.alert(t.error, t.fillAllFields);
+      setErrorMsg(t.fillAllFields || 'Please fill all fields');
       return;
     }
 
@@ -43,7 +54,7 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert(t.loginFailed, error.message);
+      setErrorMsg("Don't have any account? Please register yourself or browse as guest.");
     } else {
       router.replace('/(tabs)');
     }
@@ -111,6 +122,12 @@ export default function LoginScreen() {
             </View>
           </View>
 
+          {errorMsg ? (
+            <Text style={{ color: '#EF4444', fontSize: 13, textAlign: 'center', marginVertical: 4, fontWeight: '500' }}>
+              {errorMsg}
+            </Text>
+          ) : null}
+
           <TouchableOpacity
             style={styles.signInBtn}
             onPress={handleLogin}
@@ -152,12 +169,19 @@ export default function LoginScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Country Code</Text>
-              <TouchableOpacity onPress={() => setShowCountryPicker(false)}>
+              <TouchableOpacity onPress={() => { setShowCountryPicker(false); setSearchQuery(''); }}>
                 <X size={24} color={Colors.text.primary} />
               </TouchableOpacity>
             </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search country or code..."
+              placeholderTextColor={Colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
             <FlatList
-              data={countryCodes}
+              data={filteredCountries}
               keyExtractor={c => c.code}
               renderItem={({ item }) => (
                 <TouchableOpacity 
@@ -165,9 +189,12 @@ export default function LoginScreen() {
                   onPress={() => {
                     setCountryCode(item.dial_code);
                     setShowCountryPicker(false);
+                    setSearchQuery('');
                   }}
                 >
-                  <Text style={styles.countryRowText}>{item.name} ({item.dial_code})</Text>
+                  <Text style={styles.countryRowText}>
+                    {item.flag ? `${item.flag}  ` : ''}{item.name} ({item.dial_code})
+                  </Text>
                   {countryCode === item.dial_code && <CheckCircle size={20} color={Colors.secondary} />}
                 </TouchableOpacity>
               )}
@@ -265,5 +292,16 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
   countryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: Colors.border.light },
   countryRowText: { fontSize: 16, color: Colors.text.secondary },
+  searchInput: {
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.text.primary,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
+  },
 });
 
