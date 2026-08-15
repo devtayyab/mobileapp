@@ -22,6 +22,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [countryCode, setCountryCode] = useState('+1');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,8 +39,9 @@ export default function LoginScreen() {
   }, [searchQuery]);
 
   const handleLogin = async () => {
+    setErrorMsg('');
     if (!identifier || !password) {
-      Alert.alert(t.error, t.fillAllFields);
+      setErrorMsg(t.fillAllFields || 'Please fill all fields');
       return;
     }
 
@@ -52,7 +54,7 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      Alert.alert(t.loginFailed, error.message);
+      setErrorMsg("Don't have any account? Please register yourself or browse as guest.");
     } else {
       router.replace('/(tabs)');
     }
@@ -119,6 +121,12 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {errorMsg ? (
+            <Text style={{ color: '#EF4444', fontSize: 13, textAlign: 'center', marginVertical: 4, fontWeight: '500' }}>
+              {errorMsg}
+            </Text>
+          ) : null}
 
           <TouchableOpacity
             style={styles.signInBtn}
