@@ -1,10 +1,11 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Bell, Lock, Eye, Globe, Check } from 'lucide-react-native';
+import { ArrowLeft, Bell, Lock, Eye, Globe, Check, Trash2, AlertTriangle } from 'lucide-react-native';
 import { useLanguage, LANGUAGES, Language } from '@/contexts/LanguageContext';
 import { useCurrency, CURRENCIES, Currency } from '@/contexts/CurrencyContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Palette } from '@/constants/Colors';
 
 export default function SettingsScreen() {
@@ -12,12 +13,30 @@ export default function SettingsScreen() {
   const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { language, t, setLanguage } = useLanguage();
   const { currency: activeCurrency, setCurrency } = useCurrency();
+  const { deleteAccount } = useAuth();
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [orderUpdates, setOrderUpdates] = useState(true);
   const [promotions, setPromotions] = useState(false);
   const [langModalVisible, setLangModalVisible] = useState(false);
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    const { error } = await deleteAccount();
+    setDeleting(false);
+    if (error) {
+      setDeleteError(error.message || 'Failed to delete account. Please try again.');
+      return;
+    }
+    setDeleteModalVisible(false);
+    // Session is cleared; send the user back to the auth flow.
+    router.replace('/(auth)/welcome' as any);
+  };
 
   const handleLanguageSelect = async (lang: Language) => {
     await setLanguage(lang);
@@ -163,6 +182,28 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <AlertTriangle size={20} color="#DC2626" />
+            <Text style={[styles.sectionTitle, { color: '#DC2626' }]}>{t.dangerZone || 'Danger Zone'}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.menuItem, { borderBottomWidth: 0 }]}
+            onPress={() => { setDeleteError(null); setDeleteModalVisible(true); }}
+          >
+            <View style={styles.menuItemLeft}>
+              <Trash2 size={20} color="#DC2626" />
+              <View style={styles.menuItemTextContainer}>
+                <Text style={[styles.menuItemText, { color: '#DC2626' }]}>{t.deleteAccount || 'Delete Account'}</Text>
+                <Text style={styles.menuItemSubtext}>
+                  {t.deleteAccountSubtitle || 'Permanently delete your account and data'}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Language Selection Modal */}
@@ -244,6 +285,52 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={deleteModalVisible}
+        onRequestClose={() => !deleting && setDeleteModalVisible(false)}
+      >
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmContent}>
+            <View style={styles.confirmIconWrap}>
+              <AlertTriangle size={32} color="#DC2626" />
+            </View>
+            <Text style={styles.confirmTitle}>{t.deleteAccount || 'Delete Account'}</Text>
+            <Text style={styles.confirmMessage}>
+              {t.deleteAccountConfirm ||
+                'This will permanently delete your account and all associated data. This action cannot be undone.'}
+            </Text>
+
+            {deleteError && (
+              <Text style={styles.confirmError}>{deleteError}</Text>
+            )}
+
+            <View style={styles.confirmButtons}>
+              <TouchableOpacity
+                style={styles.confirmCancelBtn}
+                onPress={() => setDeleteModalVisible(false)}
+                disabled={deleting}
+              >
+                <Text style={styles.confirmCancelText}>{t.cancel || 'Cancel'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmDeleteBtn, deleting && { opacity: 0.7 }]}
+                onPress={handleDeleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.confirmDeleteText}>{t.delete || 'Delete'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -300,4 +387,35 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   langFlag: { fontSize: 28 },
   langName: { fontSize: 16, fontWeight: '600', color: Colors.text.primary },
   langSubName: { fontSize: 14, color: Colors.text.tertiary, marginTop: 2 },
+  confirmOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center', alignItems: 'center', padding: 24,
+  },
+  confirmContent: {
+    backgroundColor: Colors.background.secondary, borderRadius: 24,
+    padding: 24, width: '100%', maxWidth: 400, alignItems: 'center',
+  },
+  confirmIconWrap: {
+    width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEF2F2',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+  },
+  confirmTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary, marginBottom: 8 },
+  confirmMessage: {
+    fontSize: 15, color: Colors.text.tertiary, lineHeight: 22,
+    textAlign: 'center', marginBottom: 20,
+  },
+  confirmError: {
+    fontSize: 14, color: '#DC2626', textAlign: 'center', marginBottom: 16,
+  },
+  confirmButtons: { flexDirection: 'row', gap: 12, width: '100%' },
+  confirmCancelBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.border.medium,
+  },
+  confirmCancelText: { fontSize: 16, fontWeight: '700', color: Colors.text.primary },
+  confirmDeleteBtn: {
+    flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center',
+    backgroundColor: '#DC2626',
+  },
+  confirmDeleteText: { fontSize: 16, fontWeight: '700', color: '#FFF' },
 });

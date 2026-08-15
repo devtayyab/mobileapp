@@ -140,12 +140,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = async () => {
     try {
-      const { error } = await supabase.rpc('delete_user');
-      if (error) throw error;
-      await signOut();
+      const { error } = await supabase.functions.invoke('delete-account', {
+        method: 'POST',
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      // Account removed on the server — clear the local session.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore: the user no longer exists, sign-out may fail harmlessly
+      }
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+
       return { error: null };
     } catch (error) {
-      console.error('Error deleting account:', error);
       return { error };
     }
   };

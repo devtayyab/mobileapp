@@ -182,6 +182,11 @@ export type Translations = {
   signInToAccess: string;
   signOutConfirm: string;
   signOut: string;
+  dangerZone?: string;
+  deleteAccount?: string;
+  deleteAccountSubtitle?: string;
+  deleteAccountConfirm?: string;
+  delete?: string;
   account: string;
   supplierTools: string;
   adminTools: string;
