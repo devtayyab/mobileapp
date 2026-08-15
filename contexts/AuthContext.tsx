@@ -12,6 +12,7 @@ type AuthContextType = {
   signIn: (identifier: string, password: string) => Promise<{ data: any; error: any }>;
   signUp: (email: string, phone: string, password: string, role?: 'customer' | 'b2b' | 'supplier', name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -137,6 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      const { error } = await supabase.rpc('delete_user');
+      if (error) throw error;
+      await signOut();
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return { error };
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -147,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        deleteAccount,
         refreshProfile,
       }}
     >
