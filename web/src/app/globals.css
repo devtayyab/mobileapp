@@ -117,6 +117,22 @@ body {
   color-scheme: dark;
 }
 
+/* Autofill: WebKit paints its own near-white background over a filled field
+   and keeps the page's text colour, which on a dark surface leaves the value
+   effectively invisible. `color-scheme` above covers Chrome; iOS Safari needs
+   the fill pinned explicitly. The inset shadow is the only way to repaint the
+   background — `background-color` is ignored on an autofilled control. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--color-text-primary);
+  -webkit-box-shadow: 0 0 0 100px var(--color-bg-primary) inset;
+  caret-color: var(--color-text-primary);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
 body {
   -webkit-font-smoothing: antialiased;
 }

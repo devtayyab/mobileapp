@@ -201,8 +201,12 @@ export function DashboardSidebar({
         >
           <Menu size={18} />
         </button>
-        <span className="text-2xl font-extrabold text-primary">SATHUN GLOBAL</span>
-        <span className="ml-auto flex items-center gap-1 text-sm font-bold uppercase text-content-tertiary">
+        {/* Nowrap: at 320px the wordmark otherwise wraps to two lines and
+            doubles the height of the bar. */}
+        <span className="truncate whitespace-nowrap text-xl font-extrabold text-primary sm:text-2xl">
+          SATHUN GLOBAL
+        </span>
+        <span className="ml-auto flex shrink-0 items-center gap-1 text-sm font-bold uppercase text-content-tertiary">
           <ShieldCheck size={14} />
           {role}
         </span>

@@ -61,8 +61,11 @@ export function StorefrontHeader({
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-edge bg-surface-translucent backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
-          <Link href="/" className="text-3xl font-extrabold tracking-[-0.5px] text-primary">
+        <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:gap-4">
+          <Link
+            href="/"
+            className="shrink-0 whitespace-nowrap text-xl font-extrabold tracking-[-0.5px] text-primary sm:text-3xl"
+          >
             SATHUN GLOBAL
           </Link>
 
@@ -98,7 +101,7 @@ export function StorefrontHeader({
             <button
               onClick={() => setPrefsOpen(true)}
               aria-label="Language and currency"
-              className="flex h-10 items-center gap-1.5 rounded-lg border border-edge px-2.5 text-base font-bold text-content-tertiary hover:text-content-primary"
+              className="hidden h-10 items-center gap-1.5 rounded-lg border border-edge px-2.5 text-base font-bold text-content-tertiary hover:text-content-primary sm:flex"
             >
               <Globe size={16} />
               <span className="hidden sm:inline">
@@ -109,7 +112,7 @@ export function StorefrontHeader({
             <button
               onClick={toggleScheme}
               aria-label={scheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-content-primary"
+              className="hidden h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-content-primary sm:flex"
             >
               {scheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -118,7 +121,7 @@ export function StorefrontHeader({
               <Link
                 href="/chat"
                 aria-label="Messages"
-                className="flex h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-content-primary"
+                className="hidden h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-content-primary sm:flex"
               >
                 <MessageSquare size={18} />
               </Link>
@@ -176,21 +179,29 @@ export function StorefrontHeader({
                 <button
                   onClick={handleSignOut}
                   aria-label="Sign out"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-error"
+                  className="hidden h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-error sm:flex"
                 >
                   <LogOut size={16} />
                 </button>
               </div>
             ) : (
               <Link href="/login">
-                <Button size="sm">{t.signIn ?? 'Sign in'}</Button>
+                <Button size="sm" className="whitespace-nowrap">
+                  {t.signIn ?? 'Sign in'}
+                </Button>
               </Link>
             )}
           </div>
         </div>
 
-        {/* Mobile nav row */}
-        <nav className="flex gap-1 overflow-x-auto border-t border-edge px-3 py-1.5 md:hidden">
+        {/*
+          Mobile row: the nav links, plus the controls the top row drops below
+          `sm` (language/currency, colour scheme, messages, dashboard, sign
+          out). Seven 40px controls plus the wordmark do not fit a 375px header
+          without the wordmark wrapping, so they move here instead of becoming
+          unreachable on a phone. The row scrolls horizontally.
+        */}
+        <nav className="flex items-center gap-1 overflow-x-auto border-t border-edge px-3 py-1.5 md:hidden">
           {NAV.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
@@ -206,6 +217,55 @@ export function StorefrontHeader({
               </Link>
             );
           })}
+
+          <span className="mx-1 h-5 w-px shrink-0 bg-edge" aria-hidden />
+
+          <button
+            onClick={() => setPrefsOpen(true)}
+            aria-label="Language and currency"
+            className="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-sm font-bold text-content-tertiary sm:hidden"
+          >
+            <Globe size={15} />
+            {language.code.toUpperCase()} · {currency.code}
+          </button>
+
+          <button
+            onClick={toggleScheme}
+            aria-label={scheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-content-tertiary sm:hidden"
+          >
+            {scheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
+
+          {isSignedIn && (
+            <Link
+              href="/chat"
+              aria-label="Messages"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-content-tertiary sm:hidden"
+            >
+              <MessageSquare size={16} />
+            </Link>
+          )}
+
+          {canManage && (
+            <Link
+              href={role === 'admin' ? '/admin' : '/supplier/dashboard'}
+              className="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-sm font-bold text-content-tertiary sm:hidden"
+            >
+              <LayoutDashboard size={15} />
+              Dashboard
+            </Link>
+          )}
+
+          {isSignedIn && (
+            <button
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-content-tertiary sm:hidden"
+            >
+              <LogOut size={16} />
+            </button>
+          )}
         </nav>
       </header>
 

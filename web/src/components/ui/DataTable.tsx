@@ -122,7 +122,15 @@ export function DataTable<T>({
   return (
     <div className="overflow-hidden rounded-2xl border border-edge bg-surface">
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        {/*
+          `min-w` keeps the auto table layout at a workable width on a phone:
+          without it a 375px viewport squeezes every column to its min-content
+          width, wrapping a SKU over three lines and stretching each row to
+          ~8 lines tall. The wrapper above scrolls sideways instead, and cells
+          that ellipsize (`truncate` inside a render) keep doing so because the
+          columns stay bounded.
+        */}
+        <table className="w-full min-w-[720px] text-left">
           <thead className="border-b border-edge bg-surface-page">
             <tr>
               {selection && (
@@ -141,7 +149,7 @@ export function DataTable<T>({
                   key={col.key}
                   onClick={() => toggleSort(col)}
                   className={cn(
-                    'px-3 py-3 text-sm font-extrabold uppercase tracking-[0.5px] text-content-tertiary',
+                    'whitespace-nowrap px-3 py-3 text-sm font-extrabold uppercase tracking-[0.5px] text-content-tertiary',
                     col.sortValue && 'cursor-pointer select-none hover:text-content-primary',
                     alignClass[col.align ?? 'left'],
                     col.className

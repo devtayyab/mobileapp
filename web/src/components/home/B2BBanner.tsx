@@ -30,7 +30,10 @@ export function B2BBanner() {
 
         <Link
           href="/register"
-          className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-md font-bold text-content-primary transition-transform hover:scale-[1.03]"
+          /* The banner keeps its green gradient in both themes, so the pill's
+             label is a fixed dark ink — `text-content-primary` turns near-white
+             in dark mode and disappears against bg-white. */
+          className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-md font-bold text-[#1F2937] transition-transform hover:scale-[1.03]"
         >
           Get wholesale pricing
           <ArrowRight size={16} />
