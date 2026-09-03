@@ -1,16 +1,22 @@
 import type { Role } from '@/types/database';
 
-export const WEB_ROLES: Role[] = ['admin', 'supplier', 'b2b'];
+/** Every role can use the web app now (customers included, like mobile). */
+export const WEB_ROLES: Role[] = ['admin', 'supplier', 'b2b', 'customer'];
 
+/**
+ * Landing route per role, mirroring app/index.tsx on mobile:
+ * suppliers go to their dashboard, admins to the admin area, shoppers to the storefront.
+ */
 export function homeForRole(role: Role | undefined): string {
   switch (role) {
     case 'admin':
-      return '/products';
+      return '/admin';
     case 'supplier':
-      return '/supplier/products';
+      return '/supplier/dashboard';
     case 'b2b':
-      return '/shop';
+    case 'customer':
+      return '/';
     default:
-      return '/login';
+      return '/';
   }
 }

@@ -2,11 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { CheckCircle2, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { AuthCard } from '@/components/auth/AuthCard';
+import { Button, Input } from '@/components/ui';
 
 export default function ForgotPasswordPage() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    // /auth/confirm sends the visitor back here when a recovery link fails.
+    searchParams.get('error') === 'invalid-link'
+      ? 'That reset link is invalid or has expired. Request a new one below.'
+      : null
+  );
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -23,6 +33,8 @@ export default function ForgotPasswordPage() {
     setLoading(false);
 
     if (resetError) {
+      // Supabase's own rate-limit copy ("you can only request this after N
+      // seconds") is user-readable, so surface it as-is.
       setError(resetError.message);
       return;
     }
@@ -31,54 +43,50 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="mb-2 text-xl font-semibold text-slate-900">Reset your password</h1>
+    <AuthCard
+      title="Reset your password"
+      subtitle={sent ? undefined : "We'll email you a link to set a new one"}
+      footer={
+        <Link href="/login" className="font-bold text-secondary hover:underline">
+          Back to sign in
+        </Link>
+      }
+    >
+      {sent ? (
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-tint text-success">
+            <CheckCircle2 size={26} />
+          </span>
+          <p className="text-lg text-content-tertiary">
+            If an account exists for{' '}
+            <span className="font-bold text-content-primary">{email}</span>, a reset link is on
+            its way. Open it in this same browser — the link is tied to this session.
+          </p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded-xl bg-error-light/40 px-3 py-2 text-md font-medium text-error-dark">
+              {error}
+            </div>
+          )}
 
-        {sent ? (
-          <div className="mt-4">
-            <p className="mb-4 text-sm text-slate-600">
-              If an account exists for <span className="font-medium text-slate-900">{email}</span>,
-              we&apos;ve sent a link to reset your password. Check your inbox.
-            </p>
-            <Link href="/login" className="text-sm text-slate-700 underline">
-              Back to sign in
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <p className="mb-4 text-sm text-slate-500">
-              Enter the email associated with your account and we&apos;ll send you a link to reset
-              your password.
-            </p>
+          <Input
+            label="Email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            icon={<Mail size={18} />}
+            placeholder="you@example.com"
+          />
 
-            {error && (
-              <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
-            )}
-
-            <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
-            />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="mb-3 w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {loading ? 'Sending…' : 'Send reset link'}
-            </button>
-
-            <Link href="/login" className="block text-center text-sm text-slate-500 hover:text-slate-700">
-              Back to sign in
-            </Link>
-          </form>
-        )}
-      </div>
-    </div>
+          <Button type="submit" fullWidth loading={loading}>
+            {loading ? 'Sending…' : 'Send reset link'}
+          </Button>
+        </form>
+      )}
+    </AuthCard>
   );
 }

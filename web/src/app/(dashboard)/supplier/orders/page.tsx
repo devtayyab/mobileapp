@@ -1,10 +1,24 @@
+import { Package } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
+import { EmptyState } from '@/components/ui';
+import {
+  SupplierOrdersList,
+  type SupplierOrderGroup,
+} from '@/components/supplier/SupplierOrdersList';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * Port of mobile `app/supplier/orders.tsx`.
+ *
+ * Reads `order_items` scoped to the viewer's own `supplier_id` and groups them
+ * by `order_id`, so each card shows only the lines this supplier fulfils and
+ * "Your Share" is the sum of `order_items.supplier_amount` (the 90% side of the
+ * 90/10 split; the 10% lives in `order_items.platform_commission`).
+ */
 export default async function SupplierOrdersPage() {
-  const { user } = await requireRole(['supplier']);
+  const { user } = await requireRole(['supplier', 'admin']);
   const supabase = await createClient();
 
   const { data: supplier } = await supabase
@@ -15,88 +29,76 @@ export default async function SupplierOrdersPage() {
 
   if (!supplier) {
     return (
-      <div>
-        <h1 className="mb-2 text-lg font-semibold text-slate-900">My Orders</h1>
-        <p className="text-sm text-slate-500">No supplier profile yet.</p>
+      <div className="space-y-5">
+        <h1 className="text-6xl font-extrabold tracking-[-0.5px] text-content-primary">Orders</h1>
+        <EmptyState
+          icon={<Package size={26} />}
+          title="No supplier profile yet"
+          message="Add your first product to initialize your supplier profile — orders will show up here afterwards."
+        />
       </div>
     );
   }
 
   const { data: items } = await supabase
     .from('order_items')
-    .select('id, order_id, product_name, quantity, unit_price, supplier_amount, orders(order_number, status, created_at)')
+    .select(
+      `id, order_id, product_name, quantity, unit_price, supplier_amount,
+       orders (order_number, status, created_at, currency, shipping_address)`
+    )
     .eq('supplier_id', supplier.id)
     .order('created_at', { ascending: false });
 
-  const grouped = new Map<
-    string,
-    {
-      orderNumber: string;
+  type Row = {
+    id: string;
+    order_id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: number;
+    supplier_amount: number;
+    orders: {
+      order_number: string;
       status: string;
-      createdAt: string;
-      items: { productName: string; quantity: number; unitPrice: number; supplierAmount: number }[];
+      created_at: string;
+      currency: string;
+      shipping_address: Record<string, string> | null;
+    } | null;
+  };
+
+  const grouped = new Map<string, SupplierOrderGroup>();
+
+  for (const row of (items ?? []) as unknown as Row[]) {
+    // Mobile skips rows whose embedded order is unreadable (RLS / deleted).
+    if (!row.orders) continue;
+
+    let group = grouped.get(row.order_id);
+    if (!group) {
+      const address = row.orders.shipping_address;
+      const shipTo =
+        [address?.city, address?.state].filter(Boolean).join(', ') || address?.country || null;
+
+      group = {
+        orderId: row.order_id,
+        orderNumber: row.orders.order_number,
+        status: row.orders.status,
+        createdAt: row.orders.created_at,
+        currency: row.orders.currency,
+        shipTo,
+        items: [],
+        payout: 0,
+      };
+      grouped.set(row.order_id, group);
     }
-  >();
 
-  for (const row of items ?? []) {
-    const order = row.orders as unknown as { order_number: string; status: string; created_at: string } | null;
-    if (!order) continue;
-
-    const entry = grouped.get(row.order_id) ?? {
-      orderNumber: order.order_number,
-      status: order.status,
-      createdAt: order.created_at,
-      items: [],
-    };
-    entry.items.push({
+    group.items.push({
+      id: row.id,
       productName: row.product_name,
       quantity: row.quantity,
       unitPrice: row.unit_price,
       supplierAmount: row.supplier_amount,
     });
-    grouped.set(row.order_id, entry);
+    group.payout += Number(row.supplier_amount ?? 0);
   }
 
-  const orders = Array.from(grouped.values());
-
-  return (
-    <div>
-      <h1 className="mb-4 text-lg font-semibold text-slate-900">My Orders</h1>
-
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <div key={order.orderNumber} className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-medium text-slate-900">#{order.orderNumber}</span>
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                {order.status}
-              </span>
-            </div>
-            <p className="mb-2 text-xs text-slate-400">
-              {new Date(order.createdAt).toLocaleString()}
-            </p>
-            <table className="w-full text-left text-sm">
-              <tbody>
-                {order.items.map((item, i) => (
-                  <tr key={i} className="border-t border-slate-100">
-                    <td className="py-1.5 text-slate-700">{item.productName}</td>
-                    <td className="py-1.5 text-slate-500">x{item.quantity}</td>
-                    <td className="py-1.5 text-right text-slate-500">
-                      {item.unitPrice.toFixed(2)} each
-                    </td>
-                    <td className="py-1.5 text-right font-medium text-slate-900">
-                      {item.supplierAmount.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))}
-        {orders.length === 0 && (
-          <p className="text-sm text-slate-400">No orders yet.</p>
-        )}
-      </div>
-    </div>
-  );
+  return <SupplierOrdersList orders={Array.from(grouped.values())} />;
 }

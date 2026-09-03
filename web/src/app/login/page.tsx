@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
+import { Lock, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { WEB_ROLES, homeForRole } from '@/lib/roles';
+import { AuthCard } from '@/components/auth/AuthCard';
+import { Button, Input } from '@/components/ui';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,67 +47,74 @@ export default function LoginPage() {
       return;
     }
 
-    router.push(homeForRole(profile.role));
+    // Honor ?next= set by the middleware when it bounced a protected route.
+    const next = searchParams.get('next');
+    router.push(next && next.startsWith('/') ? next : homeForRole(profile.role));
     router.refresh();
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm"
-      >
-        <h1 className="mb-6 text-xl font-semibold text-slate-900">Sign in</h1>
-
+    <AuthCard
+      title="Welcome back"
+      subtitle="Sign in to your account"
+      footer={
+        <span className="text-content-tertiary">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="font-bold text-secondary hover:underline">
+            Create one
+          </Link>
+        </span>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-xl bg-error-light/40 px-3 py-2 text-md font-medium text-error-dark">
             {error}
           </div>
         )}
 
-        <label className="mb-1 block text-sm font-medium text-slate-700">Email</label>
-        <input
+        <Input
+          label="Email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          icon={<Mail size={18} />}
+          placeholder="you@example.com"
         />
 
-        <label className="mb-1 block text-sm font-medium text-slate-700">Password</label>
-        <div className="relative mb-6">
-          <input
-            type={showPassword ? 'text' : 'password'}
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 pr-9 text-sm outline-none focus:border-slate-500"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-            tabIndex={-1}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
-        </div>
+        <Input
+          label="Password"
+          type="password"
+          required
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          icon={<Lock size={18} />}
+          placeholder="••••••••"
+        />
 
-        <div className="mb-4 text-right">
-          <Link href="/forgot-password" className="text-sm text-slate-500 hover:text-slate-700">
+        <div className="text-right">
+          <Link
+            href="/forgot-password"
+            className="text-base font-semibold text-content-tertiary hover:text-content-primary"
+          >
             Forgot password?
           </Link>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-        >
+        <Button type="submit" fullWidth loading={loading}>
           {loading ? 'Signing in…' : 'Sign in'}
-        </button>
+        </Button>
+
+        <Link
+          href="/"
+          className="block text-center text-base font-semibold text-content-tertiary hover:text-content-primary"
+        >
+          Browse as guest
+        </Link>
       </form>
-    </div>
+    </AuthCard>
   );
 }

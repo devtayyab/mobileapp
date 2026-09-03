@@ -1,32 +1,60 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+/**
+ * Web port of mobile `app/checkout.tsx`.
+ *
+ * The Stripe Elements flow below is the one that already worked on web and is
+ * preserved verbatim in ordering and payloads:
+ *   create-payment-intent edge fn -> confirmCardPayment ->
+ *   orders -> order_items -> stock decrement -> payments -> clear cart_items
+ *
+ * Schema notes (verified against the mobile source, migrations are stale):
+ *  - `payments` uses payment_gateway + payment_method (no stripe intent column)
+ *  - `supplier_shipping_rates` uses shipping_charge / delivery_time_days / is_active
+ *  - `orders` carries vat_amount + shipping_country_id
+ *  - order_items split 90/10 (supplier_amount / platform_commission)
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { CardElement, Elements, useElements, useStripe } from '@stripe/react-stripe-js';
+import { motion } from 'framer-motion';
+import { CreditCard, Globe, MapPin, ShoppingBag } from 'lucide-react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { getStripe } from '@/lib/stripe';
+import { useCart } from '@/providers/CartProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { Button, EmptyState, Input, Select, Skeleton } from '@/components/ui';
+import { CheckoutSuccess } from '@/components/checkout/CheckoutSuccess';
+import { OrderTotals } from '@/components/checkout/OrderTotals';
+import { SupplierPackageList } from '@/components/checkout/SupplierPackageList';
+import {
+  formatAmount,
+  type CheckoutCartRow,
+  type ShippingAddress,
+  type SupplierPackage,
+  type SupplierRateMap,
+} from '@/components/checkout/types';
 import type { Country } from '@/types/database';
 
-type CartRow = {
-  id: string;
-  product_id: string;
-  quantity: number;
-  products: {
-    id: string;
-    name: string;
-    b2c_price: number;
-    b2b_price: number | null;
-    currency: string;
-    supplier_id: string;
-    shipping_cost: number | null;
-    suppliers: { id: string; business_name: string } | null;
-  } | null;
-};
+const CART_SELECT = `
+  id, product_id, quantity,
+  products (
+    id, name, b2c_price, b2b_price, currency, supplier_id, shipping_cost,
+    suppliers (id, business_name, user_id)
+  )
+`;
 
-type Address = { street: string; city: string; state: string; zipCode: string };
-
-export default function CheckoutForm() {
-  const [cartItems, setCartItems] = useState<CartRow[]>([]);
+export default function CheckoutForm({
+  isB2B = false,
+  initialAddress = null,
+}: {
+  isB2B?: boolean;
+  /** profiles.address (jsonb) — mobile prefills the form from it. */
+  initialAddress?: Partial<ShippingAddress> | null;
+}) {
+  const { t } = useLanguage();
+  const [cartItems, setCartItems] = useState<CheckoutCartRow[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,117 +64,219 @@ export default function CheckoutForm() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const [{ data: items }, { data: countryList }] = await Promise.all([
-        supabase
-          .from('cart_items')
-          .select(
-            'id, product_id, quantity, products (id, name, b2c_price, b2b_price, currency, supplier_id, shipping_cost, suppliers (id, business_name))'
-          )
-          .eq('user_id', user.id),
+        supabase.from('cart_items').select(CART_SELECT).eq('user_id', user.id),
         supabase.from('countries').select('*').eq('is_active', true).order('name'),
       ]);
 
-      setCartItems((items as unknown as CartRow[]) ?? []);
-      setCountries(countryList ?? []);
+      setCartItems((items as unknown as CheckoutCartRow[]) ?? []);
+      setCountries((countryList as Country[]) ?? []);
       setLoading(false);
     };
 
-    load();
+    void load();
   }, []);
 
-  if (loading) return <p className="text-sm text-slate-400">Loading…</p>;
+  if (loading) {
+    return (
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        </div>
+        <Skeleton className="h-72 w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
-    return <p className="text-sm text-slate-400">Your cart is empty.</p>;
+    return (
+      <EmptyState
+        icon={<ShoppingBag size={26} />}
+        title={t.yourCartIsEmpty ?? 'Your cart is empty'}
+        message={t.startAddingItems ?? 'Start adding items from the shop'}
+        action={
+          <Link
+            href="/shop"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-secondary px-5 text-xl font-bold text-white transition-colors hover:bg-secondary-dark"
+          >
+            {t.browseShop ?? 'Browse Shop'}
+          </Link>
+        }
+      />
+    );
   }
 
   return (
     <Elements stripe={getStripe()}>
-      <CheckoutInner cartItems={cartItems} countries={countries} />
+      <CheckoutInner
+        cartItems={cartItems}
+        countries={countries}
+        isB2B={isB2B}
+        initialAddress={initialAddress}
+      />
     </Elements>
   );
 }
 
-function CheckoutInner({ cartItems, countries }: { cartItems: CartRow[]; countries: Country[] }) {
-  const router = useRouter();
+function CheckoutInner({
+  cartItems,
+  countries,
+  isB2B,
+  initialAddress,
+}: {
+  cartItems: CheckoutCartRow[];
+  countries: Country[];
+  isB2B: boolean;
+  initialAddress: Partial<ShippingAddress> | null;
+}) {
+  const { t } = useLanguage();
+  const { clear, refresh } = useCart();
   const stripe = useStripe();
   const elements = useElements();
 
-  const [address, setAddress] = useState<Address>({ street: '', city: '', state: '', zipCode: '' });
+  const [address, setAddress] = useState<ShippingAddress>({
+    street: initialAddress?.street ?? '',
+    city: initialAddress?.city ?? '',
+    state: initialAddress?.state ?? '',
+    zipCode: initialAddress?.zipCode ?? '',
+  });
+  const [errors, setErrors] = useState<Partial<Record<keyof ShippingAddress | 'country', string>>>({});
   const [countryId, setCountryId] = useState('');
-  const [supplierRates, setSupplierRates] = useState<
-    Record<string, { charge: number; deliveryDays: number | null }>
-  >({});
+  const [supplierRates, setSupplierRates] = useState<SupplierRateMap>({});
+  const [calculatingRates, setCalculatingRates] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [placed, setPlaced] = useState<{ id: string | null; number: string; total: number } | null>(
+    null
+  );
 
-  const selectedCountry = countries.find((c) => c.id === countryId) ?? null;
+  const selectedCountry = useMemo(
+    () => countries.find((c) => c.id === countryId) ?? null,
+    [countries, countryId]
+  );
 
+  /* ── Shipping rates per supplier for the chosen destination ──────────── */
   useEffect(() => {
-    if (!selectedCountry) return;
-    const supabase = createClient();
-    const supplierIds = [...new Set(cartItems.map((i) => i.products?.supplier_id).filter(Boolean))] as string[];
+    if (!selectedCountry) {
+      setSupplierRates({});
+      return;
+    }
+
+    const supplierIds = [
+      ...new Set(cartItems.map((row) => row.products?.supplier_id).filter(Boolean)),
+    ] as string[];
+
     if (supplierIds.length === 0) return;
 
-    supabase
-      .from('supplier_shipping_rates')
-      .select('supplier_id, shipping_charge, delivery_time_days')
-      .eq('country_id', selectedCountry.id)
-      .eq('is_active', true)
-      .in('supplier_id', supplierIds)
-      .then(({ data }) => {
-        const map: Record<string, { charge: number; deliveryDays: number | null }> = {};
-        (data ?? []).forEach((r) => {
-          map[r.supplier_id] = { charge: r.shipping_charge, deliveryDays: r.delivery_time_days };
-        });
-        setSupplierRates(map);
+    let cancelled = false;
+    setCalculatingRates(true);
+
+    const run = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('supplier_shipping_rates')
+        .select('supplier_id, shipping_charge, delivery_time_days')
+        .eq('country_id', selectedCountry.id)
+        .eq('is_active', true)
+        .in('supplier_id', supplierIds);
+
+      if (cancelled) return;
+
+      const map: SupplierRateMap = {};
+      (data ?? []).forEach((rate) => {
+        map[rate.supplier_id] = {
+          charge: rate.shipping_charge,
+          deliveryDays: rate.delivery_time_days ?? null,
+        };
       });
+
+      setSupplierRates(map);
+      setCalculatingRates(false);
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedCountry, cartItems]);
 
-  const getPrice = (row: CartRow) => row.products?.b2b_price ?? row.products?.b2c_price ?? 0;
+  /** Mobile: b2b pricing only when the role is b2b AND b2b_price is set. */
+  const unitPrice = useCallback(
+    (row: CheckoutCartRow) => {
+      const p = row.products;
+      if (!p) return 0;
+      if (isB2B && p.b2b_price) return p.b2b_price;
+      return p.b2c_price;
+    },
+    [isB2B]
+  );
 
-  const packages = useMemo(() => {
-    const map = new Map<
-      string,
-      { supplierId: string; supplierName: string; items: CartRow[]; shippingFee: number; hasRate: boolean }
-    >();
+  /* ── One package per supplier ────────────────────────────────────────── */
+  const packages = useMemo<SupplierPackage[]>(() => {
+    const map = new Map<string, SupplierPackage>();
 
     for (const row of cartItems) {
       if (!row.products) continue;
-      const supplierId = row.products.supplier_id;
-      const entry = map.get(supplierId) ?? {
-        supplierId,
-        supplierName: row.products.suppliers?.business_name ?? 'Supplier',
-        items: [],
-        shippingFee: 0,
-        hasRate: Boolean(supplierRates[supplierId]),
-      };
-      entry.items.push(row);
-      if (entry.hasRate) {
-        entry.shippingFee = supplierRates[supplierId].charge;
-      } else {
-        entry.shippingFee += (row.products.shipping_cost ?? 0) * row.quantity;
+
+      const supplierId = row.products.supplier_id || 'unknown';
+      let pkg = map.get(supplierId);
+
+      if (!pkg) {
+        const rate = selectedCountry ? supplierRates[supplierId] : undefined;
+        pkg = {
+          supplierId,
+          supplierName: row.products.suppliers?.business_name ?? 'Global Supplier',
+          items: [],
+          shippingFee: rate ? rate.charge : 0,
+          deliveryDays: rate ? rate.deliveryDays : null,
+          hasRate: Boolean(rate),
+        };
+        map.set(supplierId, pkg);
       }
-      map.set(supplierId, entry);
+
+      pkg.items.push(row);
+
+      // No configured rate for this country -> fall back to per-product cost.
+      if (!pkg.hasRate) {
+        pkg.shippingFee += (row.products.shipping_cost ?? 0) * row.quantity;
+      }
     }
 
     return Array.from(map.values());
-  }, [cartItems, supplierRates]);
+  }, [cartItems, selectedCountry, supplierRates]);
 
-  const subtotal = cartItems.reduce((sum, row) => sum + getPrice(row) * row.quantity, 0);
-  const shippingFee = packages.reduce((sum, p) => sum + p.shippingFee, 0);
-  const isVatIncluded = selectedCountry?.vat_type === 'included';
-  const vatAmount = selectedCountry && !isVatIncluded ? (subtotal * selectedCountry.vat_percentage) / 100 : 0;
+  const subtotal = cartItems.reduce((sum, row) => sum + unitPrice(row) * row.quantity, 0);
+  const shippingFee = packages.reduce((sum, pkg) => sum + pkg.shippingFee, 0);
+  const vatIncluded = selectedCountry?.vat_type === 'included';
+  const vatAmount =
+    selectedCountry && !vatIncluded ? (subtotal * selectedCountry.vat_percentage) / 100 : 0;
   const total = subtotal + shippingFee + vatAmount;
   const currency = cartItems[0]?.products?.currency ?? 'USD';
+
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!address.street.trim()) next.street = t.required ?? 'Required';
+    if (!address.city.trim()) next.city = t.required ?? 'Required';
+    if (!address.state.trim()) next.state = t.required ?? 'Required';
+    if (!address.zipCode.trim()) next.zipCode = t.required ?? 'Required';
+    if (!selectedCountry) next.country = t.required ?? 'Required';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const handlePlaceOrder = async () => {
     setError(null);
 
-    if (!address.street || !address.city || !address.state || !address.zipCode || !selectedCountry) {
-      setError('Please complete the shipping address and select a country.');
+    if (!validate() || !selectedCountry) {
+      setError('Please complete the shipping address and select a destination country.');
       return;
     }
     if (!stripe || !elements) return;
@@ -216,10 +346,10 @@ function CheckoutInner({ cartItems, countries }: { cartItems: CartRow[]; countri
           supplier_id: row.products!.supplier_id,
           product_name: row.products!.name,
           quantity: row.quantity,
-          unit_price: getPrice(row),
-          subtotal: getPrice(row) * row.quantity,
-          supplier_amount: getPrice(row) * row.quantity * 0.9,
-          platform_commission: getPrice(row) * row.quantity * 0.1,
+          unit_price: unitPrice(row),
+          subtotal: unitPrice(row) * row.quantity,
+          supplier_amount: unitPrice(row) * row.quantity * 0.9,
+          platform_commission: unitPrice(row) * row.quantity * 0.1,
         }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
@@ -252,8 +382,10 @@ function CheckoutInner({ cartItems, countries }: { cartItems: CartRow[]; countri
 
       await supabase.from('cart_items').delete().eq('user_id', user.id);
 
-      router.push('/orders');
-      router.refresh();
+      clear();
+      void refresh();
+
+      setPlaced({ id: order.id, number: orderNumber, total });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -261,114 +393,177 @@ function CheckoutInner({ cartItems, countries }: { cartItems: CartRow[]; countri
     }
   };
 
+  if (placed) {
+    return (
+      <CheckoutSuccess
+        orderId={placed.id}
+        orderNumber={placed.number}
+        total={placed.total}
+        currency={currency}
+      />
+    );
+  }
+
   return (
-    <div className="max-w-2xl space-y-6">
-      {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+    <div className="space-y-5">
+      <h1 className="text-6xl font-extrabold tracking-[-0.5px] text-content-primary">
+        {t.checkout ?? 'Checkout'}
+      </h1>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Shipping address</h2>
-        <select
-          value={countryId}
-          onChange={(e) => setCountryId(e.target.value)}
-          className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-error bg-error/10 px-3.5 py-2.5 text-md font-bold text-error"
         >
-          <option value="">Select destination country…</option>
-          {countries.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <input
-          placeholder="Street address"
-          value={address.street}
-          onChange={(e) => setAddress((a) => ({ ...a, street: e.target.value }))}
-          className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <input
-          placeholder="City"
-          value={address.city}
-          onChange={(e) => setAddress((a) => ({ ...a, city: e.target.value }))}
-          className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            placeholder="State"
-            value={address.state}
-            onChange={(e) => setAddress((a) => ({ ...a, state: e.target.value }))}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            placeholder="ZIP code"
-            value={address.zipCode}
-            onChange={(e) => setAddress((a) => ({ ...a, zipCode: e.target.value }))}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-      </section>
+          {error}
+        </motion.div>
+      )}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Payment</h2>
-        <div className="rounded-md border border-slate-300 p-3">
-          <CardElement options={{ style: { base: { fontSize: '14px' } } }} />
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold text-slate-900">Order summary</h2>
-        {packages.map((pkg) => (
-          <div key={pkg.supplierId} className="mb-3 border-b border-slate-100 pb-3 last:border-0">
-            <p className="mb-1 text-xs font-semibold text-slate-600">{pkg.supplierName}</p>
-            {pkg.items.map((row) => (
-              <div key={row.id} className="flex justify-between text-sm text-slate-600">
-                <span>
-                  {row.products?.name} x {row.quantity}
-                </span>
-                <span>{(getPrice(row) * row.quantity).toFixed(2)}</span>
-              </div>
-            ))}
-            <div className="mt-1 flex justify-between text-xs text-slate-400">
-              <span>Shipping</span>
-              <span>{pkg.shippingFee.toFixed(2)}</span>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        <div className="flex flex-col gap-5">
+          {/* Shipping address + destination country */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl border border-edge bg-surface p-5"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <MapPin size={18} className="text-primary" />
+              <h2 className="text-2xl font-bold text-content-primary">
+                {t.shippingAddress ?? 'Shipping Address'}
+              </h2>
             </div>
-          </div>
-        ))}
 
-        <div className="flex justify-between text-sm text-slate-600">
-          <span>Subtotal</span>
-          <span>
-            {currency} {subtotal.toFixed(2)}
-          </span>
-        </div>
-        <div className="flex justify-between text-sm text-slate-600">
-          <span>Shipping</span>
-          <span>
-            {currency} {shippingFee.toFixed(2)}
-          </span>
-        </div>
-        {selectedCountry && (
-          <div className="flex justify-between text-sm text-slate-600">
-            <span>
-              VAT ({selectedCountry.vat_percentage}%){isVatIncluded ? ' — included' : ''}
-            </span>
-            <span>{isVatIncluded ? 'Included' : `${currency} ${vatAmount.toFixed(2)}`}</span>
-          </div>
-        )}
-        <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900">
-          <span>Total</span>
-          <span>
-            {currency} {total.toFixed(2)}
-          </span>
-        </div>
-      </section>
+            <div className="flex flex-col gap-3">
+              <Select
+                label={t.country ?? 'Destination Country'}
+                value={countryId}
+                error={errors.country}
+                onChange={(e) => {
+                  setCountryId(e.target.value);
+                  setErrors((prev) => ({ ...prev, country: undefined }));
+                }}
+              >
+                <option value="">Select destination country…</option>
+                {countries.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code})
+                  </option>
+                ))}
+              </Select>
 
-      <button
-        onClick={handlePlaceOrder}
-        disabled={placing || !stripe}
-        className="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-medium text-white disabled:opacity-50"
-      >
-        {placing ? 'Placing order…' : `Pay ${currency} ${total.toFixed(2)}`}
-      </button>
+              {selectedCountry && (
+                <p className="flex items-center gap-1.5 text-sm font-bold text-content-tertiary">
+                  <Globe size={13} className="shrink-0" />
+                  {vatIncluded
+                    ? `VAT ${selectedCountry.vat_percentage}% is already included in the listed prices.`
+                    : `VAT ${selectedCountry.vat_percentage}% will be added to the total.`}
+                </p>
+              )}
+
+              <Input
+                label={t.streetAddress ?? 'Street Address'}
+                value={address.street}
+                error={errors.street}
+                onChange={(e) => {
+                  setAddress((a) => ({ ...a, street: e.target.value }));
+                  setErrors((prev) => ({ ...prev, street: undefined }));
+                }}
+              />
+              <Input
+                label={t.city ?? 'City'}
+                value={address.city}
+                error={errors.city}
+                onChange={(e) => {
+                  setAddress((a) => ({ ...a, city: e.target.value }));
+                  setErrors((prev) => ({ ...prev, city: undefined }));
+                }}
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label={t.state ?? 'State'}
+                  value={address.state}
+                  error={errors.state}
+                  onChange={(e) => {
+                    setAddress((a) => ({ ...a, state: e.target.value }));
+                    setErrors((prev) => ({ ...prev, state: undefined }));
+                  }}
+                />
+                <Input
+                  label={t.zipCode ?? 'ZIP Code'}
+                  value={address.zipCode}
+                  error={errors.zipCode}
+                  onChange={(e) => {
+                    setAddress((a) => ({ ...a, zipCode: e.target.value }));
+                    setErrors((prev) => ({ ...prev, zipCode: undefined }));
+                  }}
+                />
+              </div>
+            </div>
+          </motion.section>
+
+          {/* Payment */}
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0, transition: { delay: 0.05 } }}
+            className="rounded-2xl border border-edge bg-surface p-5"
+          >
+            <div className="mb-4 flex items-center gap-2">
+              <CreditCard size={18} className="text-primary" />
+              <h2 className="text-2xl font-bold text-content-primary">
+                {t.paymentMethod ?? 'Payment Method'}
+              </h2>
+            </div>
+
+            <div className="rounded-xl border-[1.5px] border-edge bg-surface-page px-3.5 py-4">
+              <CardElement options={{ style: { base: { fontSize: '14px' } } }} />
+            </div>
+            <p className="mt-2 text-sm text-content-tertiary">
+              {t.creditDebitCard ?? 'Credit/Debit Card'} — processed securely by Stripe.
+            </p>
+          </motion.section>
+        </div>
+
+        {/* Order summary: per-supplier packages + totals */}
+        <motion.aside
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: 0.1 } }}
+          className="flex flex-col gap-4 rounded-2xl border border-edge bg-surface p-5 lg:sticky lg:top-6"
+        >
+          <h2 className="text-2xl font-bold text-content-primary">
+            {t.orderSummary ?? 'Order Summary'}
+          </h2>
+
+          <SupplierPackageList
+            packages={packages}
+            currency={currency}
+            unitPrice={unitPrice}
+            calculating={calculatingRates}
+          />
+
+          <OrderTotals
+            currency={currency}
+            subtotal={subtotal}
+            shippingFee={shippingFee}
+            vatAmount={vatAmount}
+            total={total}
+            country={selectedCountry}
+          />
+
+          <Button
+            size="lg"
+            fullWidth
+            loading={placing}
+            disabled={placing || calculatingRates || !stripe}
+            onClick={() => void handlePlaceOrder()}
+          >
+            {placing
+              ? (t.placeOrder ?? 'Place Order')
+              : `${t.placeOrder ?? 'Place Order'} · ${formatAmount(currency, total)}`}
+          </Button>
+        </motion.aside>
+      </div>
     </div>
   );
 }
