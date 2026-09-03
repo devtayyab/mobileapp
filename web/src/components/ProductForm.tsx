@@ -29,12 +29,15 @@ function slugify(name: string) {
 export default function ProductForm({
   categories,
   userId,
+  supplierId,
   businessNameFallback,
   existingProduct,
   existingImageUrl,
 }: {
   categories: Pick<Category, 'id' | 'name'>[];
   userId: string;
+  /** Caller's own supplier row; required to scope an edit. */
+  supplierId?: string;
   businessNameFallback: string;
   existingProduct?: Pick<
     Product,
@@ -103,7 +106,7 @@ export default function ProductForm({
 
     try {
       const supabase = createClient();
-      const supplierId = await getOrCreateSupplierId(supabase, userId, businessNameFallback);
+      const supplierIdForWrite = await getOrCreateSupplierId(supabase, userId, businessNameFallback);
       const imageUrl = await uploadImage();
 
       const payload = {
@@ -121,17 +124,30 @@ export default function ProductForm({
       let productId = existingProduct?.id;
 
       if (isEdit && productId) {
-        const { error: updateError } = await supabase
+        /*
+          Scope the write to the caller's own supplier row, and check that a row
+          came back. Products SELECT is open to all authenticated users, so
+          without the supplier_id filter a crafted id could target someone
+          else's product; and an RLS-filtered UPDATE returns error:null with 0
+          rows, which previously looked like a successful save.
+        */
+        const ownerId = supplierId ?? supplierIdForWrite;
+        const { data: updated, error: updateError } = await supabase
           .from('products')
           .update(payload)
-          .eq('id', productId);
+          .eq('id', productId)
+          .eq('supplier_id', ownerId)
+          .select('id');
         if (updateError) throw new Error(updateError.message);
+        if (!updated || updated.length === 0) {
+          throw new Error('That product could not be updated — it may belong to another supplier.');
+        }
       } else {
         const { data: created, error: insertError } = await supabase
           .from('products')
           .insert({
             ...payload,
-            supplier_id: supplierId,
+            supplier_id: supplierIdForWrite,
             slug: `${slugify(values.name)}-${Date.now()}`,
             currency: 'USD',
             is_active: true,
@@ -178,35 +194,38 @@ export default function ProductForm({
   return (
     <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
       {error && (
-        <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        <div className="rounded-md bg-error-light/40 px-3 py-2 text-md font-medium text-error-dark">{error}</div>
       )}
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Name</label>
+        <label htmlFor="pf-name" className="mb-1 block text-sm font-medium text-content-primary">Name</label>
         <input
+          id="pf-name"
           required
           value={values.name}
           onChange={set('name')}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
+        <label htmlFor="pf-description" className="mb-1 block text-sm font-medium text-content-primary">Description</label>
         <textarea
+          id="pf-description"
           value={values.description}
           onChange={set('description')}
           rows={3}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Category</label>
+        <label htmlFor="pf-category" className="mb-1 block text-sm font-medium text-content-primary">Category</label>
         <select
+          id="pf-category"
           value={values.category_id}
           onChange={set('category_id')}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+          className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
         >
           <option value="">Select category…</option>
           {categories.map((c) => (
@@ -219,86 +238,93 @@ export default function ProductForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">B2C price</label>
+          <label htmlFor="pf-b2c-price" className="mb-1 block text-sm font-medium text-content-primary">B2C price</label>
           <input
+          id="pf-b2c-price"
             required
             type="number"
             step="0.01"
             value={values.b2c_price}
             onChange={set('b2c_price')}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">B2B price</label>
+          <label htmlFor="pf-b2b-price" className="mb-1 block text-sm font-medium text-content-primary">B2B price</label>
           <input
+          id="pf-b2b-price"
             type="number"
             step="0.01"
             value={values.b2b_price}
             onChange={set('b2b_price')}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Stock quantity</label>
+          <label htmlFor="pf-stock-quantity" className="mb-1 block text-sm font-medium text-content-primary">Stock quantity</label>
           <input
+          id="pf-stock-quantity"
             required
             type="number"
             value={values.stock_quantity}
             onChange={set('stock_quantity')}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">SKU</label>
+          <label htmlFor="pf-sku" className="mb-1 block text-sm font-medium text-content-primary">SKU</label>
           <input
+          id="pf-sku"
             value={values.sku}
             onChange={set('sku')}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
+          <label htmlFor="pf-minimum-order-qty" className="mb-1 block text-sm font-medium text-content-primary">
             Minimum order qty
           </label>
           <input
+          id="pf-minimum-order-qty"
             type="number"
             value={values.moq}
             onChange={set('moq')}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Shipping cost</label>
+          <label htmlFor="pf-shipping-cost" className="mb-1 block text-sm font-medium text-content-primary">Shipping cost</label>
           <input
+          id="pf-shipping-cost"
             type="number"
             step="0.01"
             value={values.shipping_cost}
             onChange={set('shipping_cost')}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Product image</label>
+        <label htmlFor="pf-product-image" className="mb-1 block text-sm font-medium text-content-primary">Product image</label>
         {imagePreview && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imagePreview} alt="Preview" className="mb-2 h-24 w-24 rounded-md object-cover" />
         )}
-        <input type="file" accept="image/*" onChange={handleImageChange} className="block text-sm" />
+        <input
+          id="pf-product-image" type="file" accept="image/*" onChange={handleImageChange} className="block text-sm" />
       </div>
 
       <button
         type="submit"
         disabled={saving}
-        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
       >
         {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create product'}
       </button>

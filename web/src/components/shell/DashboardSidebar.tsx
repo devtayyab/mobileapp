@@ -97,8 +97,12 @@ export function DashboardSidebar({
 
   const content = (
     <div className="flex h-full flex-col gap-1 overflow-y-auto p-3">
-      <div className="mb-2 flex items-center gap-2 px-2 py-1">
-        <span className="text-3xl font-extrabold tracking-[-0.5px] text-primary">SATHUN</span>
+      {/* Wordmark stacks above the role chip so the longer brand name doesn't
+          overflow the 248px sidebar. */}
+      <div className="mb-2 flex flex-col items-start gap-1 px-2 py-1">
+        <span className="text-2xl font-extrabold leading-tight tracking-[-0.5px] text-primary">
+          SATHUN GLOBAL
+        </span>
         <span className="rounded-md bg-surface-tint px-1.5 py-0.5 text-2xs font-extrabold uppercase tracking-[0.5px] text-primary">
           {role}
         </span>
@@ -197,7 +201,7 @@ export function DashboardSidebar({
         >
           <Menu size={18} />
         </button>
-        <span className="text-2xl font-extrabold text-primary">SATHUN</span>
+        <span className="text-2xl font-extrabold text-primary">SATHUN GLOBAL</span>
         <span className="ml-auto flex items-center gap-1 text-sm font-bold uppercase text-content-tertiary">
           <ShieldCheck size={14} />
           {role}

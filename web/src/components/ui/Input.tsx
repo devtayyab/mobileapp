@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useState } from 'react';
+import { forwardRef, useId, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
@@ -17,16 +17,25 @@ export type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, icon, className, type = 'text', ...props },
+  { label, error, icon, className, type = 'text', id, ...props },
   ref
 ) {
   const [reveal, setReveal] = useState(false);
   const isPassword = type === 'password';
   const resolvedType = isPassword && reveal ? 'text' : type;
+  // htmlFor/id pairing: without it the label is decorative — screen readers
+  // announce nothing and clicking it does not focus the field.
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const errorId = `${fieldId}-error`;
 
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-md font-bold text-content-primary">{label}</label>}
+      {label && (
+        <label htmlFor={fieldId} className="text-md font-bold text-content-primary">
+          {label}
+        </label>
+      )}
 
       <div className="relative flex items-center">
         {icon && (
@@ -34,7 +43,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         )}
         <input
           ref={ref}
+          id={fieldId}
           type={resolvedType}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
           className={cn(
             FIELD,
             'h-[50px]',
@@ -58,7 +70,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         )}
       </div>
 
-      {error && <p className="text-base font-medium text-error">{error}</p>}
+      {error && (
+        <p id={errorId} className="text-base font-medium text-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 });
@@ -66,16 +82,31 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 export const Textarea = forwardRef<
   HTMLTextAreaElement,
   React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string }
->(function Textarea({ label, error, className, ...props }, ref) {
+>(function Textarea({ label, error, className, id, ...props }, ref) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const errorId = `${fieldId}-error`;
+
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-md font-bold text-content-primary">{label}</label>}
+      {label && (
+        <label htmlFor={fieldId} className="text-md font-bold text-content-primary">
+          {label}
+        </label>
+      )}
       <textarea
         ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         className={cn(FIELD, 'py-3', error && 'border-error', className)}
         {...props}
       />
-      {error && <p className="text-base font-medium text-error">{error}</p>}
+      {error && (
+        <p id={errorId} className="text-base font-medium text-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 });
@@ -83,18 +114,33 @@ export const Textarea = forwardRef<
 export const Select = forwardRef<
   HTMLSelectElement,
   React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string }
->(function Select({ label, error, className, children, ...props }, ref) {
+>(function Select({ label, error, className, children, id, ...props }, ref) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  const errorId = `${fieldId}-error`;
+
   return (
     <div className="flex flex-col gap-1.5">
-      {label && <label className="text-md font-bold text-content-primary">{label}</label>}
+      {label && (
+        <label htmlFor={fieldId} className="text-md font-bold text-content-primary">
+          {label}
+        </label>
+      )}
       <select
         ref={ref}
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         className={cn(FIELD, 'h-[50px]', error && 'border-error', className)}
         {...props}
       >
         {children}
       </select>
-      {error && <p className="text-base font-medium text-error">{error}</p>}
+      {error && (
+        <p id={errorId} className="text-base font-medium text-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 });

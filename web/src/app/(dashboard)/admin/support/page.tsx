@@ -2,16 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth';
 import {
   SupportTicketQueue,
-  SUPPORT_TICKET_STATUSES,
   type SupportTicketQueueItem,
-  type SupportTicketStatus,
 } from '@/components/admin/SupportTicketQueue';
+// Plain module — importing this value from the 'use client' queue component
+// would hand the server a client reference instead of the array.
+import { isSupportTicketStatus } from '@/components/admin/support-status';
 import type { Role } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
-
-const isTicketStatus = (value: string | null): value is SupportTicketStatus =>
-  value != null && (SUPPORT_TICKET_STATUSES as string[]).includes(value);
 
 /**
  * Ported from mobile `app/admin/support.tsx`.
@@ -31,7 +29,7 @@ export default async function AdminSupportPage() {
   const { user } = await requireRole(['admin']);
   const supabase = await createClient();
 
-  const { data: ticketRows } = await supabase
+  const { data: ticketRows, error: ticketsError } = await supabase
     .from('support_tickets')
     .select('id, user_id, email, description, status, created_at')
     .order('created_at', { ascending: false })
@@ -43,9 +41,16 @@ export default async function AdminSupportPage() {
     ...new Set(tickets.map((t) => t.user_id).filter((id): id is string => id != null)),
   ];
 
-  const { data: profileRows } = submitterIds.length
+  const { data: profileRows, error: profilesError } = submitterIds.length
     ? await supabase.from('profiles').select('id, full_name, role').in('id', submitterIds)
-    : { data: [] };
+    : { data: [], error: null };
+
+  /*
+   * A failed read resolves with `data: null`, which used to render as the
+   * queue's empty state — indistinguishable from "no tickets have been filed".
+   * Surface it instead, as `admin/categories/page.tsx` does.
+   */
+  const loadError = ticketsError?.message ?? profilesError?.message ?? null;
 
   const profileById = new Map(
     (profileRows ?? []).map((p) => [p.id, { full_name: p.full_name, role: p.role as Role }])
@@ -58,7 +63,7 @@ export default async function AdminSupportPage() {
     description: t.description,
     // `status` is TEXT with a DEFAULT and a CHECK, but nullable in the schema —
     // fall back to the column default rather than rendering an unknown state.
-    status: isTicketStatus(t.status) ? t.status : 'pending',
+    status: isSupportTicketStatus(t.status) ? t.status : 'pending',
     created_at: t.created_at,
     submitter: (t.user_id && profileById.get(t.user_id)) || null,
   }));
@@ -78,6 +83,12 @@ export default async function AdminSupportPage() {
           {queue.length === 500 && ' · showing the 500 most recent'}
         </p>
       </header>
+
+      {loadError && (
+        <p className="rounded-xl border border-error bg-surface-tint p-3.5 text-md font-bold text-error">
+          Could not load support tickets: {loadError}
+        </p>
+      )}
 
       <SupportTicketQueue initialTickets={queue} adminId={user.id} />
     </div>

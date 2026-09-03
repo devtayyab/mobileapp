@@ -17,15 +17,14 @@ import { useToast } from '@/providers/ToastProvider';
 import { Badge, Button, EmptyState, Modal, SearchInput, Tabs } from '@/components/ui';
 import type { Role } from '@/types/database';
 
-/** `support_tickets.status` is TEXT with a CHECK constraint on these four. */
-export type SupportTicketStatus = 'pending' | 'in_progress' | 'resolved' | 'closed';
-
-export const SUPPORT_TICKET_STATUSES: SupportTicketStatus[] = [
-  'pending',
-  'in_progress',
-  'resolved',
-  'closed',
-];
+/*
+  The status vocabulary lives in ./support-status (a plain module) so Server
+  Components can import it. Re-exporting the TYPE here is safe — types are
+  erased at compile time — but the VALUE must not be re-exported from this
+  'use client' file, or server callers get a client reference instead of the array.
+*/
+export type { SupportTicketStatus } from './support-status';
+import { SUPPORT_TICKET_STATUSES, type SupportTicketStatus } from './support-status';
 
 export type SupportTicketQueueItem = {
   id: string;

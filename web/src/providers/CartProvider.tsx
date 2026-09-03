@@ -21,9 +21,10 @@ type CartContextValue = {
   lines: CartLine[];
   count: number;
   loading: boolean;
-  addItem: (productId: string, price: number, quantity?: number) => Promise<void>;
-  updateQuantity: (lineId: string, quantity: number) => Promise<void>;
-  removeItem: (lineId: string) => Promise<void>;
+  /** Each resolves false when the write did not land (guest, RLS, or error). */
+  addItem: (productId: string, price: number, quantity?: number) => Promise<boolean>;
+  updateQuantity: (lineId: string, quantity: number) => Promise<boolean>;
+  removeItem: (lineId: string) => Promise<boolean>;
   refresh: () => Promise<void>;
   clear: () => void;
 };
@@ -62,42 +63,109 @@ export function CartProvider({
     void refresh();
   }, [refresh]);
 
+  /** Resolves false when the write did not happen, so callers can react. */
   const addItem = async (productId: string, price: number, quantity = 1) => {
-    if (!userId) return;
-    const supabase = createClient();
+    if (!userId) {
+      // Guests previously got no feedback at all — the click just did nothing.
+      toast({
+        title: 'Sign in to add items',
+        message: 'Your cart is saved to your account.',
+        kind: 'error',
+      });
+      return false;
+    }
 
+    const supabase = createClient();
     const existing = lines.find((l) => l.product_id === productId);
 
     if (existing) {
       const nextQty = existing.quantity + quantity;
-      await supabase.from('cart_items').update({ quantity: nextQty }).eq('id', existing.id);
+      const { data, error } = await supabase
+        .from('cart_items')
+        .update({ quantity: nextQty })
+        .eq('id', existing.id)
+        .select('id');
+
+      // An RLS-filtered write returns error:null with 0 rows; treat that as failure
+      // rather than reporting success and drifting local state from the DB.
+      if (error || !data || data.length === 0) {
+        toast({
+          title: 'Could not update cart',
+          message: error?.message ?? 'The item could not be updated.',
+          kind: 'error',
+        });
+        return false;
+      }
+
       setLines((prev) =>
         prev.map((l) => (l.id === existing.id ? { ...l, quantity: nextQty } : l))
       );
     } else {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('cart_items')
         .insert({ user_id: userId, product_id: productId, quantity, price })
         .select('id, product_id, quantity, price')
         .single();
 
-      if (data) setLines((prev) => [...prev, data as CartLine]);
+      if (error || !data) {
+        toast({
+          title: 'Could not add to cart',
+          message: error?.message ?? 'Please try again.',
+          kind: 'error',
+        });
+        return false;
+      }
+
+      setLines((prev) => [...prev, data as CartLine]);
     }
 
     toast({ title: 'Added to cart', kind: 'success' });
+    return true;
   };
 
   const updateQuantity = async (lineId: string, quantity: number) => {
-    if (quantity < 1) return;
+    if (quantity < 1) return false;
     const supabase = createClient();
-    await supabase.from('cart_items').update({ quantity }).eq('id', lineId);
+    const { data, error } = await supabase
+      .from('cart_items')
+      .update({ quantity })
+      .eq('id', lineId)
+      .select('id');
+
+    if (error || !data || data.length === 0) {
+      toast({
+        title: 'Could not update quantity',
+        message: error?.message ?? 'Please refresh and try again.',
+        kind: 'error',
+      });
+      await refresh();
+      return false;
+    }
+
     setLines((prev) => prev.map((l) => (l.id === lineId ? { ...l, quantity } : l)));
+    return true;
   };
 
   const removeItem = async (lineId: string) => {
     const supabase = createClient();
-    await supabase.from('cart_items').delete().eq('id', lineId);
+    const { data, error } = await supabase
+      .from('cart_items')
+      .delete()
+      .eq('id', lineId)
+      .select('id');
+
+    if (error || !data || data.length === 0) {
+      toast({
+        title: 'Could not remove item',
+        message: error?.message ?? 'Please refresh and try again.',
+        kind: 'error',
+      });
+      await refresh();
+      return false;
+    }
+
     setLines((prev) => prev.filter((l) => l.id !== lineId));
+    return true;
   };
 
   return (

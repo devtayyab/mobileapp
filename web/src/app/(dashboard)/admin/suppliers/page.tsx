@@ -21,7 +21,7 @@ export default async function AdminSuppliersPage() {
   await requireRole(['admin']);
   const supabase = await createClient();
 
-  const { data: supplierRows } = await supabase
+  const { data: supplierRows, error: suppliersError } = await supabase
     .from('suppliers')
     // Must stay a single string literal — concatenation widens to `string` and
     // PostgREST loses the per-column row typing.
@@ -40,7 +40,15 @@ export default async function AdminSuppliersPage() {
   const [contactsRes, docsRes] = await Promise.all([
     userIds.length
       ? supabase.from('profiles').select('id, full_name, email, phone').in('id', userIds)
-      : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string; phone: string | null }[] }),
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            full_name: string | null;
+            email: string;
+            phone: string | null;
+          }[],
+          error: null,
+        }),
     supplierIds.length
       ? supabase
           .from('kyc_documents')
@@ -54,8 +62,20 @@ export default async function AdminSuppliersPage() {
             document_url: string;
             status: SupplierKycDoc['status'];
           }[],
+          error: null,
         }),
   ]);
+
+  /*
+   * A failed read resolves with `data: null`, which used to render as the
+   * list's "No suppliers found" empty state — indistinguishable from a genuinely
+   * empty result. Surface it instead, as `admin/categories/page.tsx` does.
+   */
+  const loadError =
+    suppliersError?.message ??
+    contactsRes.error?.message ??
+    docsRes.error?.message ??
+    null;
 
   const contactById = new Map(
     (contactsRes.data ?? []).map((p) => [
@@ -98,6 +118,12 @@ export default async function AdminSuppliersPage() {
           {pendingCount.toLocaleString()} awaiting review
         </p>
       </header>
+
+      {loadError && (
+        <p className="rounded-xl border border-error bg-surface-tint p-3.5 text-md font-bold text-error">
+          Could not load suppliers: {loadError}
+        </p>
+      )}
 
       <AdminSuppliersList initialSuppliers={suppliers} />
     </div>

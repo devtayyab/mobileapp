@@ -40,7 +40,14 @@ export default async function SupplierShippingRatesPage() {
   }
 
   const [{ data: countries }, { data: rateRows }] = await Promise.all([
-    supabase.from('countries').select('id, name, code').eq('is_active', true).order('name'),
+    // `countries.is_active` is `boolean DEFAULT true` with no NOT NULL, so a
+    // NULL row is active-by-default — `.eq(true)` would hide a destination the
+    // supplier still needs to price.
+    supabase
+      .from('countries')
+      .select('id, name, code')
+      .not('is_active', 'is', false)
+      .order('name'),
     supabase
       .from('supplier_shipping_rates')
       .select('id, country_id, shipping_charge, delivery_time_days, is_active')

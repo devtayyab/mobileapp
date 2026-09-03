@@ -46,7 +46,10 @@ export default async function AdminOrdersPage() {
   const [profilesRes, itemsRes] = await Promise.all([
     userIds.length
       ? supabase.from('profiles').select('id, full_name, email').in('id', userIds)
-      : Promise.resolve({ data: [] as { id: string; full_name: string | null; email: string }[] }),
+      : Promise.resolve({
+          data: [] as { id: string; full_name: string | null; email: string }[],
+          error: null,
+        }),
     orderIds.length
       ? supabase
           .from('order_items')
@@ -59,8 +62,22 @@ export default async function AdminOrdersPage() {
             quantity: number;
             unit_price: number;
           }[],
+          error: null,
         }),
   ]);
+
+  /*
+   * A failed read resolves with `data: null`, which used to fall through to the
+   * table's "No orders have been placed yet." empty state — indistinguishable
+   * from an account that genuinely has no orders. Surface it instead. Same
+   * pattern as `admin/categories/page.tsx`.
+   */
+  const loadError =
+    ordersRes.error?.message ??
+    totalRes.error?.message ??
+    profilesRes.error?.message ??
+    itemsRes.error?.message ??
+    null;
 
   const customerById = new Map(
     (profilesRes.data ?? []).map((p) => [p.id, { full_name: p.full_name, email: p.email }])
@@ -103,6 +120,12 @@ export default async function AdminOrdersPage() {
           {total > rows.length ? ` · showing the ${WINDOW} most recent` : ''}
         </p>
       </header>
+
+      {loadError && (
+        <p className="rounded-xl border border-error bg-surface-tint p-3.5 text-md font-bold text-error">
+          Could not load orders: {loadError}
+        </p>
+      )}
 
       <AdminOrdersTable initialOrders={rows} totalOrders={total} />
     </div>

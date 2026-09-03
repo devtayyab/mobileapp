@@ -28,6 +28,20 @@ export default async function AdminUsersPage() {
     supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'admin'),
   ]);
 
+  /*
+   * A failed read resolves with `data: null`, which used to render as the
+   * table's "No users found" empty state — indistinguishable from a genuinely
+   * empty result. Surface it instead, as `admin/categories/page.tsx` does.
+   */
+  const loadError =
+    profilesRes.error?.message ??
+    allRes.error?.message ??
+    customerRes.error?.message ??
+    b2bRes.error?.message ??
+    supplierRes.error?.message ??
+    adminRes.error?.message ??
+    null;
+
   const counts: RoleCounts = {
     all: allRes.count ?? 0,
     customer: customerRes.count ?? 0,
@@ -47,6 +61,12 @@ export default async function AdminUsersPage() {
           recent
         </p>
       </header>
+
+      {loadError && (
+        <p className="rounded-xl border border-error bg-surface-tint p-3.5 text-md font-bold text-error">
+          Could not load users: {loadError}
+        </p>
+      )}
 
       <AdminUsersTable
         initialUsers={(profilesRes.data ?? []) as AdminUserRow[]}

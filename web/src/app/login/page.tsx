@@ -48,8 +48,12 @@ export default function LoginPage() {
     }
 
     // Honor ?next= set by the middleware when it bounced a protected route.
+    // Reject protocol-relative ("//evil.com") and backslash variants, which are
+    // same-origin-looking but navigate off-site.
     const next = searchParams.get('next');
-    router.push(next && next.startsWith('/') ? next : homeForRole(profile.role));
+    const safeNext =
+      next && /^\/(?![/\\])/.test(next) ? next : homeForRole(profile.role);
+    router.push(safeNext);
     router.refresh();
   };
 

@@ -63,7 +63,7 @@ export function StorefrontHeader({
       <header className="sticky top-0 z-40 border-b border-edge bg-surface-translucent backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
           <Link href="/" className="text-3xl font-extrabold tracking-[-0.5px] text-primary">
-            SATHUN
+            SATHUN GLOBAL
           </Link>
 
           <nav className="ml-4 hidden items-center gap-1 md:flex">

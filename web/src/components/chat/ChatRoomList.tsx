@@ -23,6 +23,40 @@ import {
   type ChatRoomSummary,
 } from './types';
 
+/**
+ * Idempotently makes `userId` a participant of `roomId`.
+ *
+ * chat_participants has UNIQUE(room_id, user_id), so a duplicate insert is a
+ * conflict rather than an error worth surfacing — the desired end state is
+ * simply "row exists". Returns whether membership is in place.
+ */
+async function ensureParticipant(
+  supabase: ReturnType<typeof createClient>,
+  roomId: string,
+  userId: string
+): Promise<boolean> {
+  const { data: existing } = await supabase
+    .from('chat_participants')
+    .select('id')
+    .eq('room_id', roomId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) return true;
+
+  const { error } = await supabase
+    .from('chat_participants')
+    .insert({ room_id: roomId, user_id: userId });
+
+  // A unique-violation means someone/another tab won the race — still fine.
+  if (error && error.code !== '23505') {
+    console.error('Failed to join chat room:', error);
+    return false;
+  }
+
+  return true;
+}
+
 export function ChatRoomList({
   initialRooms,
   viewerId,
@@ -97,7 +131,15 @@ export function ChatRoomList({
 
       if (findError) throw findError;
 
+      /*
+        Room creation and joining are two non-atomic writes. If the participant
+        insert ever failed, the room still existed with created_by = viewer, so
+        this find-branch matched it forever and dropped the user into a room
+        where chat_messages INSERT/SELECT are denied. Repair the membership on
+        the way in rather than leaving a permanently unusable room.
+      */
       if (existing) {
+        await ensureParticipant(supabase, existing.id, viewerId);
         router.push(`/chat/${existing.id}`);
         return;
       }
@@ -111,11 +153,10 @@ export function ChatRoomList({
       if (createError) throw createError;
 
       // Only the requester joins; an admin reads the room via the admin RLS branch.
-      const { error: partError } = await supabase
-        .from('chat_participants')
-        .insert({ room_id: newRoom.id, user_id: viewerId });
-
-      if (partError) throw partError;
+      const joined = await ensureParticipant(supabase, newRoom.id, viewerId);
+      if (!joined) {
+        throw new Error('Could not join the conversation that was just created.');
+      }
 
       router.push(`/chat/${newRoom.id}`);
     } catch (err) {

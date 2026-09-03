@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/cn';
 import { Badge, Button, EmptyState, Input, Modal, SearchInput } from '@/components/ui';
 import { SupplierToggle } from '@/components/supplier/SupplierToggle';
+import { formatMoney } from '@/components/supplier/money';
 import { useToast } from '@/providers/ToastProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 
@@ -194,8 +195,9 @@ export function ShippingRatesTable({
                     <div className="flex min-w-0 flex-1 gap-6">
                       <div>
                         <p className="text-sm text-content-tertiary">Shipping Fee</p>
+                        {/* The editor below prices in USD — the readout carries the same unit. */}
                         <p className="text-xl font-bold text-content-primary">
-                          {(rate.shippingCharge ?? 0).toFixed(2)}
+                          {formatMoney('USD', rate.shippingCharge ?? 0)}
                         </p>
                       </div>
                       <div>

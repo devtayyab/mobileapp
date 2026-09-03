@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { createClient, getAdminProfile } from '@/lib/supabase/server';
-import { MIN_QUERY, SearchBox } from '@/components/shop/SearchBox';
+import { SearchBox } from '@/components/shop/SearchBox';
+import { MIN_QUERY } from '@/components/shop/search-config';
 import { SearchResultsGrid } from '@/components/shop/SearchResultsGrid';
 import { ProductGridSkeleton } from '@/components/shop/ShopSkeletons';
 import {

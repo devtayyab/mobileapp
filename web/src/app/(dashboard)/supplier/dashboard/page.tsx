@@ -17,6 +17,7 @@ import { Avatar } from '@/components/ui';
 import { KycStatusBanner } from '@/components/supplier/KycStatusBanner';
 import { ManageBusinessGrid } from '@/components/supplier/ManageBusinessGrid';
 import { NoSupplierProfile } from '@/components/supplier/NoSupplierProfile';
+import { PartialScanNotice } from '@/components/supplier/PartialScanNotice';
 import { RecentOrdersList } from '@/components/supplier/RecentOrdersList';
 import { SupplierStatTiles } from '@/components/supplier/SupplierStatTiles';
 import { extraMoneyHint, primaryMoney } from '@/components/supplier/money';
@@ -51,7 +52,9 @@ export default async function SupplierDashboardPage() {
       .eq('supplier_id', supplier.id),
     supabase
       .from('order_items')
-      .select(SUPPLIER_ORDER_ITEM_SELECT)
+      // Exact count alongside the capped page, so a truncated scan is
+      // detectable instead of silently understating the tiles below.
+      .select(SUPPLIER_ORDER_ITEM_SELECT, { count: 'exact' })
       .eq('supplier_id', supplier.id)
       .order('created_at', { ascending: false })
       .limit(ITEM_SCAN_LIMIT),
@@ -62,6 +65,10 @@ export default async function SupplierDashboardPage() {
   const revenue = revenueBag(items);
   const primaryRevenue = primaryMoney(revenue);
   const revenueHint = extraMoneyHint(revenue);
+
+  const itemTotal = itemsRes.count ?? null;
+  const truncated = itemTotal != null ? itemTotal > items.length : items.length >= ITEM_SCAN_LIMIT;
+  const partialHint = truncated ? 'Most recent order lines only — see the notice above' : null;
 
   const totalProducts = productsRes.count ?? 0;
   const pendingOrders = orders.filter((o) => o.status === 'pending').length;
@@ -87,6 +94,14 @@ export default async function SupplierDashboardPage() {
         <Avatar name={profile.full_name ?? profile.email} size={48} />
       </div>
 
+      {truncated && (
+        <PartialScanNotice
+          scanned={items.length}
+          total={itemTotal}
+          figures="revenue, order and pending figures"
+        />
+      )}
+
       <SupplierStatTiles
         tiles={[
           {
@@ -94,19 +109,19 @@ export default async function SupplierDashboardPage() {
             value: primaryRevenue.amount,
             icon: 'revenue',
             currency: primaryRevenue.currency,
-            hint: revenueHint ?? 'Your share, cancelled orders excluded',
+            hint: partialHint ?? revenueHint ?? 'Your share, cancelled orders excluded',
           },
           {
             label: 'Orders',
             value: orders.length,
             icon: 'orders',
-            hint: 'Orders containing your products',
+            hint: partialHint ?? 'Orders containing your products',
           },
           {
             label: 'Pending',
             value: pendingOrders,
             icon: 'pending',
-            hint: 'Awaiting processing',
+            hint: partialHint ?? 'Awaiting processing',
           },
           {
             label: 'Products',

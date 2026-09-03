@@ -61,7 +61,7 @@ export default async function SupplierProductsPage() {
       initialProducts={(products ?? []) as BulkProduct[]}
       categories={categories ?? []}
       addHref="/supplier/products/new"
-      editHrefFor={(id) => `/supplier/products/${id}/edit`}
+      editHrefPattern="/supplier/products/{id}/edit"
     />
   );
 }

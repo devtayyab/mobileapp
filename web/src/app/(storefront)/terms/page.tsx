@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms & Conditions — SATHUN',
+  title: 'Terms & Conditions — SATHUN GLOBAL',
 };
 
 /**
@@ -16,12 +16,12 @@ const SECTIONS: Block[] = [
   {
     heading: '1. Introduction',
     paragraph:
-      'Welcome to SATHUN, a global dropshipping marketplace operated by Thakuri Brand, Cyprus. By using this platform, you agree to these Terms and Conditions.',
+      'Welcome to SATHUN GLOBAL, a global dropshipping marketplace operated by Thakuri Brand, Cyprus. By using this platform, you agree to these Terms and Conditions.',
   },
   {
     heading: '2. Platform Nature',
     paragraph:
-      'SATHUN is an international marketplace where sellers can list products for both retail and wholesale. The platform does not own, manufacture, or store any products.',
+      'SATHUN GLOBAL is an international marketplace where sellers can list products for both retail and wholesale. The platform does not own, manufacture, or store any products.',
   },
   {
     heading: '3. User Accounts',
@@ -38,9 +38,9 @@ const SECTIONS: Block[] = [
   {
     heading: '5. Orders & Payments',
     items: [
-      'Customers make payments through the SATHUN platform',
+      'Customers make payments through the SATHUN GLOBAL platform',
       'Payments are securely processed via integrated payment systems',
-      'SATHUN automatically deducts its commission before releasing payment to the seller',
+      'SATHUN GLOBAL automatically deducts its commission before releasing payment to the seller',
     ],
   },
   {
@@ -59,7 +59,7 @@ const SECTIONS: Block[] = [
     heading: '8. Returns & Refunds',
     items: [
       'Sellers are responsible for handling returns and refunds',
-      'SATHUN may assist but is not responsible',
+      'SATHUN GLOBAL may assist but is not responsible',
     ],
   },
   {
@@ -75,7 +75,7 @@ const SECTIONS: Block[] = [
   },
   {
     heading: '11. Limitation of Liability',
-    paragraph: 'SATHUN is not responsible for product quality, delivery issues, or disputes.',
+    paragraph: 'SATHUN GLOBAL is not responsible for product quality, delivery issues, or disputes.',
   },
   {
     heading: '12. International Use',
@@ -87,7 +87,7 @@ const SECTIONS: Block[] = [
   },
   {
     heading: '14. Updates',
-    paragraph: 'SATHUN may update these Terms at any time.',
+    paragraph: 'SATHUN GLOBAL may update these Terms at any time.',
   },
 ];
 
@@ -95,7 +95,7 @@ export default function TermsPage() {
   return (
     <article className="mx-auto max-w-3xl rounded-2xl border border-edge bg-surface p-6">
       <h1 className="mb-6 text-4xl font-extrabold text-content-primary">
-        SATHUN TERMS AND CONDITIONS
+        SATHUN GLOBAL TERMS AND CONDITIONS
       </h1>
 
       {SECTIONS.map((section) => (

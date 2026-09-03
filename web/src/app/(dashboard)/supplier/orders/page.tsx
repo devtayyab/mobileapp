@@ -5,9 +5,13 @@ import { EmptyState } from '@/components/ui';
 import {
   SupplierOrdersList,
   type SupplierOrderGroup,
+  type SupplierOrdersTruncation,
 } from '@/components/supplier/SupplierOrdersList';
 
 export const dynamic = 'force-dynamic';
+
+/** Explicit ceiling on the order-line scan, so truncation is detectable. */
+const ORDER_ITEM_SCAN_LIMIT = 1000;
 
 /**
  * Port of mobile `app/supplier/orders.tsx`.
@@ -40,14 +44,22 @@ export default async function SupplierOrdersPage() {
     );
   }
 
-  const { data: items } = await supabase
+  /*
+    Without an explicit `.limit()` PostgREST silently applies its own max-rows
+    ceiling, so a busy supplier's list would be truncated with nothing saying
+    so. Ask for a known number of rows plus an exact count, then disclose the
+    gap in the UI instead of presenting a partial list as the full history.
+  */
+  const { data: items, count: itemCount } = await supabase
     .from('order_items')
     .select(
       `id, order_id, product_name, quantity, unit_price, supplier_amount,
-       orders (order_number, status, created_at, currency, shipping_address)`
+       orders (order_number, status, created_at, currency, shipping_address)`,
+      { count: 'exact' }
     )
     .eq('supplier_id', supplier.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(ORDER_ITEM_SCAN_LIMIT);
 
   type Row = {
     id: string;
@@ -100,5 +112,12 @@ export default async function SupplierOrdersPage() {
     group.payout += Number(row.supplier_amount ?? 0);
   }
 
-  return <SupplierOrdersList orders={Array.from(grouped.values())} />;
+  const scanned = (items ?? []).length;
+  const truncated = itemCount != null ? itemCount > scanned : scanned >= ORDER_ITEM_SCAN_LIMIT;
+
+  const truncation: SupplierOrdersTruncation | null = truncated
+    ? { scanned, total: itemCount ?? null }
+    : null;
+
+  return <SupplierOrdersList orders={Array.from(grouped.values())} truncation={truncation} />;
 }

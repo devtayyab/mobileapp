@@ -97,15 +97,29 @@ export function AdminUsersTable({
     setUpdating(true);
 
     const supabase = createClient();
-    const { error } = await supabase
+    // `.select('id')` so a write that matched zero rows (row-level security
+    // rejects it silently — PostgREST still returns `error: null`) is
+    // detectable. Without it the row is patched locally, a success toast fires
+    // and `router.refresh()` snaps the role straight back.
+    const { data: updated, error } = await supabase
       .from('profiles')
       .update({ role: next, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .select('id');
 
     setUpdating(false);
 
     if (error) {
       toast({ title: 'Role change failed', message: error.message, kind: 'error' });
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
+      toast({
+        title: 'Role change failed',
+        message: 'No row was updated. Please reload and try again, or contact support.',
+        kind: 'error',
+      });
       return;
     }
 

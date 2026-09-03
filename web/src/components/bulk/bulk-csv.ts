@@ -138,6 +138,26 @@ export function diffCsvAgainstProducts(
       }
     }
 
+    if (row.sku !== undefined) {
+      const value = row.sku.trim();
+      const next = value === '' ? null : value;
+      if (next !== current.sku) {
+        patch.sku = next;
+        changed.sku = { from: current.sku, to: next };
+      }
+    }
+
+    if (row.is_featured !== undefined && row.is_featured.trim() !== '') {
+      const value = parseBoolean(row.is_featured);
+      if (value === undefined) {
+        errors.push({ line, reason: `"is_featured" must be true/false: "${row.is_featured}"` });
+        rowHadError = true;
+      } else if (value !== current.is_featured) {
+        patch.is_featured = value;
+        changed.is_featured = { from: current.is_featured, to: value };
+      }
+    }
+
     if (row.category_id !== undefined && row.category_id.trim() !== '') {
       const value = row.category_id.trim();
       if (value !== current.category_id) {

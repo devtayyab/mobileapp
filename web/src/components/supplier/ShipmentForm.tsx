@@ -102,19 +102,23 @@ export function ShipmentForm({
     try {
       const supabase = createClient();
 
-      const payload = {
-        order_id: orderId,
-        supplier_id: supplierId,
-        courier_id: courierId,
-        tracking_number: trackingNumber.trim(),
-        // 'shipped' is not in the shipment_status enum — mobile uses in_transit.
-        status: 'in_transit' as ShipmentStatus,
-        shipped_at: new Date().toISOString(),
-      };
-
+      // Editing an existing shipment must touch ONLY the two fields the dialog
+      // owns. Re-sending the insert payload reverted an already-`delivered`
+      // shipment to `in_transit` and back-dated `shipped_at` to now.
       const { error: writeError } = shipment?.id
-        ? await supabase.from('shipments').update(payload).eq('id', shipment.id)
-        : await supabase.from('shipments').insert(payload);
+        ? await supabase
+            .from('shipments')
+            .update({ courier_id: courierId, tracking_number: trackingNumber.trim() })
+            .eq('id', shipment.id)
+        : await supabase.from('shipments').insert({
+            order_id: orderId,
+            supplier_id: supplierId,
+            courier_id: courierId,
+            tracking_number: trackingNumber.trim(),
+            // 'shipped' is not in the shipment_status enum — mobile uses in_transit.
+            status: 'in_transit' as ShipmentStatus,
+            shipped_at: new Date().toISOString(),
+          });
 
       if (writeError) throw new Error(writeError.message);
 

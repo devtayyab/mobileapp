@@ -35,6 +35,13 @@ export type SupplierReview = {
 
 type Filter = 'all' | 'pending' | 'approved';
 
+/**
+ * A Supabase mutation that matches zero rows still resolves with
+ * `error: null`, so every write below verifies the returned row count.
+ */
+const NO_ROW_MESSAGE =
+  'No row was changed. Please reload the page and try again, or contact support.';
+
 export function ReviewModerationList({ reviews: initial }: { reviews: SupplierReview[] }) {
   const { toast } = useToast();
   const [reviews, setReviews] = useState(initial);
@@ -62,10 +69,19 @@ export function ReviewModerationList({ reviews: initial }: { reviews: SupplierRe
     const next = !review.isApproved;
     setBusyId(review.id);
 
-    const { error } = await createClient()
+    // `.select('id')` so a write that matched zero rows is detectable: PostgREST
+    // returns `error: null` when RLS silently filters the statement out. The
+    // extra `product_id` filter is defence in depth — the row already came from
+    // a supplier-scoped read, and the RLS policy from 20260702163000 restricts
+    // these statements to the supplier's own products.
+    let query = createClient()
       .from('product_reviews')
       .update({ is_approved: next })
       .eq('id', review.id);
+
+    if (review.productId) query = query.eq('product_id', review.productId);
+
+    const { data: updated, error } = await query.select('id');
 
     setBusyId(null);
 
@@ -74,6 +90,16 @@ export function ReviewModerationList({ reviews: initial }: { reviews: SupplierRe
       toast({
         title: 'Could not update review status',
         message: error.message,
+        kind: 'error',
+      });
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
+      console.error('Review status update matched no rows:', review.id);
+      toast({
+        title: 'Could not update review status',
+        message: NO_ROW_MESSAGE,
         kind: 'error',
       });
       return;
@@ -93,16 +119,23 @@ export function ReviewModerationList({ reviews: initial }: { reviews: SupplierRe
     if (!pendingDelete) return;
     setDeleting(true);
 
-    const { error } = await createClient()
-      .from('product_reviews')
-      .delete()
-      .eq('id', pendingDelete.id);
+    let query = createClient().from('product_reviews').delete().eq('id', pendingDelete.id);
+
+    if (pendingDelete.productId) query = query.eq('product_id', pendingDelete.productId);
+
+    const { data: deleted, error } = await query.select('id');
 
     setDeleting(false);
 
     if (error) {
       console.error('Error deleting review:', error);
       toast({ title: 'Could not delete review', message: error.message, kind: 'error' });
+      return;
+    }
+
+    if (!deleted || deleted.length === 0) {
+      console.error('Review delete matched no rows:', pendingDelete.id);
+      toast({ title: 'Could not delete review', message: NO_ROW_MESSAGE, kind: 'error' });
       return;
     }
 

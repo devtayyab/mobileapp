@@ -19,7 +19,7 @@ export function AuthCard({
           href="/"
           className="mb-5 block text-center text-6xl font-extrabold tracking-[-0.5px] text-primary"
         >
-          SATHUN
+          SATHUN GLOBAL
         </Link>
 
         <div className="rounded-4xl border border-edge bg-surface p-6">

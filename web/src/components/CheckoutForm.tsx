@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CardElement, Elements, useElements, useStripe } from '@stripe/react-stripe-js';
 import { motion } from 'framer-motion';
-import { CreditCard, Globe, MapPin, ShoppingBag } from 'lucide-react';
+import { AlertTriangle, CreditCard, Globe, MapPin, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { getStripe } from '@/lib/stripe';
@@ -44,6 +44,27 @@ const CART_SELECT = `
     suppliers (id, business_name, user_id)
   )
 `;
+
+/**
+ * Distinct `products.currency` codes in the cart, in first-seen order.
+ *
+ * One order carries exactly one currency: it is what Stripe charges and what
+ * gets written to `orders.currency` (and read back by `order_items` /
+ * `payments`, which have no currency of their own). Line prices from products
+ * in different currencies therefore cannot be summed into a subtotal, and no
+ * single code on the order would be right for all of them — such a cart has to
+ * be split rather than charged.
+ */
+function cartCurrencies(rows: CheckoutCartRow[]): string[] {
+  return [
+    ...new Set(
+      rows
+        .map((row) => row.products?.currency)
+        .filter((code): code is string => Boolean(code))
+        .map((code) => code.toUpperCase())
+    ),
+  ];
+}
 
 export default function CheckoutForm({
   isB2B = false,
@@ -72,7 +93,9 @@ export default function CheckoutForm({
 
       const [{ data: items }, { data: countryList }] = await Promise.all([
         supabase.from('cart_items').select(CART_SELECT).eq('user_id', user.id),
-        supabase.from('countries').select('*').eq('is_active', true).order('name'),
+        // `countries.is_active` is `boolean DEFAULT true` with no NOT NULL, so a
+        // NULL row is active-by-default — `.eq(true)` would hide it.
+        supabase.from('countries').select('*').not('is_active', 'is', false).order('name'),
       ]);
 
       setCartItems((items as unknown as CheckoutCartRow[]) ?? []);
@@ -113,6 +136,17 @@ export default function CheckoutForm({
     );
   }
 
+  /*
+    A mixed-currency cart cannot be charged: see `cartCurrencies` above. Block
+    it here — before Stripe is even initialized — rather than silently billing
+    everything in the first line's currency.
+  */
+  const currencies = cartCurrencies(cartItems);
+
+  if (currencies.length > 1) {
+    return <MixedCurrencyBlock currencies={currencies} />;
+  }
+
   return (
     <Elements stripe={getStripe()}>
       <CheckoutInner
@@ -122,6 +156,55 @@ export default function CheckoutForm({
         initialAddress={initialAddress}
       />
     </Elements>
+  );
+}
+
+/** Explains the split the shopper has to make, naming the currencies involved. */
+function MixedCurrencyBlock({ currencies }: { currencies: string[] }) {
+  const { t } = useLanguage();
+
+  return (
+    <div className="space-y-5">
+      <h1 className="text-6xl font-extrabold tracking-[-0.5px] text-content-primary">
+        {t.checkout ?? 'Checkout'}
+      </h1>
+
+      <section className="rounded-2xl border border-error bg-error/10 p-5">
+        <div className="flex items-start gap-3">
+          <AlertTriangle size={20} className="mt-0.5 shrink-0 text-error" />
+          <div className="min-w-0 space-y-2">
+            <h2 className="text-2xl font-bold text-error">
+              Your cart mixes {currencies.length} currencies
+            </h2>
+            <p className="text-md leading-6 text-content-secondary">
+              These items are priced in{' '}
+              <span className="font-bold text-content-primary">{currencies.join(', ')}</span>. One
+              order can only be charged in a single currency, and amounts in different currencies
+              cannot be added together — so this cart cannot be paid for in one go.
+            </p>
+            <p className="text-md leading-6 text-content-secondary">
+              Please place a separate order per currency: go back to your cart, keep the items of
+              one currency, and check out. Then repeat for the rest.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/cart"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-secondary px-5 text-xl font-bold text-white transition-colors hover:bg-secondary-dark"
+          >
+            Back to Cart
+          </Link>
+          <Link
+            href="/shop"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-edge bg-surface px-5 text-xl font-bold text-content-primary transition-colors hover:bg-surface-page"
+          >
+            Continue Shopping
+          </Link>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -153,9 +236,13 @@ function CheckoutInner({
   const [calculatingRates, setCalculatingRates] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [placed, setPlaced] = useState<{ id: string | null; number: string; total: number } | null>(
-    null
-  );
+  const [placed, setPlaced] = useState<{
+    id: string | null;
+    number: string;
+    total: number;
+    /** Post-charge bookkeeping that did not land — shown as a warning. */
+    issues: string[];
+  } | null>(null);
 
   const selectedCountry = useMemo(
     () => countries.find((c) => c.id === countryId) ?? null,
@@ -261,6 +348,14 @@ function CheckoutInner({
   const total = subtotal + shippingFee + vatAmount;
   const currency = cartItems[0]?.products?.currency ?? 'USD';
 
+  /*
+    The parent blocks a mixed-currency cart before rendering this form, so this
+    is only a backstop: `subtotal`/`total` above sum line prices across every
+    cart line, and `currency` is the single code sent to Stripe and written to
+    orders / order_items / payments. If they ever disagree, refuse to charge.
+  */
+  const mixedCurrencies = cartCurrencies(cartItems);
+
   const validate = () => {
     const next: typeof errors = {};
     if (!address.street.trim()) next.street = t.required ?? 'Required';
@@ -274,6 +369,13 @@ function CheckoutInner({
 
   const handlePlaceOrder = async () => {
     setError(null);
+
+    if (mixedCurrencies.length > 1) {
+      setError(
+        `Your cart mixes ${mixedCurrencies.join(', ')}. One order can only be charged in a single currency — please order the items of each currency separately.`
+      );
+      return;
+    }
 
     if (!validate() || !selectedCountry) {
       setError('Please complete the shipping address and select a destination country.');
@@ -355,37 +457,91 @@ function CheckoutInner({
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw new Error(itemsError.message);
 
-      await Promise.all(
+      /*
+       * From here on the card is already charged and the order + line items
+       * exist, so a failure must NOT abort the flow — it is surfaced as a
+       * warning on the success screen instead. A missing `payments` row is an
+       * unreconciled charge, so it is called out explicitly.
+       */
+      const issues: string[] = [];
+
+      const stockResults = await Promise.all(
         cartItems.map(async (row) => {
-          const { data: p } = await supabase
+          const { data: p, error: readError } = await supabase
             .from('products')
             .select('stock_quantity')
             .eq('id', row.product_id)
             .single();
-          if (p) {
-            await supabase
-              .from('products')
-              .update({ stock_quantity: Math.max(0, p.stock_quantity - row.quantity) })
-              .eq('id', row.product_id);
+
+          if (readError || !p) {
+            console.error('Could not read stock for product', row.product_id, readError);
+            return false;
           }
+
+          const { data: updated, error: stockError } = await supabase
+            .from('products')
+            .update({ stock_quantity: Math.max(0, p.stock_quantity - row.quantity) })
+            .eq('id', row.product_id)
+            .select('id');
+
+          if (stockError || !updated || updated.length === 0) {
+            console.error(
+              'Stock decrement failed for product',
+              row.product_id,
+              stockError ?? 'no row was updated'
+            );
+            return false;
+          }
+
+          return true;
         })
       );
 
-      await supabase.from('payments').insert({
-        order_id: order.id,
-        payment_gateway: 'stripe',
-        payment_method: 'card',
-        amount: total,
-        currency,
-        status: 'completed',
-      });
+      if (stockResults.some((ok) => !ok)) {
+        issues.push('product stock could not be updated');
+      }
 
-      await supabase.from('cart_items').delete().eq('user_id', user.id);
+      const { data: paymentRows, error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          order_id: order.id,
+          payment_gateway: 'stripe',
+          payment_method: 'card',
+          amount: total,
+          currency,
+          status: 'completed',
+        })
+        .select('id');
+
+      if (paymentError || !paymentRows || paymentRows.length === 0) {
+        console.error(
+          'Payment record insert failed for order',
+          order.id,
+          paymentError ?? 'no row was inserted'
+        );
+        issues.push('the payment receipt could not be recorded');
+      }
+
+      const { data: clearedRows, error: cartError } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('user_id', user.id)
+        .select('id');
+
+      // The cart is non-empty by the time this screen renders, so a zero-row
+      // delete means the statement never reached the rows.
+      if (cartError || !clearedRows || clearedRows.length === 0) {
+        console.error(
+          'Could not clear the cart after checkout:',
+          cartError ?? 'no rows were deleted'
+        );
+        issues.push('your cart could not be emptied');
+      }
 
       clear();
       void refresh();
 
-      setPlaced({ id: order.id, number: orderNumber, total });
+      setPlaced({ id: order.id, number: orderNumber, total, issues });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -400,6 +556,7 @@ function CheckoutInner({
         orderNumber={placed.number}
         total={placed.total}
         currency={currency}
+        issues={placed.issues}
       />
     );
   }
@@ -555,7 +712,7 @@ function CheckoutInner({
             size="lg"
             fullWidth
             loading={placing}
-            disabled={placing || calculatingRates || !stripe}
+            disabled={placing || calculatingRates || !stripe || mixedCurrencies.length > 1}
             onClick={() => void handlePlaceOrder()}
           >
             {placing

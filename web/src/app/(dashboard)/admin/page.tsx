@@ -44,6 +44,14 @@ type AdminPlatformStats = {
 export const dynamic = 'force-dynamic';
 
 /**
+ * A failed `head`-count query returns `error != null` and `count: null`. That is
+ * "unknown", not zero — collapsing it to 0 would print "Total Users 0" as if it
+ * were a fact, so it stays `null` all the way to the tile, which renders "—".
+ */
+const countOf = (res: { count: number | null; error: unknown }): number | null =>
+  res.error ? null : res.count;
+
+/**
  * Ported from mobile `app/admin/index.tsx`.
  *
  * The `(dashboard)` layout only gates on ['supplier','admin'], so every admin
@@ -91,18 +99,26 @@ export default async function AdminOverviewPage() {
   }));
 
   const stats: PlatformStats = {
-    totalUsers: rpc?.total_users ?? usersRes.count ?? 0,
-    totalSuppliers: rpc?.total_suppliers ?? suppliersRes.count ?? 0,
-    pendingKyc: rpc?.pending_kyc ?? kycPendingRes.count ?? 0,
-    approvedSuppliers: rpc?.approved_kyc ?? kycApprovedRes.count ?? 0,
-    totalProducts: rpc?.total_products ?? productsRes.count ?? 0,
-    activeProducts: rpc?.active_products ?? activeProductsRes.count ?? 0,
-    totalOrders: rpc?.total_orders ?? ordersRes.count ?? 0,
-    pendingOrders: pendingOrdersRes.count ?? 0,
+    totalUsers: rpc?.total_users ?? countOf(usersRes),
+    totalSuppliers: rpc?.total_suppliers ?? countOf(suppliersRes),
+    pendingKyc: rpc?.pending_kyc ?? countOf(kycPendingRes),
+    approvedSuppliers: rpc?.approved_kyc ?? countOf(kycApprovedRes),
+    totalProducts: rpc?.total_products ?? countOf(productsRes),
+    activeProducts: rpc?.active_products ?? countOf(activeProductsRes),
+    totalOrders: rpc?.total_orders ?? countOf(ordersRes),
+    pendingOrders: countOf(pendingOrdersRes),
     revenueByCurrency,
     // Set when the RPC hasn't been applied to the database yet.
     revenueUnavailable: rpc == null,
   };
+
+  /*
+    Badges and the KYC banner are "there is work waiting" affordances: an
+    unknown count means nothing is claimed, so it reads as 0 here. The tiles in
+    `AdminStatsGrid` are what report the counts, and they show "—" instead.
+  */
+  const pendingKyc = stats.pendingKyc ?? 0;
+  const pendingOrders = stats.pendingOrders ?? 0;
 
   const navItems: {
     href: string;
@@ -117,7 +133,7 @@ export default async function AdminOverviewPage() {
       label: 'Supplier Management',
       subtitle: 'KYC reviews & approvals',
       icon: Store,
-      badge: stats.pendingKyc > 0 ? stats.pendingKyc : undefined,
+      badge: pendingKyc > 0 ? pendingKyc : undefined,
       badgeTone: 'error',
     },
     {
@@ -137,7 +153,7 @@ export default async function AdminOverviewPage() {
       label: 'Order Monitoring',
       subtitle: 'Track & update order statuses',
       icon: ShoppingBag,
-      badge: stats.pendingOrders > 0 ? stats.pendingOrders : undefined,
+      badge: pendingOrders > 0 ? pendingOrders : undefined,
       badgeTone: 'warning',
     },
     {
@@ -197,7 +213,7 @@ export default async function AdminOverviewPage() {
         <p className="text-base text-content-tertiary">{profile.email}</p>
       </header>
 
-      {stats.pendingKyc > 0 && (
+      {pendingKyc > 0 && (
         <Link
           href="/admin/suppliers"
           className="flex items-center gap-3 rounded-xl border border-warning bg-surface-tint p-3.5 transition-colors hover:bg-surface-page"
@@ -207,7 +223,7 @@ export default async function AdminOverviewPage() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-md font-bold text-warning">
-              {stats.pendingKyc} Pending KYC Review{stats.pendingKyc > 1 ? 's' : ''}
+              {pendingKyc} Pending KYC Review{pendingKyc > 1 ? 's' : ''}
             </span>
             <span className="mt-0.5 block text-sm text-content-tertiary">
               Review supplier applications

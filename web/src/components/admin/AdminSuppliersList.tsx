@@ -67,6 +67,14 @@ const STATUS_META: Record<
   rejected: { label: 'Rejected', tone: 'error' },
 };
 
+/**
+ * A Supabase mutation that matches zero rows (row-level security rejects it)
+ * still resolves with `error: null`, so every write below adds `.select('id')`
+ * and treats an empty result as a failure.
+ */
+const NO_ROW_MESSAGE =
+  'No row was updated. Please reload the page and try again, or contact support.';
+
 const statusMeta = (status: KycStatus | null) =>
   status ? STATUS_META[status] : { label: 'Unknown', tone: 'neutral' as const };
 
@@ -153,10 +161,11 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
     const supabase = createClient();
     const reviewedAt = new Date().toISOString();
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('suppliers')
       .update({ kyc_status: 'approved', reviewed_at: reviewedAt, rejection_reason: null })
-      .eq('id', supplier.id);
+      .eq('id', supplier.id)
+      .select('id');
 
     if (error) {
       setBusy(false);
@@ -164,6 +173,18 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
       return;
     }
 
+    if (!updated || updated.length === 0) {
+      setBusy(false);
+      toast({
+        title: 'Approval failed',
+        message: NO_ROW_MESSAGE,
+        kind: 'error',
+      });
+      return;
+    }
+
+    // Only notify once the write is confirmed — otherwise the supplier is told
+    // their KYC was decided when nothing persisted.
     await notifySupplier(
       supplier.user_id,
       'KYC Approved',
@@ -193,14 +214,21 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
     const supabase = createClient();
     const reviewedAt = new Date().toISOString();
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('suppliers')
       .update({ kyc_status: 'rejected', rejection_reason: reason, reviewed_at: reviewedAt })
-      .eq('id', supplier.id);
+      .eq('id', supplier.id)
+      .select('id');
 
     if (error) {
       setBusy(false);
       toast({ title: 'Rejection failed', message: error.message, kind: 'error' });
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
+      setBusy(false);
+      toast({ title: 'Rejection failed', message: NO_ROW_MESSAGE, kind: 'error' });
       return;
     }
 
@@ -226,14 +254,21 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
     setBusy(true);
     const supabase = createClient();
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('suppliers')
       .update({ kyc_status: 'under_review' })
-      .eq('id', supplier.id);
+      .eq('id', supplier.id)
+      .select('id');
 
     if (error) {
       setBusy(false);
       toast({ title: 'Update failed', message: error.message, kind: 'error' });
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
+      setBusy(false);
+      toast({ title: 'Update failed', message: NO_ROW_MESSAGE, kind: 'error' });
       return;
     }
 
@@ -263,15 +298,21 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
 
     setBusy(true);
     const supabase = createClient();
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from('suppliers')
       .update({ commission_rate: rate })
-      .eq('id', supplier.id);
+      .eq('id', supplier.id)
+      .select('id');
 
     setBusy(false);
 
     if (error) {
       toast({ title: 'Update failed', message: error.message, kind: 'error' });
+      return;
+    }
+
+    if (!updated || updated.length === 0) {
+      toast({ title: 'Update failed', message: NO_ROW_MESSAGE, kind: 'error' });
       return;
     }
 

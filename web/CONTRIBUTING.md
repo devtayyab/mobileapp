@@ -90,6 +90,38 @@ import { createClient } from '@/lib/supabase/client'; // sync
 - Add `export const dynamic = 'force-dynamic';` to pages reading live data.
 - `params` is a Promise in Next 15: `const { id } = await params;`.
 
+## The server/client boundary (this has caused four production crashes)
+
+`next build` does **not** catch these: every page here is `force-dynamic`, so it
+is never rendered at build time. A clean build tells you nothing about whether a
+page renders. Both mistakes below throw a *server-side exception* at request time.
+
+**1. Never pass a function from a Server Component to a Client Component.**
+React throws "Functions cannot be passed directly to Client Components". Pass
+serializable data instead — e.g. a link *template* string with a `{id}`
+placeholder, not an `(id) => string` builder (see `BulkProductManager`'s
+`editHrefPattern`). If a component genuinely needs callbacks (like `StatCard`'s
+`format`), make the parent a Client Component too.
+
+**2. Never import a non-component VALUE from a `'use client'` module into a
+Server Component.** The server receives a client *reference*, not the value, so
+`SOME_ARRAY.includes(x)` throws and `SOME_NUMBER` comparisons silently fail.
+Put shared constants in a plain module (see `support-status.ts`,
+`shop/search-config.ts`). Re-exporting a *type* is fine — types are erased.
+
+Sweep for both before shipping:
+
+```bash
+# 1. function props in server components
+find src/app src/components -name '*.tsx' | while read -r f; do
+  head -3 "$f" | grep -q 'use client' && continue
+  perl -0777 -ne 'while (/^\s+([A-Za-z_]\w*)=\{\s*(?:async\s*)?\(?[\w,\s{}\[\]:]*\)?\s*=>/gm) { print "$ARGV: $1\n" }' "$f"
+done
+
+# 2. then actually run it and hit the routes — `next build` passing is not proof
+npx next build && npx next start -p 3111
+```
+
 ## Schema landmines (verified the hard way)
 
 The SQL in `../supabase/migrations/` is **stale and internally inconsistent**.

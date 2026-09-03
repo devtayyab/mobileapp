@@ -169,6 +169,19 @@ export function DataTable<T>({
                   animate={{ opacity: 1 }}
                   transition={{ delay: Math.min(i * 0.012, 0.2) }}
                   onClick={() => onRowClick?.(row)}
+                  // Clickable rows must be reachable without a mouse.
+                  role={onRowClick ? 'button' : undefined}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onKeyDown={
+                    onRowClick
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onRowClick(row);
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
                     'border-b border-edge-light last:border-0',
                     onRowClick && 'cursor-pointer',
@@ -214,7 +227,7 @@ export function DataTable<T>({
           </span>
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              onClick={() => setPage(Math.max(0, safePage - 1))}
               disabled={safePage === 0}
               aria-label="Previous page"
               className="rounded-lg border border-edge p-1.5 disabled:opacity-40"
@@ -225,7 +238,7 @@ export function DataTable<T>({
               {safePage + 1} / {pageCount}
             </span>
             <button
-              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              onClick={() => setPage(Math.min(pageCount - 1, safePage + 1))}
               disabled={safePage >= pageCount - 1}
               aria-label="Next page"
               className="rounded-lg border border-edge p-1.5 disabled:opacity-40"

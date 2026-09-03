@@ -6,7 +6,7 @@ import { getAdminProfile } from '@/lib/supabase/server';
 import { LANGUAGE_COOKIE } from '@/lib/i18n-config';
 
 export const metadata: Metadata = {
-  title: 'SATHUN Marketplace',
+  title: 'SATHUN GLOBAL Marketplace',
   description: 'B2B & B2C marketplace — shop, sell, and manage your business',
 };
 

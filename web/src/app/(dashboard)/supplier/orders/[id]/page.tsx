@@ -115,11 +115,19 @@ export default async function SupplierOrderDetailPage({
       )
       .eq('order_id', orderId)
       .eq('supplier_id', supplier.id)
+      // There is no unique constraint on (order_id, supplier_id), so a bare
+      // `.maybeSingle()` errors out as soon as a duplicate exists — and the
+      // resulting `null` made the supplier insert yet another duplicate. Take
+      // the most recent row instead.
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle(),
     supabase
       .from('couriers')
       .select('id, name, code, tracking_url_format')
-      .eq('is_active', true)
+      // `couriers.is_active` is `boolean DEFAULT true` with no NOT NULL, so a
+      // NULL row is active-by-default — `.eq(true)` would hide it.
+      .not('is_active', 'is', false)
       .order('name'),
   ]);
 
@@ -189,6 +197,20 @@ export default async function SupplierOrderDetailPage({
           <Package size={18} className="text-primary" />
           <h2 className="text-lg font-bold text-content-primary">Your Items in This Order</h2>
         </div>
+        {/*
+          These amounts are `unit_price * quantity` — what the buyer paid for
+          the line, NOT the supplier's 90% share. The share is spelled out as
+          "Your Payout" in the financial summary below, so the column is
+          labelled explicitly to keep the two apart.
+        */}
+        <div className="flex items-center justify-between gap-3 border-b border-edge pb-1.5">
+          <span className="text-sm font-bold uppercase tracking-[0.5px] text-content-tertiary">
+            Item
+          </span>
+          <span className="shrink-0 text-sm font-bold uppercase tracking-[0.5px] text-content-tertiary">
+            Line total (buyer paid)
+          </span>
+        </div>
         <ul>
           {items.map((item) => (
             <li
@@ -204,6 +226,10 @@ export default async function SupplierOrderDetailPage({
             </li>
           ))}
         </ul>
+        <p className="mt-2.5 text-sm text-content-tertiary">
+          Line totals are the buyer&rsquo;s prices. Your 90% share of them is the
+          &ldquo;Your Payout&rdquo; figure below.
+        </p>
       </section>
 
       {/* Financial summary */}

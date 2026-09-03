@@ -19,12 +19,13 @@ import {
 import { BulkActionBar, type PriceMode, type StockMode } from './BulkActionBar';
 import { BulkCsvImport } from './BulkCsvImport';
 import { downloadCsv, productsToCsv } from './bulk-csv';
-import type {
-  BulkCategory,
-  BulkPatch,
-  BulkProduct,
-  CsvParseResult,
-  UndoEntry,
+import {
+  splitPatches,
+  type BulkCategory,
+  type BulkPatch,
+  type BulkProduct,
+  type CsvParseResult,
+  type UndoEntry,
 } from './bulk-types';
 
 const FILTERS = [
@@ -46,15 +47,28 @@ export function BulkProductManager({
   initialProducts,
   categories,
   addHref,
-  editHrefFor,
+  editHrefPattern,
   title,
 }: {
   initialProducts: BulkProduct[];
   categories: BulkCategory[];
   addHref?: string;
-  editHrefFor?: (id: string) => string;
+  /**
+   * Row-edit link template containing a literal `{id}`, e.g.
+   * `/supplier/products/{id}/edit`.
+   *
+   * A serializable string, NOT a builder function: this is a Client Component,
+   * and a Server Component cannot pass a function across the boundary
+   * ("Functions cannot be passed directly to Client Components") — doing so
+   * threw a server-side exception on /supplier/products.
+   */
+  editHrefPattern?: string;
   title: string;
 }) {
+  const editHrefFor = editHrefPattern
+    ? (id: string) => editHrefPattern.replace('{id}', id)
+    : undefined;
+
   const { toast } = useToast();
   const [products, setProducts] = useState<BulkProduct[]>(initialProducts);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -120,18 +134,47 @@ export function BulkProductManager({
       return { id, patch: snapshot };
     });
 
-    const { data, error } = await supabase.rpc('bulk_update_products', {
-      updates: updates.map(({ id, patch }) => ({ id, ...patch })),
-    });
+    /*
+      Split the patch: `bulk_update_products` only understands the five fields in
+      RPC_PATCH_FIELDS. Anything else (sku, is_featured) has to go through plain
+      per-row UPDATEs, or the RPC would ignore it and we would report a success
+      that never touched those columns.
+    */
+    const { rpcUpdates, directUpdates } = splitPatches(updates);
+
+    let affected = 0;
+    let failure: string | null = null;
+
+    if (rpcUpdates.length > 0) {
+      const { data, error } = await supabase.rpc('bulk_update_products', {
+        updates: rpcUpdates,
+      });
+      if (error) failure = error.message;
+      else affected = typeof data === 'number' ? data : rpcUpdates.length;
+    }
+
+    if (!failure && directUpdates.length > 0) {
+      const results = await Promise.all(
+        directUpdates.map(({ id, patch }) =>
+          supabase.from('products').update(patch).eq('id', id).select('id')
+        )
+      );
+
+      const failed = results.find((r) => r.error);
+      if (failed?.error) failure = failed.error.message;
+      else {
+        const written = results.filter((r) => (r.data?.length ?? 0) > 0).length;
+        // Count rows only once when a row went through both paths.
+        affected = Math.max(affected, written);
+      }
+    }
 
     setBusy(false);
 
-    if (error) {
-      toast({ title: 'Bulk update failed', message: error.message, kind: 'error' });
+    if (failure) {
+      toast({ title: 'Bulk update failed', message: failure, kind: 'error' });
       return;
     }
-
-    const affected = typeof data === 'number' ? data : updates.length;
 
     // RLS can silently match zero rows; say so instead of implying success.
     if (affected === 0) {
@@ -202,14 +245,27 @@ export function BulkProductManager({
     const supabase = createClient();
     setBusy(true);
 
-    const { error } = await supabase.rpc('bulk_update_products', {
-      updates: entry.previous.map(({ id, patch }) => ({ id, ...patch })),
-    });
+    const { rpcUpdates: rpcRevert, directUpdates: directRevert } = splitPatches(entry.previous);
+
+    let undoError: string | null = null;
+
+    if (rpcRevert.length > 0) {
+      const { error } = await supabase.rpc('bulk_update_products', { updates: rpcRevert });
+      if (error) undoError = error.message;
+    }
+
+    if (!undoError && directRevert.length > 0) {
+      const results = await Promise.all(
+        directRevert.map(({ id, patch }) => supabase.from('products').update(patch).eq('id', id))
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) undoError = failed.error.message;
+    }
 
     setBusy(false);
 
-    if (error) {
-      toast({ title: 'Undo failed', message: error.message, kind: 'error' });
+    if (undoError) {
+      toast({ title: 'Undo failed', message: undoError, kind: 'error' });
       return;
     }
 

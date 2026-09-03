@@ -27,13 +27,13 @@ export default function TermsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>SATHUN TERMS AND CONDITIONS</Text>
+        <Text style={styles.title}>SATHUN GLOBAL TERMS AND CONDITIONS</Text>
 
         <Text style={styles.heading}>1. Introduction</Text>
-        <Text style={styles.paragraph}>Welcome to SATHUN, a global dropshipping marketplace operated by Thakuri Brand, Cyprus. By using this platform, you agree to these Terms and Conditions.</Text>
+        <Text style={styles.paragraph}>Welcome to SATHUN GLOBAL, a global dropshipping marketplace operated by Thakuri Brand, Cyprus. By using this platform, you agree to these Terms and Conditions.</Text>
 
         <Text style={styles.heading}>2. Platform Nature</Text>
-        <Text style={styles.paragraph}>SATHUN is an international marketplace where sellers can list products for both retail and wholesale. The platform does not own, manufacture, or store any products.</Text>
+        <Text style={styles.paragraph}>SATHUN GLOBAL is an international marketplace where sellers can list products for both retail and wholesale. The platform does not own, manufacture, or store any products.</Text>
 
         <Text style={styles.heading}>3. User Accounts</Text>
         <Text style={styles.paragraph}>Users must provide accurate information and maintain account security.</Text>
@@ -44,9 +44,9 @@ export default function TermsScreen() {
         <Text style={styles.listItem}>• Sellers set their own pricing, including wholesale pricing and minimum quantities</Text>
 
         <Text style={styles.heading}>5. Orders & Payments</Text>
-        <Text style={styles.listItem}>• Customers make payments through the SATHUN platform</Text>
+        <Text style={styles.listItem}>• Customers make payments through the SATHUN GLOBAL platform</Text>
         <Text style={styles.listItem}>• Payments are securely processed via integrated payment systems</Text>
-        <Text style={styles.listItem}>• SATHUN automatically deducts its commission before releasing payment to the seller</Text>
+        <Text style={styles.listItem}>• SATHUN GLOBAL automatically deducts its commission before releasing payment to the seller</Text>
 
         <Text style={styles.heading}>6. Commission Structure</Text>
         <Text style={styles.listItem}>• Retail sales: 12% commission</Text>
@@ -59,7 +59,7 @@ export default function TermsScreen() {
 
         <Text style={styles.heading}>8. Returns & Refunds</Text>
         <Text style={styles.listItem}>• Sellers are responsible for handling returns and refunds</Text>
-        <Text style={styles.listItem}>• SATHUN may assist but is not responsible</Text>
+        <Text style={styles.listItem}>• SATHUN GLOBAL may assist but is not responsible</Text>
 
         <Text style={styles.heading}>9. Seller Responsibility</Text>
         <Text style={styles.listItem}>• Sellers must upload accurate product details, images, and pricing</Text>
@@ -69,7 +69,7 @@ export default function TermsScreen() {
         <Text style={styles.paragraph}>Illegal, counterfeit, or unsafe products are strictly prohibited.</Text>
 
         <Text style={styles.heading}>11. Limitation of Liability</Text>
-        <Text style={styles.paragraph}>SATHUN is not responsible for product quality, delivery issues, or disputes.</Text>
+        <Text style={styles.paragraph}>SATHUN GLOBAL is not responsible for product quality, delivery issues, or disputes.</Text>
 
         <Text style={styles.heading}>12. International Use</Text>
         <Text style={styles.paragraph}>The platform is designed for global use and may be accessed worldwide.</Text>
@@ -78,7 +78,7 @@ export default function TermsScreen() {
         <Text style={styles.paragraph}>These Terms are governed by the laws of Cyprus.</Text>
 
         <Text style={styles.heading}>14. Updates</Text>
-        <Text style={styles.paragraph}>SATHUN may update these Terms at any time.</Text>
+        <Text style={styles.paragraph}>SATHUN GLOBAL may update these Terms at any time.</Text>
       </ScrollView>
     </View>
   );

@@ -4,7 +4,7 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Package } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Package } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button, StatusBadge } from '@/components/ui';
 import { formatAmount } from './types';
@@ -14,11 +14,19 @@ export function CheckoutSuccess({
   orderNumber,
   total,
   currency,
+  issues = [],
 }: {
   orderId: string | null;
   orderNumber: string;
   total: number;
   currency: string;
+  /**
+   * Bookkeeping that failed AFTER the card was charged (payment receipt, stock
+   * decrement, cart clear). The payment and the order are real either way, so
+   * this is a warning, not an error — but the shopper is told to contact
+   * support rather than left thinking everything reconciled.
+   */
+  issues?: string[];
 }) {
   const router = useRouter();
   const { t } = useLanguage();
@@ -43,6 +51,24 @@ export function CheckoutSuccess({
       <p className="text-lg text-content-tertiary">
         {t.orderConfirmedMessage ?? 'Your order has been confirmed and is being processed.'}
       </p>
+
+      {issues.length > 0 && (
+        <div className="mt-3 w-full rounded-2xl border border-warning bg-warning/10 p-4 text-left">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning" />
+            <div className="min-w-0 space-y-1.5">
+              <p className="text-lg font-bold text-warning">
+                Your order went through, but something needs checking
+              </p>
+              <p className="text-md leading-5 text-content-secondary">
+                Your payment was taken and order {orderNumber} was created, but{' '}
+                {issues.join(', ')}. Please contact support and quote this order number so it can
+                be reconciled.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 w-full divide-y divide-edge-light rounded-2xl border border-edge bg-surface px-4 text-left">
         <SummaryRow label={t.orderNumber ?? 'Order Number'} value={orderNumber} />

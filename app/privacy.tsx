@@ -27,10 +27,10 @@ export default function PrivacyScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>SATHUN PRIVACY POLICY</Text>
+        <Text style={styles.title}>SATHUN GLOBAL PRIVACY POLICY</Text>
 
         <Text style={styles.heading}>1. Introduction</Text>
-        <Text style={styles.paragraph}>SATHUN is committed to protecting user and seller data.</Text>
+        <Text style={styles.paragraph}>SATHUN GLOBAL is committed to protecting user and seller data.</Text>
 
         <Text style={styles.heading}>2. Information Collected</Text>
         <Text style={styles.listItem}>• Name, email, phone number</Text>

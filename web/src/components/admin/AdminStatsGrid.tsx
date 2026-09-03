@@ -10,15 +10,22 @@ export type RevenueByCurrency = {
   orders: number;
 };
 
+/**
+ * A count that could not be read (the query returned an error, so PostgREST
+ * gave back no count) is `null` — never 0. A tile shows "—" for it rather than
+ * asserting there are zero users / orders / products.
+ */
+export type MaybeCount = number | null;
+
 export type PlatformStats = {
-  totalUsers: number;
-  totalSuppliers: number;
-  approvedSuppliers: number;
-  pendingKyc: number;
-  totalProducts: number;
-  activeProducts: number;
-  totalOrders: number;
-  pendingOrders: number;
+  totalUsers: MaybeCount;
+  totalSuppliers: MaybeCount;
+  approvedSuppliers: MaybeCount;
+  pendingKyc: MaybeCount;
+  totalProducts: MaybeCount;
+  activeProducts: MaybeCount;
+  totalOrders: MaybeCount;
+  pendingOrders: MaybeCount;
   /**
    * One entry per `orders.currency`. Deliberately NOT collapsed into a single
    * figure: the rows are in different currencies, so a blended sum would be
@@ -31,10 +38,54 @@ export type PlatformStats = {
 
 /**
  * Order money is shown in the currency it was stored/charged in — never pushed
- * through `useCurrency().formatPrice` (see CONTRIBUTING.md).
+ * through `useCurrency().formatPrice` (see CONTRIBUTING.md) — and always to the
+ * cent: rounding `USD 1234.56` to `USD 1,235` reports money that was never
+ * charged. Same formatting as `components/supplier/money.ts`.
  */
 const money = (n: number, currency: string) =>
-  `${currency} ${Math.round(n).toLocaleString('en-US')}`;
+  `${currency} ${n.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+/** "1,204", or "unavailable" when the count could not be read. */
+const countText = (n: MaybeCount) => (n == null ? 'unavailable' : n.toLocaleString());
+
+/** A tile whose count failed to load: an em dash, never a fabricated 0. */
+function UnavailableCard({ label, icon }: { label: string; icon?: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-edge bg-surface p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-sm font-bold uppercase tracking-[0.5px] text-content-tertiary">
+          {label}
+        </span>
+        {icon && (
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-tint text-content-tertiary">
+            {icon}
+          </span>
+        )}
+      </div>
+      <p className="text-6xl font-extrabold tracking-[-0.5px] text-content-tertiary">&mdash;</p>
+      <p className="mt-1 text-sm text-content-tertiary">Count unavailable</p>
+    </div>
+  );
+}
+
+/** `StatCard` for a count that loaded, `UnavailableCard` for one that didn't. */
+function CountCard({
+  label,
+  value,
+  icon,
+  hint,
+}: {
+  label: string;
+  value: MaybeCount;
+  icon?: React.ReactNode;
+  hint?: string;
+}) {
+  if (value == null) return <UnavailableCard label={label} icon={icon} />;
+  return <StatCard label={label} value={value} icon={icon} hint={hint} />;
+}
 
 export function AdminStatsGrid({ stats }: { stats: PlatformStats }) {
   return (
@@ -79,27 +130,27 @@ export function AdminStatsGrid({ stats }: { stats: PlatformStats }) {
       )}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Total Users" value={stats.totalUsers} icon={<Users size={18} />} />
-        <StatCard
+        <CountCard label="Total Users" value={stats.totalUsers} icon={<Users size={18} />} />
+        <CountCard
           label="Suppliers"
           value={stats.totalSuppliers}
           icon={<Store size={18} />}
-          hint={`${stats.approvedSuppliers.toLocaleString()} approved`}
+          hint={`${countText(stats.approvedSuppliers)} approved`}
         />
-        <StatCard
+        <CountCard
           label="Products"
           value={stats.totalProducts}
           icon={<Package size={18} />}
-          hint={`${stats.activeProducts.toLocaleString()} active`}
+          hint={`${countText(stats.activeProducts)} active`}
         />
-        <StatCard
+        <CountCard
           label="Total Orders"
           value={stats.totalOrders}
           icon={<ShoppingBag size={18} />}
-          hint={`${stats.pendingOrders.toLocaleString()} pending`}
+          hint={`${countText(stats.pendingOrders)} pending`}
         />
-        <StatCard label="Pending KYC" value={stats.pendingKyc} icon={<Activity size={18} />} />
-        <StatCard
+        <CountCard label="Pending KYC" value={stats.pendingKyc} icon={<Activity size={18} />} />
+        <CountCard
           label="Approved KYC"
           value={stats.approvedSuppliers}
           icon={<FileCheck2 size={18} />}

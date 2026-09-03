@@ -8,11 +8,14 @@ export function SearchInput({
   value,
   onChange,
   placeholder = 'Search…',
+  label,
   className,
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder?: string;
+  /** Accessible name; falls back to the placeholder text. */
+  label?: string;
   className?: string;
 }) {
   return (
@@ -25,6 +28,8 @@ export function SearchInput({
     >
       <Search size={18} className="shrink-0 text-content-tertiary" />
       <input
+        type="search"
+        aria-label={label ?? placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

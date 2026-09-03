@@ -30,7 +30,9 @@ async function ShopBody({ category }: { category: string }) {
     supabase
       .from('categories')
       .select('id, name, slug')
-      .eq('is_active', true)
+      // `categories.is_active` is nullable (`DEFAULT true`, no NOT NULL), so a
+      // NULL row is active-by-default — `.eq(true)` would hide it.
+      .not('is_active', 'is', false)
       .is('parent_id', null)
       .order('display_order'),
     getAdminProfile(),

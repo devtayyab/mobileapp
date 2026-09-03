@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { MIN_QUERY } from './search-config';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { SearchInput } from '@/components/ui';
@@ -8,7 +9,7 @@ import { useLanguage } from '@/providers/LanguageProvider';
 
 /** Mobile debounce from app/search.tsx (500ms, min 2 characters). */
 const DEBOUNCE_MS = 500;
-export const MIN_QUERY = 2;
+
 
 /**
  * Lives OUTSIDE the results Suspense boundary so typing never remounts the

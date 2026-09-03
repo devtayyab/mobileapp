@@ -215,7 +215,7 @@ export function CategoryEditor({ initialCategories }: { initialCategories: Admin
       toast({
         title: 'Delete blocked',
         message:
-          'No row was deleted. `categories` has no DELETE row-level-security policy, so deletes are rejected silently — deactivate the category instead.',
+          'No row was deleted — row-level security rejected the request. Deactivate the category instead.',
         kind: 'error',
       });
       setPendingDelete(null);

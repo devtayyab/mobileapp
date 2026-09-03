@@ -41,7 +41,25 @@ export type SupplierOrderGroup = {
 /** Mobile exposes exactly these four filters. */
 const FILTERS = ['all', 'pending', 'processing', 'shipped'] as const;
 
-export function SupplierOrdersList({ orders }: { orders: SupplierOrderGroup[] }) {
+/**
+ * The page reads `order_items` with an explicit row cap. When the supplier has
+ * more lines than that, the list (and every tab count) is a partial view — say
+ * so rather than presenting a short list as the complete history.
+ */
+export type SupplierOrdersTruncation = {
+  /** Order-item rows actually fetched. */
+  scanned: number;
+  /** Total matching rows, or null when the count could not be read. */
+  total: number | null;
+};
+
+export function SupplierOrdersList({
+  orders,
+  truncation,
+}: {
+  orders: SupplierOrderGroup[];
+  truncation?: SupplierOrdersTruncation | null;
+}) {
   const { t, language } = useLanguage();
   const locale = localeFor(language.code);
   const [filter, setFilter] = useState<string>('all');
@@ -71,6 +89,17 @@ export function SupplierOrdersList({ orders }: { orders: SupplierOrderGroup[] })
           Incoming orders containing your products
         </p>
       </div>
+
+      {truncation && (
+        <div className="rounded-2xl border border-warning bg-surface-tint p-4">
+          <p className="text-md font-bold text-warning">Showing your most recent orders only</p>
+          <p className="mt-0.5 text-sm text-content-tertiary">
+            This list is built from the newest {truncation.scanned.toLocaleString()} of{' '}
+            {truncation.total != null ? truncation.total.toLocaleString() : 'more'} order lines, so
+            older orders and the tab counts below are incomplete.
+          </p>
+        </div>
+      )}
 
       <Tabs tabs={tabs} active={filter} onChange={setFilter} />
 
@@ -115,6 +144,20 @@ export function SupplierOrdersList({ orders }: { orders: SupplierOrderGroup[] })
                 </div>
 
                 <div className="mt-3 flex flex-col gap-2 border-y border-edge-light py-3">
+                  {/*
+                    The per-line amount is `order_items.supplier_amount` — this
+                    supplier's 90% share, NOT the buyer's line total (the order
+                    detail screen shows that one). Labelled so the two can't be
+                    confused.
+                  */}
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-bold uppercase tracking-[0.5px] text-content-tertiary">
+                      Item
+                    </p>
+                    <p className="shrink-0 text-sm font-bold uppercase tracking-[0.5px] text-content-tertiary">
+                      Your payout
+                    </p>
+                  </div>
                   {order.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between gap-3">
                       <p className="truncate text-md text-content-secondary">
@@ -135,7 +178,7 @@ export function SupplierOrdersList({ orders }: { orders: SupplierOrderGroup[] })
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-sm text-content-tertiary">Your Share</p>
+                    <p className="text-sm text-content-tertiary">Your payout (90%)</p>
                     <p className="flex items-center gap-1 text-2xl font-extrabold text-success">
                       {formatOrderAmount(order.currency, order.payout)}
                       <ChevronRight size={16} className="text-content-tertiary" />

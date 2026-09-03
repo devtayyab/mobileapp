@@ -1,3 +1,12 @@
+'use client';
+
+/*
+  Client component on purpose: it passes `format` callbacks to the UI-kit
+  StatCard, and a Server Component cannot hand a function to a Client
+  Component ("Functions cannot be passed directly to Client Components").
+  Every prop it receives is already serializable data, so moving the whole
+  presentational tree client-side is the simple, correct fix.
+*/
 import {
   BarChart3,
   DollarSign,
@@ -35,9 +44,16 @@ export type DailyRevenuePoint = { day: string; revenue: number; orders: number }
 export type TopSupplier = { businessName: string; revenue: number; orders: number };
 
 export type RevenueReportData = {
-  totalOrders: number;
+  /**
+   * `null` when the order count could not be read at all. It is the denominator
+   * of every status percentage below, so an unknown total prints "—" rather
+   * than a `0.0%` / `NaN%` that would look authoritative.
+   */
+  totalOrders: number | null;
   /** In `order_status` lifecycle order; statuses with no orders are omitted. */
   ordersByStatus: { status: string; orders: number }[];
+  /** True when at least one per-status count query failed, so rows are missing. */
+  statusCountsIncomplete?: boolean;
   currencies: RevenueCurrencyRow[];
   dailyByCurrency: { currency: string; days: DailyRevenuePoint[] }[];
   topSuppliersByCurrency: { currency: string; suppliers: TopSupplier[] }[];
@@ -52,10 +68,18 @@ export type RevenueReportData = {
 
 /**
  * Order money is shown in the currency it was stored/charged in — never pushed
- * through `useCurrency().formatPrice` (see CONTRIBUTING.md).
+ * through `useCurrency().formatPrice` (see CONTRIBUTING.md) — and always to the
+ * cent: rounding `USD 1234.56` to `USD 1,235` reports money that was never
+ * charged. Same formatting as `components/supplier/money.ts`.
+ *
+ * `compact()` below is for chart axes and the single direct label only; a
+ * headline figure never loses its cents.
  */
 const money = (n: number, currency: string) =>
-  `${currency} ${Math.round(n).toLocaleString('en-US')}`;
+  `${currency} ${n.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 /**
  * Axis ticks and the single direct label: 12.5k / 1.2m. Full values live in
@@ -285,25 +309,45 @@ function OrdersByStatusChart({
   total,
 }: {
   rows: { status: string; orders: number }[];
-  total: number;
+  total: number | null;
 }) {
-  // Bars are scaled to the total, not to the largest status, so a bar's length
-  // and the percentage printed beside it always say the same thing (mobile
-  // scales to the total too).
-  const scale = total > 0 ? total : 1;
+  /*
+    `total` is the denominator of every percentage here. When it could not be
+    read there is no share to print — falling back to 0 would render `0.0%`
+    (or `NaN%`) next to a real count, which reads as a fact. Bars then scale to
+    the largest status instead, and the caption says so.
+  */
+  const knownTotal = total != null && total > 0 ? total : null;
+  const scale = knownTotal ?? (rows.reduce((max, r) => Math.max(max, r.orders), 0) || 1);
+  const shareOf = (orders: number) => (knownTotal ? (orders / knownTotal) * 100 : null);
+  const shareText = (orders: number) => {
+    const share = shareOf(orders);
+    return share == null ? '—' : `${share.toFixed(1)}%`;
+  };
 
   return (
     <figure className="m-0">
+      {knownTotal == null && (
+        <figcaption className="mb-3 text-sm text-content-tertiary">
+          The total order count could not be read, so shares are not shown and the bars are scaled
+          to the largest status rather than to the total.
+        </figcaption>
+      )}
+
       {/* Wide content scrolls in its own container rather than collapsing the bars. */}
       <ul className="space-y-2.5 overflow-x-auto">
         {rows.map((row) => {
-          const share = total > 0 ? (row.orders / total) * 100 : 0;
+          const share = shareOf(row.orders);
 
           return (
             <li
               key={row.status}
               className="flex min-w-[280px] items-center gap-3"
-              title={`${titleCase(row.status)} · ${row.orders} of ${total} order${total === 1 ? '' : 's'} (${share.toFixed(1)}%)`}
+              title={
+                share == null
+                  ? `${titleCase(row.status)} · ${row.orders} order${row.orders === 1 ? '' : 's'} · share unavailable`
+                  : `${titleCase(row.status)} · ${row.orders} of ${knownTotal} order${knownTotal === 1 ? '' : 's'} (${share.toFixed(1)}%)`
+              }
             >
               <span className="w-24 shrink-0 truncate text-md text-content-primary">
                 {titleCase(row.status)}
@@ -321,7 +365,7 @@ function OrdersByStatusChart({
                 />
               </span>
               <span className="w-12 shrink-0 text-right text-sm text-content-tertiary [font-variant-numeric:tabular-nums]">
-                {share.toFixed(1)}%
+                {shareText(row.orders)}
               </span>
             </li>
           );
@@ -350,9 +394,7 @@ function OrdersByStatusChart({
                   {titleCase(row.status)}
                 </th>
                 <td className={TD}>{row.orders}</td>
-                <td className={TD}>
-                  {total > 0 ? `${((row.orders / total) * 100).toFixed(1)}%` : '—'}
-                </td>
+                <td className={TD}>{shareText(row.orders)}</td>
               </tr>
             ))}
           </tbody>
@@ -428,6 +470,7 @@ export function RevenueReport({ data }: { data: RevenueReportData }) {
   const {
     totalOrders,
     ordersByStatus,
+    statusCountsIncomplete,
     currencies,
     dailyByCurrency,
     topSuppliersByCurrency,
@@ -538,10 +581,26 @@ export function RevenueReport({ data }: { data: RevenueReportData }) {
 
       <Section
         title="Orders by status"
-        subtitle={`${totalOrders.toLocaleString()} order${totalOrders === 1 ? '' : 's'} in total · counts are currency-independent`}
+        subtitle={
+          totalOrders == null
+            ? 'Total order count unavailable · counts are currency-independent'
+            : `${totalOrders.toLocaleString()} order${totalOrders === 1 ? '' : 's'} in total · counts are currency-independent`
+        }
       >
+        {statusCountsIncomplete && (
+          <p className="mb-3 rounded-xl border border-warning bg-surface-tint px-4 py-2.5 text-sm text-content-secondary">
+            Some per-status counts could not be read, so one or more statuses may be missing from
+            the breakdown below.
+          </p>
+        )}
         {ordersByStatus.length === 0 ? (
-          <p className="py-6 text-center text-md text-content-tertiary">No orders yet.</p>
+          <p className="py-6 text-center text-md text-content-tertiary">
+            {totalOrders == null
+              ? 'Order counts could not be read.'
+              : statusCountsIncomplete
+                ? 'No status counts could be read.'
+                : 'No orders yet.'}
+          </p>
         ) : (
           <OrdersByStatusChart rows={ordersByStatus} total={totalOrders} />
         )}

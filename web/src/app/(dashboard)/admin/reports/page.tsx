@@ -62,6 +62,14 @@ const STATUS_ORDER: OrderStatus[] = [
 
 const num = (v: number | string | null | undefined) => Number(v ?? 0);
 
+/**
+ * A failed `head`-count query returns `error != null` and `count: null`, which
+ * means "unknown" — never 0. It stays `null` so the report can say so.
+ */
+const countOf = (
+  res: { count: number | null; error: unknown } | undefined
+): number | null => (res == null || res.error ? null : res.count);
+
 /** Inclusive list of `YYYY-MM-DD` UTC days, so the x-axis has no gaps. */
 function utcDayRange(start: string, end: string): string[] {
   const days: string[] = [];
@@ -145,12 +153,20 @@ export default async function AdminReportsPage() {
         )
       );
 
-  const ordersByStatus = STATUS_ORDER.map((status, i) => ({
-    status,
-    orders: rpcStatusCounts.get(status) ?? statusCounts[i]?.count ?? 0,
-  })).filter((row) => row.orders > 0);
+  /*
+    A count query that errored comes back with `count: null` — unknown, not
+    zero. Such a status is dropped from the breakdown and flagged, rather than
+    charted as "0 orders"; an unreadable grand total stays `null` so the report
+    prints "—" for shares instead of a fabricated percentage.
+  */
+  const ordersByStatus = STATUS_ORDER.flatMap((status, i) => {
+    const orders = rpcStatusCounts.get(status) ?? countOf(statusCounts[i]);
+    return orders != null && orders > 0 ? [{ status, orders }] : [];
+  });
 
-  const totalOrders = rpc ? num(rpc.total_orders) : (ordersCountRes.count ?? 0);
+  const statusCountsIncomplete = statusCounts.some((res) => countOf(res) == null);
+
+  const totalOrders = rpc ? num(rpc.total_orders) : countOf(ordersCountRes);
 
   /* ── Money, grouped by `orders.currency` ──────────────────────────────── */
 
@@ -225,6 +241,7 @@ export default async function AdminReportsPage() {
   const data: RevenueReportData = {
     totalOrders,
     ordersByStatus,
+    statusCountsIncomplete,
     currencies,
     dailyByCurrency,
     topSuppliersByCurrency,

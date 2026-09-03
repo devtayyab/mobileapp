@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { cn } from '@/lib/cn';
 import { Bell, Info, ShoppingBag, Truck, X, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export type ToastKind =
@@ -75,7 +76,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 // Tuned to mobile's Animated.spring(tension 40, friction 7)
                 transition={{ type: 'spring', stiffness: 380, damping: 26 }}
                 onClick={t.onClick}
-                className="pointer-events-auto w-full max-w-md cursor-pointer rounded-2xl border border-edge-light bg-surface shadow-float"
+                role={t.onClick ? 'button' : 'status'}
+                tabIndex={t.onClick ? 0 : undefined}
+                onKeyDown={
+                  t.onClick
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          t.onClick?.();
+                        }
+                      }
+                    : undefined
+                }
+                className={cn(
+                  'pointer-events-auto w-full max-w-md rounded-2xl border border-edge-light bg-surface shadow-float',
+                  t.onClick && 'cursor-pointer'
+                )}
               >
                 <div className="flex items-start gap-3 p-3.5">
                   <span

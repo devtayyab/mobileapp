@@ -140,9 +140,8 @@ export function KycDocumentList({
 
       if (existing) {
         // Resubmission: back to pending and clear any prior rejection reason.
-        // `.select()` so a row count of zero is detectable — the migrations only
-        // define an ADMIN update policy on kyc_documents, so RLS can silently
-        // no-op this write (mobile has the same bug but never notices).
+        // `.select()` so a row count of zero is detectable — a write that
+        // matches no rows still resolves with `error: null`.
         const { data: updated, error } = await supabase
           .from('kyc_documents')
           .update({ document_url: url, status: 'pending', rejection_reason: null })
@@ -151,7 +150,7 @@ export function KycDocumentList({
         if (error) throw new Error(error.message);
         if (!updated || updated.length === 0) {
           throw new Error(
-            'This document could not be replaced. Only an administrator can change a submitted document right now — please contact support.'
+            'No row was updated, so this document was not replaced. Please reload and try again, or contact support.'
           );
         }
       } else {
@@ -210,11 +209,25 @@ export function KycDocumentList({
 
     try {
       const supabase = createClient();
-      const { error } = await supabase
+      // The button is only reachable while the status is still `pending`, so
+      // writing `pending` again was a no-op that toasted success and left the
+      // "Please upload all required documents" banner in place. Hand the
+      // application to the reviewers instead, and verify the row count —
+      // a zero-row match returns `error: null`.
+      const { data: updated, error } = await supabase
         .from('suppliers')
-        .update({ kyc_status: 'pending' })
-        .eq('id', supplierId);
+        .update({
+          kyc_status: 'under_review',
+          kyc_submitted_at: new Date().toISOString(),
+        })
+        .eq('id', supplierId)
+        .select('id');
       if (error) throw new Error(error.message);
+      if (!updated || updated.length === 0) {
+        throw new Error(
+          'No row was updated, so the submission was not saved. Please reload and try again, or contact support.'
+        );
+      }
 
       toast({
         title: 'Submitted',
@@ -389,8 +402,15 @@ export function KycDocumentList({
       <div className="flex items-start gap-2.5 rounded-lg border border-edge bg-surface-tint p-3.5">
         <AlertCircle size={16} className="mt-0.5 shrink-0 text-primary" />
         <p className="text-base leading-5 text-content-secondary">
+          {/*
+            No turnaround is promised here: review is a manual admin action with
+            no SLA behind it anywhere in the app, so the old "typically takes
+            1-3 business days" line was invented. The status on this page is the
+            only claim that can be made.
+          */}
           Documents should be publicly accessible. You can use Google Drive, Dropbox, or any cloud
-          storage with a public link. Review typically takes 1-3 business days.
+          storage with a public link. Your submission status is shown above and updates when an
+          administrator reviews it.
         </p>
       </div>
     </div>

@@ -60,7 +60,13 @@ export default function CartView({
 }) {
   const router = useRouter();
   const { t } = useLanguage();
-  const { formatPrice } = useCurrency();
+  /*
+    Catalog prices are stored in USD and `formatPrice` converts them into the
+    viewer's selected display currency, so the footer label has to name that
+    display currency — printing the stored `products.currency` code under a
+    converted number would contradict it.
+  */
+  const { currency: displayCurrency, formatPrice } = useCurrency();
   const { toast } = useToast();
   const { updateQuantity, removeItem, refresh } = useCart();
 
@@ -207,8 +213,6 @@ export default function CartView({
     );
   }
 
-  const currency = rows[0]?.products?.currency ?? 'USD';
-
   return (
     <div className="space-y-5">
       <Header title={t.myCart ?? 'My Cart'} count={rows.length} />
@@ -340,7 +344,7 @@ export default function CartView({
           </Button>
 
           <p className="text-center text-2xs font-bold uppercase tracking-[0.5px] text-content-tertiary">
-            {currency}
+            Shown in {displayCurrency.code}
           </p>
         </motion.aside>
       </div>

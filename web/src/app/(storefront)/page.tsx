@@ -59,7 +59,9 @@ export default async function HomePage() {
     supabase
       .from('categories')
       .select('id, name, slug, image_url')
-      .eq('is_active', true)
+      // `categories.is_active` is nullable (`DEFAULT true`, no NOT NULL), so a
+      // NULL row is active-by-default — `.eq(true)` would hide it.
+      .not('is_active', 'is', false)
       .is('parent_id', null)
       .order('display_order')
       .limit(8),

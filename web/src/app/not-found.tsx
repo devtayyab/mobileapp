@@ -18,7 +18,7 @@ export default function NotFound() {
           Page not found
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-lg text-content-tertiary">
-          The page you were looking for has moved, or never existed. Everything on SATHUN is still
+          The page you were looking for has moved, or never existed. Everything on SATHUN GLOBAL is still
           a click away from the storefront.
         </p>
 

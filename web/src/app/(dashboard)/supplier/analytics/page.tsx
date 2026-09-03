@@ -16,6 +16,7 @@ import { requireRole } from '@/lib/auth';
 import { Card, CardHeader } from '@/components/ui';
 import { MetricBars } from '@/components/supplier/MetricBars';
 import { NoSupplierProfile } from '@/components/supplier/NoSupplierProfile';
+import { PartialScanNotice } from '@/components/supplier/PartialScanNotice';
 import { RevenueColumns } from '@/components/supplier/RevenueColumns';
 import { SupplierStatTiles } from '@/components/supplier/SupplierStatTiles';
 import { TopProductsList } from '@/components/supplier/TopProductsList';
@@ -65,7 +66,9 @@ export default async function SupplierAnalyticsPage() {
       .eq('supplier_id', supplier.id),
     supabase
       .from('order_items')
-      .select(SUPPLIER_ORDER_ITEM_SELECT)
+      // Exact count alongside the capped page, so a truncated scan is
+      // detectable instead of silently understating every figure below.
+      .select(SUPPLIER_ORDER_ITEM_SELECT, { count: 'exact' })
       .eq('supplier_id', supplier.id)
       .order('created_at', { ascending: false })
       .limit(ITEM_SCAN_LIMIT),
@@ -76,6 +79,10 @@ export default async function SupplierAnalyticsPage() {
   const revenue = revenueBag(items);
   const primaryRevenue = primaryMoney(revenue);
   const revenueHint = extraMoneyHint(revenue);
+
+  const itemTotal = itemsRes.count ?? null;
+  const truncated = itemTotal != null ? itemTotal > items.length : items.length >= ITEM_SCAN_LIMIT;
+  const partialHint = truncated ? 'Most recent order lines only — see the notice above' : null;
 
   const earningOrders = orders.filter((o) => !isCancelled(o.status));
   const unitsSold = items
@@ -107,6 +114,14 @@ export default async function SupplierAnalyticsPage() {
         </p>
       </div>
 
+      {truncated && (
+        <PartialScanNotice
+          scanned={items.length}
+          total={itemTotal}
+          figures="revenue, order, unit and chart figures"
+        />
+      )}
+
       <SupplierStatTiles
         tiles={[
           {
@@ -114,22 +129,23 @@ export default async function SupplierAnalyticsPage() {
             value: primaryRevenue.amount,
             icon: 'revenue',
             currency: primaryRevenue.currency,
-            hint: revenueHint ?? 'Your 90% share of item subtotals',
+            hint: partialHint ?? revenueHint ?? 'Your 90% share of item subtotals',
           },
           {
             label: 'Orders',
             value: earningOrders.length,
             icon: 'orders',
             hint:
-              orders.length === earningOrders.length
+              partialHint ??
+              (orders.length === earningOrders.length
                 ? 'Distinct orders with your products'
-                : `${orders.length - earningOrders.length} more cancelled or refunded`,
+                : `${orders.length - earningOrders.length} more cancelled or refunded`),
           },
           {
             label: 'Units sold',
             value: unitsSold,
             icon: 'units',
-            hint: 'Across all your products',
+            hint: partialHint ?? 'Across all your products',
           },
           {
             label: 'Products',

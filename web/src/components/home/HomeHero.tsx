@@ -7,12 +7,20 @@ import { ArrowRight, Search } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { cn } from '@/lib/cn';
 
-/** Banner set ported from app/(tabs)/index.tsx HERO_BANNERS. */
+/**
+ * Banner set ported from app/(tabs)/index.tsx HERO_BANNERS.
+ *
+ * The mobile copy promises "Up to 40% off selected items" — a discount this
+ * platform never applies (there is no promotion, coupon or sale price anywhere
+ * in the schema; `products` carries only `b2c_price` / `b2b_price`). Per the
+ * CONTRIBUTING rule against invented data, every subtitle below states
+ * something the app actually does.
+ */
 const HERO_BANNERS = [
   {
     id: '1',
     title: 'New Season Arrivals',
-    subtitle: 'Up to 40% off selected items',
+    subtitle: 'The newest products added by our suppliers',
     cta: 'Shop Now',
     image:
       'https://images.pexels.com/photos/5632399/pexels-photo-5632399.jpeg?auto=compress&cs=tinysrgb&w=1400',
@@ -21,8 +29,8 @@ const HERO_BANNERS = [
   },
   {
     id: '2',
-    title: 'Premium Fashion',
-    subtitle: 'Discover the latest trends',
+    title: 'Shop by Category',
+    subtitle: 'Browse the full catalog across every category',
     cta: 'Explore',
     image:
       'https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=1400',
@@ -32,8 +40,8 @@ const HERO_BANNERS = [
   {
     id: '3',
     title: 'Wholesale Pricing',
-    subtitle: 'B2B deals for bulk orders',
-    cta: 'Get Deals',
+    subtitle: 'B2B accounts see wholesale prices where suppliers set them',
+    cta: 'Shop Wholesale',
     image:
       'https://images.pexels.com/photos/3965545/pexels-photo-3965545.jpeg?auto=compress&cs=tinysrgb&w=1400',
     overlay: 'rgba(6,78,59,0.72)',
@@ -55,13 +63,25 @@ export function HomeHero({ firstName, isB2B }: { firstName: string | null; isB2B
     return () => clearInterval(timer);
   }, [paused]);
 
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12
-      ? (t.goodMorning ?? 'Good morning')
-      : hour < 17
-        ? (t.goodAfternoon ?? 'Good afternoon')
-        : (t.goodEvening ?? 'Good evening');
+  /*
+    Computed after mount, not during render: `new Date().getHours()` uses the
+    SERVER's timezone while server-rendering and the browser's on hydration, so
+    reading it inline produced a hydration mismatch (and could greet a user
+    "Good evening" at breakfast). Rendering the name alone until mount is
+    stable on both sides.
+  */
+  const [greeting, setGreeting] = useState<string | null>(null);
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    setGreeting(
+      hour < 12
+        ? (t.goodMorning ?? 'Good morning')
+        : hour < 17
+          ? (t.goodAfternoon ?? 'Good afternoon')
+          : (t.goodEvening ?? 'Good evening')
+    );
+  }, [t]);
 
   const banner = HERO_BANNERS[index];
 
@@ -69,7 +89,10 @@ export function HomeHero({ firstName, isB2B }: { firstName: string | null; isB2B
     <section className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-medium tracking-[0.3px] text-content-tertiary">{greeting}</p>
+          {/* Reserve the line so the header doesn't shift when the greeting lands. */}
+          <p className="min-h-[1rem] text-sm font-medium tracking-[0.3px] text-content-tertiary">
+            {greeting ?? '\u00A0'}
+          </p>
           <h1 className="text-4xl font-extrabold tracking-[-0.3px] text-content-primary">
             {firstName ?? 'Guest'}
             {isB2B && (

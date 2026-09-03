@@ -89,21 +89,62 @@ export function NotificationProvider({
     };
   }, [userId, toast, router, routeFor]);
 
+  /**
+   * A Supabase mutation that matched zero rows resolves with `error: null`, so
+   * both writes below verify the returned row count with `.select('id')`. If
+   * the write did not land, local state is left alone — otherwise the unread
+   * badge clears and then reappears on the next reload.
+   */
   const markAsRead = async (id: string) => {
     const supabase = createClient();
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', id)
+      .select('id');
+
+    if (error || !data || data.length === 0) {
+      console.error('Failed to mark notification as read:', error ?? 'no row was updated');
+      toast({
+        title: 'Could not mark as read',
+        message: 'Please try again.',
+        kind: 'error',
+      });
+      return;
+    }
+
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
   const markAllAsRead = async () => {
     if (!userId) return;
+
+    // Nothing unread -> nothing to write, and an empty result is expected.
+    const unread = notifications.filter((n) => !n.is_read);
+    if (unread.length === 0) return;
+
     const supabase = createClient();
-    await supabase
+    const { data, error } = await supabase
       .from('notifications')
       .update({ is_read: true })
       .eq('user_id', userId)
-      .eq('is_read', false);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      .eq('is_read', false)
+      .select('id');
+
+    if (error || !data || data.length === 0) {
+      console.error('Failed to mark all notifications as read:', error ?? 'no rows were updated');
+      toast({
+        title: 'Could not mark all as read',
+        message: 'Please try again.',
+        kind: 'error',
+      });
+      return;
+    }
+
+    const updatedIds = new Set(data.map((row) => row.id));
+    setNotifications((prev) =>
+      prev.map((n) => (updatedIds.has(n.id) ? { ...n, is_read: true } : n))
+    );
   };
 
   return (
