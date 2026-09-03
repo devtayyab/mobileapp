@@ -129,6 +129,13 @@ export default function LoginScreen() {
           ) : null}
 
           <TouchableOpacity
+            style={{ alignSelf: 'flex-end' }}
+            onPress={() => router.push('/(auth)/forgot-password')}
+          >
+            <Text style={styles.linkText}>Forgot password?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.signInBtn}
             onPress={handleLogin}
             disabled={loading}

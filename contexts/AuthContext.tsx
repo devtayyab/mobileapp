@@ -14,6 +14,8 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<{ error: any }>;
+  updatePassword: (password: string) => Promise<{ error: any }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -138,6 +140,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPasswordForEmail = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'marketplace://reset-password',
+    });
+    return { error };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error };
+  };
+
   const deleteAccount = async () => {
     try {
       const { error } = await supabase.rpc('delete_user');
@@ -174,6 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut,
         deleteAccount,
         refreshProfile,
+        resetPasswordForEmail,
+        updatePassword,
       }}
     >
       {children}

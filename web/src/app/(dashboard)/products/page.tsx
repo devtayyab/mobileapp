@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireRole } from '@/lib/auth';
 import ProductsTable from '@/components/ProductsTable';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ProductsPage() {
+  await requireRole(['admin']);
   const supabase = await createClient();
 
   const [{ data: products }, { data: categories }] = await Promise.all([

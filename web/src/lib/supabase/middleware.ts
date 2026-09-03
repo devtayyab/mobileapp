@@ -30,8 +30,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
+  const isPublicAuthRoute = [
+    '/login',
+    '/forgot-password',
+    '/reset-password',
+    '/auth/confirm',
+  ].some((path) => request.nextUrl.pathname.startsWith(path));
 
-  if (!user && !isLoginPage) {
+  if (!user && !isPublicAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
@@ -39,7 +45,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isLoginPage) {
     const url = request.nextUrl.clone();
-    url.pathname = '/products';
+    url.pathname = '/';
     return NextResponse.redirect(url);
   }
 

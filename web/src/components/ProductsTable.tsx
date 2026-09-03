@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { Product, Category } from '@/types/database';
 import BulkEditToolbar from './BulkEditToolbar';
@@ -23,9 +24,13 @@ type Row = Pick<
 export default function ProductsTable({
   initialProducts,
   categories,
+  addHref,
+  editHrefFor,
 }: {
   initialProducts: Row[];
   categories: Pick<Category, 'id' | 'name'>[];
+  addHref?: string;
+  editHrefFor?: (id: string) => string;
 }) {
   const [products, setProducts] = useState<Row[]>(initialProducts);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -108,12 +113,22 @@ export default function ProductsTable({
           placeholder="Search by name or SKU…"
           className="w-72 rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-slate-500"
         />
-        <button
-          onClick={() => setCsvOpen(true)}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-        >
-          Bulk import CSV
-        </button>
+        <div className="flex items-center gap-2">
+          {addHref && (
+            <Link
+              href={addHref}
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Add product
+            </Link>
+          )}
+          <button
+            onClick={() => setCsvOpen(true)}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            Bulk import CSV
+          </button>
+        </div>
       </div>
 
       {selected.size > 0 && (
@@ -159,7 +174,15 @@ export default function ProductsTable({
                     onChange={() => toggleOne(p.id)}
                   />
                 </td>
-                <td className="px-3 py-2 text-slate-900">{p.name}</td>
+                <td className="px-3 py-2 text-slate-900">
+                  {editHrefFor ? (
+                    <Link href={editHrefFor(p.id)} className="hover:underline">
+                      {p.name}
+                    </Link>
+                  ) : (
+                    p.name
+                  )}
+                </td>
                 <td className="px-3 py-2 text-slate-500">{p.sku ?? '—'}</td>
                 <td className="px-3 py-2 text-slate-500">{categoryName(p.category_id)}</td>
                 <td className="px-3 py-2">{p.b2c_price.toFixed(2)}</td>
