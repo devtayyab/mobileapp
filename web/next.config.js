@@ -3,8 +3,12 @@ const path = require('path');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: path.join(__dirname),
-  // Allow importing the shared translation resources from the repo root
-  // (../lib/i18n.ts) — it only depends on i18next/react-i18next, so it is web-safe.
+  /*
+    Lets us import the translation resources shared with the Expo app
+    (../lib/translations.ts) via the @shared alias. That module is deliberately
+    dependency-free — see the comment at the top of it — so nothing needs to
+    resolve out of the repo root, which Vercel does not install.
+  */
   experimental: {
     externalDir: true,
   },

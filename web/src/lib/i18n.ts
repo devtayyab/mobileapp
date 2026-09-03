@@ -1,14 +1,31 @@
 'use client';
 
 /**
- * Shares the mobile app's translation resources (repo-root lib/i18n.ts) rather
- * than duplicating ~230 keys x 5 languages. That module only imports
- * i18next/react-i18next, so it is safe on the web — but ONLY in client
- * components, since react-i18next needs React.createContext.
+ * The web app initializes its OWN i18next instance from the translation
+ * resources shared with the mobile app (`@shared/lib/translations`).
  *
- * Server components must import from '@/lib/i18n-config' instead.
+ * We import the dependency-free data module rather than the mobile app's
+ * initialized instance (`@shared/lib/i18n`): that file imports i18next, and
+ * because it lives outside this project, bundlers resolve its imports from the
+ * repo root's node_modules — which Vercel does not install. Sharing pure data
+ * keeps one source of truth for ~230 keys x 5 languages with no cross-package
+ * module resolution.
+ *
+ * Server components must import from '@/lib/i18n-config' instead; react-i18next
+ * needs React.createContext, which RSC does not provide.
  */
-import i18n from '@shared/lib/i18n';
+import i18next from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import { resources } from '@shared/lib/translations';
+
+const i18n = i18next.createInstance();
+
+void i18n.use(initReactI18next).init({
+  resources,
+  lng: 'en',
+  fallbackLng: 'en',
+  interpolation: { escapeValue: false },
+});
 
 export type Translations = Record<string, string>;
 
