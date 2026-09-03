@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getOrCreateSupplierId } from '@/lib/supabase/supplier';
 import type { Category, Product } from '@/types/database';
+import { Button, Input, Select, Textarea } from '@/components/ui';
 
 type FormValues = {
   name: string;
@@ -197,137 +198,95 @@ export default function ProductForm({
         <div className="rounded-md bg-error-light/40 px-3 py-2 text-md font-medium text-error-dark">{error}</div>
       )}
 
-      <div>
-        <label htmlFor="pf-name" className="mb-1 block text-sm font-medium text-content-primary">Name</label>
-        <input
-          id="pf-name"
-          required
-          value={values.name}
-          onChange={set('name')}
-          className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-        />
-      </div>
+      <Input id="pf-name" label="Name" required value={values.name} onChange={set('name')} />
 
-      <div>
-        <label htmlFor="pf-description" className="mb-1 block text-sm font-medium text-content-primary">Description</label>
-        <textarea
-          id="pf-description"
-          value={values.description}
-          onChange={set('description')}
-          rows={3}
-          className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-        />
-      </div>
+      <Textarea
+        id="pf-description"
+        label="Description"
+        rows={3}
+        value={values.description}
+        onChange={set('description')}
+      />
 
-      <div>
-        <label htmlFor="pf-category" className="mb-1 block text-sm font-medium text-content-primary">Category</label>
-        <select
-          id="pf-category"
-          value={values.category_id}
-          onChange={set('category_id')}
-          className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-        >
-          <option value="">Select category…</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Select id="pf-category" label="Category" value={values.category_id} onChange={set('category_id')}>
+        <option value="">Select category…</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </Select>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="pf-b2c-price" className="mb-1 block text-sm font-medium text-content-primary">B2C price</label>
-          <input
+        <Input
           id="pf-b2c-price"
-            required
-            type="number"
-            step="0.01"
-            value={values.b2c_price}
-            onChange={set('b2c_price')}
-            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-          />
-        </div>
-        <div>
-          <label htmlFor="pf-b2b-price" className="mb-1 block text-sm font-medium text-content-primary">B2B price</label>
-          <input
+          label="B2C price"
+          required
+          type="number"
+          step="0.01"
+          value={values.b2c_price}
+          onChange={set('b2c_price')}
+        />
+        <Input
           id="pf-b2b-price"
-            type="number"
-            step="0.01"
-            value={values.b2b_price}
-            onChange={set('b2b_price')}
-            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-          />
-        </div>
+          label="B2B price"
+          type="number"
+          step="0.01"
+          value={values.b2b_price}
+          onChange={set('b2b_price')}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="pf-stock-quantity" className="mb-1 block text-sm font-medium text-content-primary">Stock quantity</label>
-          <input
+        <Input
           id="pf-stock-quantity"
-            required
-            type="number"
-            value={values.stock_quantity}
-            onChange={set('stock_quantity')}
-            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-          />
-        </div>
-        <div>
-          <label htmlFor="pf-sku" className="mb-1 block text-sm font-medium text-content-primary">SKU</label>
-          <input
-          id="pf-sku"
-            value={values.sku}
-            onChange={set('sku')}
-            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-          />
-        </div>
+          label="Stock quantity"
+          required
+          type="number"
+          value={values.stock_quantity}
+          onChange={set('stock_quantity')}
+        />
+        <Input id="pf-sku" label="SKU" value={values.sku} onChange={set('sku')} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="pf-minimum-order-qty" className="mb-1 block text-sm font-medium text-content-primary">
-            Minimum order qty
-          </label>
-          <input
+        <Input
           id="pf-minimum-order-qty"
-            type="number"
-            value={values.moq}
-            onChange={set('moq')}
-            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-          />
-        </div>
-        <div>
-          <label htmlFor="pf-shipping-cost" className="mb-1 block text-sm font-medium text-content-primary">Shipping cost</label>
-          <input
+          label="Minimum order qty"
+          type="number"
+          value={values.moq}
+          onChange={set('moq')}
+        />
+        <Input
           id="pf-shipping-cost"
-            type="number"
-            step="0.01"
-            value={values.shipping_cost}
-            onChange={set('shipping_cost')}
-            className="w-full rounded-xl border-[1.5px] border-edge px-3 py-2 text-sm outline-none focus:border-secondary"
-          />
-        </div>
+          label="Shipping cost"
+          type="number"
+          step="0.01"
+          value={values.shipping_cost}
+          onChange={set('shipping_cost')}
+        />
       </div>
 
-      <div>
-        <label htmlFor="pf-product-image" className="mb-1 block text-sm font-medium text-content-primary">Product image</label>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="pf-product-image" className="text-md font-bold text-content-primary">
+          Product image
+        </label>
         {imagePreview && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imagePreview} alt="Preview" className="mb-2 h-24 w-24 rounded-md object-cover" />
+          <img src={imagePreview} alt="Preview" className="h-24 w-24 rounded-md object-cover" />
         )}
         <input
-          id="pf-product-image" type="file" accept="image/*" onChange={handleImageChange} className="block text-sm" />
+          id="pf-product-image"
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
+          className="block w-full text-md text-content-primary file:mr-3 file:rounded-lg file:border-[1.5px] file:border-edge file:bg-surface-page file:px-3 file:py-1.5 file:text-md file:font-bold file:text-content-primary"
+        />
       </div>
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
+      <Button type="submit" loading={saving}>
         {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create product'}
-      </button>
+      </Button>
     </form>
   );
 }
