@@ -50,11 +50,9 @@ export function ProductCard({
     product.stock_quantity <= product.lowStockThreshold;
 
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+    <div
       className={cn(
-        'group overflow-hidden rounded-2xl border border-edge bg-surface',
+        'group overflow-hidden rounded-2xl border border-edge bg-surface transition-all duration-200 hover:-translate-y-1 hover:shadow-card',
         className
       )}
     >
@@ -140,6 +138,6 @@ export function ProductCard({
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -20,6 +20,9 @@ const PUBLIC_PREFIXES = [
   '/search',
   '/terms',
   '/privacy',
+  '/help',
+  '/faq',
+  '/contact',
 ];
 
 const AUTH_PAGES = ['/login', '/register', '/welcome'];

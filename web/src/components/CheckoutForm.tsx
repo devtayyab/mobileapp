@@ -381,10 +381,16 @@ function CheckoutInner({
       setError('Please complete the shipping address and select a destination country.');
       return;
     }
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      setError('Payment gateway is still initializing. Please wait a moment and try again.');
+      return;
+    }
 
     const cardElement = elements.getElement(CardElement);
-    if (!cardElement) return;
+    if (!cardElement) {
+      setError('Please enter your card details in the payment section.');
+      return;
+    }
 
     setPlacing(true);
 
@@ -673,8 +679,24 @@ function CheckoutInner({
               </h2>
             </div>
 
-            <div className="rounded-xl border-[1.5px] border-edge bg-surface-page px-3.5 py-4">
-              <CardElement options={{ style: { base: { fontSize: '14px' } } }} />
+            <div className="min-h-[52px] rounded-xl border-[1.5px] border-edge bg-surface-page px-3.5 py-3.5 focus-within:border-primary">
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '15px',
+                      color: '#1F2937',
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      '::placeholder': {
+                        color: '#9CA3AF',
+                      },
+                    },
+                    invalid: {
+                      color: '#EF4444',
+                    },
+                  },
+                }}
+              />
             </div>
             <p className="mt-2 text-sm text-content-tertiary">
               {t.creditDebitCard ?? 'Credit/Debit Card'} — processed securely by Stripe.
