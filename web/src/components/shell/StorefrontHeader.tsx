@@ -280,7 +280,7 @@ export function StorefrontHeader({
             <p className="mb-2 text-md font-bold text-content-primary">
               {t.selectLanguage ?? 'Language'}
             </p>
-            <div className="space-y-1">
+            <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
               {languages.map((l) => (
                 <button
                   key={l.code}

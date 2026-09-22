@@ -99,12 +99,28 @@
 
 * {
   border-color: var(--color-border-medium);
+  -webkit-tap-highlight-color: transparent;
 }
 
-html,
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
+  min-height: 100vh;
+  overflow-x: hidden;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure horizontal scrollbars in headers/filters don't trap vertical gestures */
+.overflow-x-auto {
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Native controls (file pickers, number spinners, select popups, autofill)
