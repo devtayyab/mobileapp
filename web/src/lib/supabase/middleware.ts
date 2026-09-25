@@ -20,6 +20,7 @@ const PUBLIC_PREFIXES = [
   '/search',
   '/terms',
   '/privacy',
+  '/about',
   '/help',
   '/faq',
   '/contact',

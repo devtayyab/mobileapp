@@ -171,7 +171,7 @@ export function StorefrontFooter() {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/" className="text-content-tertiary transition-colors hover:text-primary">
+                <Link href="/about" className="text-content-tertiary transition-colors hover:text-primary">
                   About SATHUN GLOBAL
                 </Link>
               </li>
