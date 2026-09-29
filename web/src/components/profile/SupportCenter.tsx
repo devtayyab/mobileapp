@@ -175,7 +175,7 @@ export function SupportCenter({
               </h2>
               <Paragraph>
                 Thank you for using our platform. We are committed to providing you with a smooth
-                and reliable dropshipping experience. If you are experiencing any issues or have
+                and reliable retail &amp; wholesale marketplace experience. If you are experiencing any issues or have
                 questions regarding your account, orders, products, shipping, payments, or any
                 other service, our support team is here to assist you.
               </Paragraph>

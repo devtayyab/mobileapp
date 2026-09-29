@@ -191,6 +191,11 @@ export function StorefrontFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/registration" className="text-content-tertiary transition-colors hover:text-primary">
+                  Registration Guide
+                </Link>
+              </li>
+              <li>
                 <Link href="/supplier/dashboard" className="text-content-tertiary transition-colors hover:text-primary">
                   Supplier Portal
                 </Link>
@@ -210,12 +215,22 @@ export function StorefrontFooter() {
                 </Link>
               </li>
               <li>
+                <Link href="/payments" className="text-content-tertiary transition-colors hover:text-primary">
+                  Payments &amp; Refunds
+                </Link>
+              </li>
+              <li>
+                <Link href="/registration" className="text-content-tertiary transition-colors hover:text-primary">
+                  Registration &amp; Accounts
+                </Link>
+              </li>
+              <li>
                 <Link href="/contact" className="text-content-tertiary transition-colors hover:text-primary">
                   Contact Support
                 </Link>
               </li>
               <li>
-                <Link href="/help" className="text-content-tertiary transition-colors hover:text-primary">
+                <Link href="/submit-ticket" className="text-content-tertiary transition-colors hover:text-primary">
                   Submit a Ticket
                 </Link>
               </li>
@@ -225,8 +240,8 @@ export function StorefrontFooter() {
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-content-tertiary transition-colors hover:text-primary">
-                  Shipping & Delivery Info
+                <Link href="/shipping" className="text-content-tertiary transition-colors hover:text-primary">
+                  Shipping &amp; Delivery Info
                 </Link>
               </li>
             </ul>
@@ -321,11 +336,17 @@ export function StorefrontFooter() {
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col gap-1.5">
               <span className="flex items-center gap-1.5 text-xs text-content-tertiary">
                 <Lock size={13} className="text-success" />
                 256-bit SSL Secure Checkout
               </span>
+              <Link
+                href="/payments"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                Payment FAQs &amp; Accepted Cards &rarr;
+              </Link>
             </div>
           </div>
         </div>
@@ -349,6 +370,22 @@ export function StorefrontFooter() {
             <span>&bull;</span>
             <Link href="/faq" className="hover:text-content-primary hover:underline">
               F.A.Q
+            </Link>
+            <span>&bull;</span>
+            <Link href="/payments" className="hover:text-content-primary hover:underline">
+              Payments
+            </Link>
+            <span>&bull;</span>
+            <Link href="/registration" className="hover:text-content-primary hover:underline">
+              Registration
+            </Link>
+            <span>&bull;</span>
+            <Link href="/shipping" className="hover:text-content-primary hover:underline">
+              Shipping
+            </Link>
+            <span>&bull;</span>
+            <Link href="/submit-ticket" className="hover:text-content-primary hover:underline">
+              Support Ticket
             </Link>
             <span>&bull;</span>
             <Link href="/terms" className="hover:text-content-primary hover:underline">

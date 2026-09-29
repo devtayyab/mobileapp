@@ -23,6 +23,10 @@ const PUBLIC_PREFIXES = [
   '/about',
   '/help',
   '/faq',
+  '/payments',
+  '/registration',
+  '/shipping',
+  '/submit-ticket',
   '/contact',
 ];
 
