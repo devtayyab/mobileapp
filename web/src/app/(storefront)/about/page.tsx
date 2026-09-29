@@ -74,7 +74,7 @@ export default function AboutPage() {
     },
     {
       step: '04',
-      title: 'Direct Dropshipping Delivery',
+      title: 'Direct Supplier Fulfilment',
       desc: 'Suppliers package and dispatch orders directly to the customer’s destination with trackable shipping.',
       icon: Truck,
     },

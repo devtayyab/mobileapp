@@ -78,12 +78,18 @@ export default function ContactPage() {
             </div>
             <div>
               <h3 className="text-base font-bold text-content-primary">Operating Entity</h3>
-              <p className="text-sm font-medium text-content-secondary mt-0.5">
+              <p className="text-sm font-bold text-content-primary mt-0.5">
                 Thakuri Brand
               </p>
-              <p className="text-xs text-content-tertiary">
-                Cyprus &bull; Global Dropshipping Marketplace
+              <p className="text-xs text-content-secondary mt-0.5">
+                Registered Business Name in Cyprus
               </p>
+              <p className="text-xs text-content-tertiary">
+                Operator of the Sathun Global Marketplace
+              </p>
+              <div className="mt-2 inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                Global Retail &amp; Wholesale Marketplace
+              </div>
             </div>
           </div>
         </div>
