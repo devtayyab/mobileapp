@@ -53,19 +53,20 @@ interface CustomerSection {
 }
 
 const OPERATOR_INFO = [
-  { label: 'Owner & Sole Trader', value: 'Sunita Shahi' },
-  { label: 'Marketplace Trademark', value: 'SATHUN Global (application no. 96940)' },
-  { label: 'Registered Business Name', value: 'THAKURI BRAND' },
-  { label: 'Registration Number', value: 'EE 62992 α' },
+  { label: 'Owner and sole trader', value: 'Sunita Shahi' },
+  { label: 'Marketplace trademark and brand', value: 'SATHUN Global (application no. 96940)' },
+  { label: 'Registered business name', value: 'THAKURI BRAND' },
+  { label: 'Business name registration number', value: 'EE 62992 α' },
   {
-    label: 'Business Address',
+    label: 'Business address',
     value: 'Agiou Ioanni 4, 2nd Floor, Apartment/Office 103, 3016 Limassol, Cyprus',
   },
-  { label: 'Support Email', value: 'shahisunita264@gmail.com', isEmail: true },
-  { label: 'Website', value: 'https://www.sathunglobal.com', isLink: true },
-  { label: 'VAT Status', value: 'Not currently VAT registered' },
-  { label: 'Payment Service Provider', value: 'Stripe' },
-  { label: 'Effective Date', value: '1 October 2026' },
+  { label: 'Support email', value: 'shahisunita264@gmail.com', isEmail: true },
+  { label: 'Telephone', value: '[TELEPHONE]' },
+  { label: 'Website and application', value: 'https://www.sathunglobal.com', isLink: true },
+  { label: 'VAT number', value: 'Not currently VAT registered' },
+  { label: 'Payment service provider', value: 'Stripe' },
+  { label: 'Effective date', value: '1 October 2026' },
 ];
 
 const SUPPLIER_SECTIONS: SupplierSection[] = [
@@ -101,11 +102,16 @@ const SUPPLIER_SECTIONS: SupplierSection[] = [
   {
     id: 'sup-sec-4',
     number: 4,
-    title: 'Supplier eligibility onboarding and verification',
+    title: 'Supplier verification due diligence and fraud prevention',
     category: 'general',
     paragraphs: [
-      'The Supplier must be a lawfully established professional and provide its legal and trading names, registration details, physical and electronic address, contacts, authorised representative, beneficial ownership information where requested, bank account, tax numbers and identity or compliance documents.',
-      'The Platform may verify this information through official databases or third-party providers and may prevent sales or payouts until verification is complete. The Supplier must promptly report changes and keep all information accurate.',
+      'Before activation, listing products or receiving payouts, the Supplier must successfully complete the Platform’s supplier-verification process. The Supplier must provide complete, accurate, current and authentic information and documents appropriate to its legal form and country, including: its legal and trading names; business, company or sole-trader registration certificate and registration number; registered and operating addresses; verified email address and telephone number; valid government-issued identification for the Supplier or authorised representative; evidence of authority to act; beneficial ownership information where applicable; tax identification and VAT, GST or equivalent registration where applicable; and bank or payment-account details held in the Supplier’s or registered business’s name.',
+      'The Platform may also require proof of address, bank-account ownership, licences, permits, product-safety documentation, certificates of conformity, trademark or brand authorisations, supplier invoices, evidence of product origin and any other information reasonably necessary to verify the Supplier, its products or its authority to sell them.',
+      'The Supplier authorises the Platform to verify submitted information through official business and professional registers, issuing authorities, payment service providers including Stripe, identity-verification providers and other lawful and reliable sources. The Platform may contact the Supplier, its bank, a document issuer or another relevant authority where legally permitted. Verification may include electronic, documentary, database, video or manual checks.',
+      'The Platform may apply enhanced due diligence where risk indicators arise, including inconsistencies between documents and account information, unverifiable addresses, unusual payment instructions, high-risk products, suspected impersonation, counterfeit goods, abnormal transaction patterns, complaints, chargebacks or activity associated with fraud, sanctions, money laundering or other unlawful conduct. The Supplier must promptly provide any additional evidence requested.',
+      'Verification is continuous. The Supplier must notify the Platform without delay of any change to its identity, ownership, registration, address, tax status, authorised representatives, licences, bank account or other material information. The Platform may require periodic re-verification or renewed documents and may conduct additional checks at any time.',
+      'Until verification is completed to the Platform’s reasonable satisfaction, the Platform may refuse activation, restrict listings, prevent sales or delay payouts. If information is false, forged, misleading, incomplete, expired, inconsistent or cannot reasonably be verified, or if fraud or other unlawful activity is suspected, the Platform may reject the application, suspend or terminate the account, remove listings, cancel or refund affected orders, withhold or delay payouts to the extent permitted by law, preserve relevant evidence and report the matter to Stripe, financial institutions, regulators, law-enforcement bodies or other competent authorities.',
+      'The Supplier remains fully responsible for its identity, business, products, listings and conduct. Approval, verification or any Verified Supplier label confirms only that the Platform’s applicable checks were completed at the relevant time. It is not a guarantee, endorsement or warranty of the Supplier, its financial standing, its products or the successful performance of any Sales Contract.',
     ],
   },
   {
@@ -173,7 +179,7 @@ const SUPPLIER_SECTIONS: SupplierSection[] = [
     },
     paragraphs: [
       'The Supplier must process orders promptly, dispatch on time, use suitable packaging, provide valid tracking where applicable and not substitute goods without Buyer consent. It is responsible for loss, delay or damage to the extent provided by law and the Sales Contract.',
-      'The Supplier must handle questions, cancellations, withdrawals, complaints and defective products professionally and within Platform and statutory deadlines. It must respond to a refund or remedy request within 2 business days. Failure to respond may permit Platform intervention.',
+      'The Supplier must handle questions, cancellations, withdrawals, complaints and defective products professionally and within Platform and statutory deadlines. It must respond to a refund or remedy request within [2] business days. Failure to respond may permit Platform intervention.',
     ],
   },
   {
@@ -277,7 +283,7 @@ const SUPPLIER_SECTIONS: SupplierSection[] = [
     category: 'legal',
     paragraphs: [
       'The Platform may restrict a listing, payout or account for breach, safety risk, fraud, repeated poor performance, authority request or protection of Users. Reasons, proportionality, notice and appeal options will be provided where required by applicable law.',
-      'Either party may terminate on 30 days’ written notice unless another agreed period applies. The Platform may terminate immediately for serious or repeated breach, illegality, urgent safety or regulatory risk, insolvency, fraud or abuse. Pending orders, refunds, guarantees, data duties and financial liabilities survive termination.',
+      'Either party may terminate on [30] days’ written notice unless another agreed period applies. The Platform may terminate immediately for serious or repeated breach, illegality, urgent safety or regulatory risk, insolvency, fraud or abuse. Pending orders, refunds, guarantees, data duties and financial liabilities survive termination.',
     ],
   },
   {
@@ -344,7 +350,7 @@ const SUPPLIER_SECTIONS: SupplierSection[] = [
     paragraphs: [
       'This Agreement and the documents incorporated into it form the entire agreement concerning Supplier services. If a provision is invalid or unenforceable, it will be limited to the minimum necessary and the remainder will continue. Failure to enforce a right is not a waiver.',
       'The Supplier may not assign or transfer this Agreement without prior written consent. The Operator may assign it as part of a reorganisation, financing or business transfer, subject to applicable law. Notices may be delivered through the Supplier account or to the registered email address on a durable medium where required.',
-      'The English version is the controlling version. No change by the Supplier is effective unless agreed in writing by the Operator.',
+      'The [English] version is the controlling version. No change by the Supplier is effective unless agreed in writing by the Operator.',
     ],
   },
   {
@@ -353,7 +359,18 @@ const SUPPLIER_SECTIONS: SupplierSection[] = [
     title: 'Contact',
     category: 'general',
     paragraphs: [
-      'For legal, compliance, or marketplace enquiries, Suppliers may contact the Operator using the official credentials below.',
+      'Sunita Shahi',
+      'Owner and sole trader',
+      'Registered business name: THAKURI BRAND',
+      'Business name registration number: EE 62992 α',
+      'Marketplace trademark and brand: SATHUN Global',
+      'Trademark application number: 96940',
+      'Agiou Ioanni 4, 2nd Floor, Apartment/Office 103',
+      '3016 Limassol, Cyprus',
+      'Email: shahisunita264@gmail.com',
+      'Website: https://www.sathunglobal.com',
+      'Telephone: [TELEPHONE]',
+      'VAT status: Not currently VAT registered',
     ],
   },
 ];
@@ -836,17 +853,24 @@ Date: [DATE]`;
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-tint px-3 py-1 text-xs font-medium text-content-secondary border border-edge">
                   <Calendar className="h-3.5 w-3.5" />
-                  Version 1.2 • Effective 1 October 2026
+                  Version 1.3 | Effective 1 October 2026
                 </span>
               </div>
 
               <h1 className="text-3xl font-extrabold tracking-tight text-content-primary sm:text-4xl">
-                SATHUN Global Supplier Terms &amp; Conditions
+                Supplier Terms and Conditions
               </h1>
 
-              <p className="text-base text-content-tertiary sm:text-lg leading-relaxed">
-                Terms governing the commercial relationship, registration, dual-channel listings (retail &amp; wholesale),
-                commissions, Stripe payouts, and participation of Suppliers on the SATHUN Global Marketplace.
+              <p className="text-base font-bold text-content-secondary sm:text-lg leading-relaxed">
+                Terms governing the registration and participation of Suppliers on the SATHUN Global Marketplace
+              </p>
+
+              <p className="text-xs sm:text-sm text-content-tertiary leading-relaxed">
+                These Supplier Terms and Conditions (the Agreement) govern the commercial relationship between
+                Sunita Shahi, an individual sole trader in the Republic of Cyprus operating under the registered business
+                name THAKURI BRAND and using the SATHUN Global trademark and brand for the Platform, and each
+                Supplier that registers, lists or sells products through the Platform. The Supplier remains the independent
+                seller of record for every product it offers. Customers do not become parties to this Agreement.
               </p>
             </div>
 
@@ -873,10 +897,8 @@ Date: [DATE]`;
           <div className="mt-6 flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-xs sm:text-sm leading-relaxed text-content-primary">
             <ShieldAlert className="h-5 w-5 flex-shrink-0 text-warning mt-0.5" />
             <div>
-              <strong className="font-semibold text-content-primary">Important Legal Notice: </strong>
-              This Agreement governs the commercial relationship between Sunita Shahi (Sole Trader, THAKURI BRAND, Limassol, Cyprus)
-              and professional Suppliers. The Supplier remains the independent seller of record for every product offered.
-              Customers do not become parties to this Agreement.
+              <strong className="font-semibold text-content-primary">Important notice. </strong>
+              This is a practical legal draft for completion and review. All bracketed fields and the commission schedule must be completed, and the final agreement and operating model should be approved by a Cyprus-qualified lawyer and tax adviser before use.
             </div>
           </div>
         </section>
@@ -892,7 +914,7 @@ Date: [DATE]`;
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-tint px-3 py-1 text-xs font-medium text-content-secondary border border-edge">
                   <Calendar className="h-3.5 w-3.5" />
-                  Version 1.3 • Effective 1 October 2026
+                  Version 1.3 | Effective 1 October 2026
                 </span>
               </div>
 
@@ -900,9 +922,12 @@ Date: [DATE]`;
                 Customer Terms and Conditions
               </h1>
 
-              <p className="text-base text-content-tertiary sm:text-lg leading-relaxed">
-                For customers purchasing products from independent Suppliers through the SATHUN Global Marketplace.
-                Covers purchases, payments via Stripe, 14-day statutory returns, and EU 2-year legal guarantees.
+              <p className="text-base font-bold text-content-secondary sm:text-lg leading-relaxed">
+                For customers purchasing products from independent Suppliers through the Platform
+              </p>
+
+              <p className="text-xs sm:text-sm text-content-tertiary leading-relaxed">
+                These Customer Terms govern access to and use of SATHUN Global by Buyers. SATHUN Global is the trademark and brand used for the international online marketplace and application operated by Sunita Shahi, an individual sole trader in the Republic of Cyprus under the registered business name THAKURI BRAND. The Platform is an intermediary marketplace. Unless a product page expressly states otherwise, the Operator does not sell the products displayed on the Platform. Each purchase creates a Sales Contract directly between the Buyer and the Supplier identified before checkout.
               </p>
             </div>
 
@@ -926,12 +951,11 @@ Date: [DATE]`;
           </div>
 
           {/* Legal Notice */}
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-secondary/20 bg-secondary/5 p-4 text-xs sm:text-sm leading-relaxed text-content-primary">
-            <ShieldCheck className="h-5 w-5 flex-shrink-0 text-secondary mt-0.5" />
+          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-xs sm:text-sm leading-relaxed text-content-primary">
+            <ShieldAlert className="h-5 w-5 flex-shrink-0 text-warning mt-0.5" />
             <div>
-              <strong className="font-semibold text-content-primary">Intermediary Marketplace Notice: </strong>
-              SATHUN Global operates as an online marketplace intermediary. Unless a product page expressly states otherwise,
-              each purchase creates a direct Sales Contract between the Buyer and the Supplier identified before checkout.
+              <strong className="font-semibold text-content-primary">Important notice. </strong>
+              This is a practical legal draft for completion and review. All bracketed fields must be completed, and the final documents, checkout flow and business model should be approved by a Cyprus-qualified lawyer before publication.
             </div>
           </div>
         </section>
@@ -1009,7 +1033,7 @@ Date: [DATE]`;
               <Building2 className="h-5 w-5 text-primary" />
               <div>
                 <h2 className="text-lg font-bold text-content-primary">
-                  Marketplace Entity &amp; Operator Information
+                  Information to complete
                 </h2>
                 <p className="text-xs text-content-tertiary">
                   Official legal registration and commercial details of the operator.
@@ -1206,6 +1230,8 @@ Date: [DATE]`;
                           <ExternalLink className="h-3.5 w-3.5" />
                           https://www.sathunglobal.com
                         </a>
+                        <span className="text-content-tertiary">Telephone: [TELEPHONE]</span>
+                        <span className="text-content-tertiary">VAT status: Not currently VAT registered</span>
                       </div>
                     </div>
                   )}
@@ -1225,7 +1251,7 @@ Date: [DATE]`;
               </div>
               <div>
                 <h2 className="text-xl font-extrabold text-content-primary">
-                  Schedule 1: Commercial Terms
+                  Schedule 1 Commercial Terms
                 </h2>
                 <p className="text-xs text-content-tertiary">
                   Applicable registration fees, sales commissions, and payout parameters.
