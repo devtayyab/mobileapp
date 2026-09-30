@@ -46,10 +46,10 @@ export default function ContactPage() {
                 Our support desk responds within 24 business hours.
               </p>
               <a
-                href="mailto:support@sathunglobal.com"
+                href="mailto:shahisunita264@gmail.com"
                 className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"
               >
-                support@sathunglobal.com
+                shahisunita264@gmail.com
               </a>
             </div>
           </div>
@@ -76,19 +76,21 @@ export default function ContactPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent-dark">
               <MapPin size={20} />
             </div>
-            <div>
+            <div className="space-y-1">
               <h3 className="text-base font-bold text-content-primary">Operating Entity</h3>
-              <p className="text-sm font-bold text-content-primary mt-0.5">
+              <p className="text-base font-extrabold text-content-primary">
                 Thakuri Brand
               </p>
-              <p className="text-xs text-content-secondary mt-0.5">
+              <p className="text-xs font-semibold text-content-secondary">
                 Registered Business Name in Cyprus
               </p>
               <p className="text-xs text-content-tertiary">
                 Operator of the Sathun Global Marketplace
               </p>
-              <div className="mt-2 inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
-                Global Retail &amp; Wholesale Marketplace
+              <div className="pt-1.5">
+                <span className="inline-flex items-center rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
+                  Global Retail &amp; Wholesale Marketplace
+                </span>
               </div>
             </div>
           </div>

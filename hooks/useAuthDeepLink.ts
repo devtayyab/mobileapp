@@ -27,7 +27,7 @@ export function useAuthDeepLink() {
 
       const { error } = await supabase.auth.setSession(tokens);
       if (!error) {
-        router.replace('/(auth)/reset-password');
+        router.replace('/(auth)/reset-password' as any);
       }
     };
 

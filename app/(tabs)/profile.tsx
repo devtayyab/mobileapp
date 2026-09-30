@@ -10,7 +10,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import {
   User, Settings, FileText, CircleHelp, LogOut,
   Store, Truck, ChevronRight, ShieldCheck,
-  Package, LayoutDashboard, ArrowRight, MessageSquare, UserX
+  Package, LayoutDashboard, ArrowRight, MessageSquare, UserX,
+  Sparkles, Info, Mail
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -164,6 +165,48 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>Why Choose Us</Text>
+          <View style={styles.valuePropsGrid}>
+            <View style={styles.valuePropCard}>
+              <View style={[styles.valuePropIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <ShieldCheck size={20} color="#1D4ED8" />
+              </View>
+              <Text style={styles.valuePropTitle}>Secure Payments</Text>
+              <Text style={styles.valuePropDesc}>Encrypted checkouts powered by Stripe with full fraud protection.</Text>
+            </View>
+            <View style={styles.valuePropCard}>
+              <View style={[styles.valuePropIconWrap, { backgroundColor: '#F0FDF4' }]}>
+                <Truck size={20} color="#15803D" />
+              </View>
+              <Text style={styles.valuePropTitle}>Worldwide Shipping</Text>
+              <Text style={styles.valuePropDesc}>Fast, reliable global shipping from verified supplier warehouses.</Text>
+            </View>
+            <View style={styles.valuePropCard}>
+              <View style={[styles.valuePropIconWrap, { backgroundColor: '#FFFBEB' }]}>
+                <MessageSquare size={20} color="#D97706" />
+              </View>
+              <Text style={styles.valuePropTitle}>Direct Chat</Text>
+              <Text style={styles.valuePropDesc}>Real-time messaging for inquiries, quotes, and custom orders.</Text>
+            </View>
+            <View style={styles.valuePropCard}>
+              <View style={[styles.valuePropIconWrap, { backgroundColor: '#F5F3FF' }]}>
+                <Sparkles size={20} color="#7C3AED" />
+              </View>
+              <Text style={styles.valuePropTitle}>B2B Wholesale</Text>
+              <Text style={styles.valuePropDesc}>Volume discounts and tiered pricing for verified businesses.</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>Company Info</Text>
+          <View style={styles.menuGroup}>
+            <MenuItem icon={<Info size={20} color="#3B82F6" />} iconBg="#EFF6FF" label="About SATHUN GLOBAL" onPress={() => {}} rtl={language.rtl} />
+            <MenuItem icon={<Mail size={20} color="#8B5CF6" />} iconBg="#F5F3FF" label="Contact Us" onPress={() => {}} border rtl={language.rtl} />
+          </View>
+        </View>
+
         <TouchableOpacity style={[styles.signOutBtn, language.rtl && { flexDirection: 'row-reverse' }]} onPress={() => setShowSignOutModal(true)}>
           <LogOut size={18} color="#EF4444" style={language.rtl && { transform: [{ rotate: '180deg' }] }} />
           <Text style={styles.signOutText}>{t.signOut}</Text>
@@ -242,7 +285,12 @@ export default function ProfileScreen() {
           </Pressable>
         </Modal>
 
-        <Text style={styles.versionText}>{t.version} 1.0.0</Text>
+        <View style={styles.footerInfo}>
+          <Text style={styles.footerText}>© {new Date().getFullYear()} SATHUN GLOBAL.</Text>
+          <Text style={styles.footerText}>Operated by Thakuri Brand, Cyprus.</Text>
+          <Text style={styles.footerText}>All rights reserved.</Text>
+          <Text style={styles.versionText}>{t.version} 1.0.0</Text>
+        </View>
         <View style={{ height: 40 }} />
       </ScrollView>
     </View>
@@ -404,5 +452,48 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     backgroundColor: '#DC2626', alignItems: 'center',
   },
   modalDeleteText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
+  valuePropsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  valuePropCard: {
+    width: '48%',
+    backgroundColor: Colors.background.secondary,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
+  },
+  valuePropIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  valuePropTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  valuePropDesc: {
+    fontSize: 11,
+    color: Colors.text.tertiary,
+    lineHeight: 16,
+  },
+  footerInfo: {
+    marginTop: 32,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  footerText: {
+    fontSize: 12,
+    color: Colors.text.tertiary,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
 });
 
