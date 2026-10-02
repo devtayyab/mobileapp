@@ -34,6 +34,13 @@ const AUTH_PAGES = ['/login', '/register', '/welcome'];
 
 function isPublic(pathname: string) {
   if (pathname === '/') return true;
+  if (
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/icons/') ||
+    /\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)$/i.test(pathname)
+  ) {
+    return true;
+  }
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
