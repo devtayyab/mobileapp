@@ -24,6 +24,7 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
+import { PaymentMethodBadges } from '@/components/ui/PaymentLogos';
 
 interface PaymentFaqItem {
   id: string;
@@ -303,16 +304,19 @@ export function PaymentsView() {
           </div>
         </div>
 
-        <div className="flex items-start gap-3.5 rounded-2xl border border-edge bg-surface p-5 shadow-subtle transition-all hover:border-secondary/40">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
-            <CreditCard size={22} />
-          </span>
-          <div>
-            <h2 className="text-sm font-bold text-content-primary">Major Cards &amp; Wallets</h2>
-            <p className="mt-1 text-xs leading-relaxed text-content-tertiary">
-              Accepting Visa, Mastercard, American Express, Apple Pay, and Google Pay.
-            </p>
+        <div className="flex flex-col gap-3 rounded-2xl border border-edge bg-surface p-5 shadow-subtle transition-all hover:border-secondary/40">
+          <div className="flex items-start gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
+              <CreditCard size={22} />
+            </span>
+            <div>
+              <h2 className="text-sm font-bold text-content-primary">Major Cards &amp; Wallets</h2>
+              <p className="mt-1 text-xs leading-relaxed text-content-tertiary">
+                Visa, Mastercard, Amex, Apple Pay, Google Pay, and Stripe.
+              </p>
+            </div>
           </div>
+          <PaymentMethodBadges />
         </div>
 
         <div className="flex items-start gap-3.5 rounded-2xl border border-edge bg-surface p-5 shadow-subtle transition-all hover:border-accent/40">

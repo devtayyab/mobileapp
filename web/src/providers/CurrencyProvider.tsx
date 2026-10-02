@@ -34,6 +34,20 @@ export const CURRENCIES: Currency[] = [
   { code: 'TRY', symbol: '₺', name: 'Turkish Lira', rate: 34.0, flag: '🇹🇷', decimals: 2 },
   { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', rate: 1.35, flag: '🇸🇬', decimals: 2 },
   { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit', rate: 4.7, flag: '🇲🇾', decimals: 2 },
+  { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar', rate: 1.64, flag: '🇳🇿', decimals: 2 },
+  { code: 'SEK', symbol: 'kr', name: 'Swedish Krona', rate: 10.6, flag: '🇸🇪', decimals: 2 },
+  { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone', rate: 10.8, flag: '🇳🇴', decimals: 2 },
+  { code: 'DKK', symbol: 'kr', name: 'Danish Krone', rate: 6.85, flag: '🇩🇰', decimals: 2 },
+  { code: 'PLN', symbol: 'zł', name: 'Polish Zloty', rate: 3.98, flag: '🇵🇱', decimals: 2 },
+  { code: 'ZAR', symbol: 'R', name: 'South African Rand', rate: 18.2, flag: '🇿🇦', decimals: 2 },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', rate: 5.4, flag: '🇧🇷', decimals: 2 },
+  { code: 'MXN', symbol: 'Mex$', name: 'Mexican Peso', rate: 18.1, flag: '🇲🇽', decimals: 2 },
+  { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar', rate: 7.8, flag: '🇭🇰', decimals: 2 },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won', rate: 1380.0, flag: '🇰🇷', decimals: 0 },
+  { code: 'THB', symbol: '฿', name: 'Thai Baht', rate: 36.5, flag: '🇹🇭', decimals: 2 },
+  { code: 'PHP', symbol: '₱', name: 'Philippine Peso', rate: 58.5, flag: '🇵🇭', decimals: 2 },
+  { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah', rate: 16200.0, flag: '🇮🇩', decimals: 0 },
+  { code: 'VND', symbol: '₫', name: 'Vietnamese Dong', rate: 25400.0, flag: '🇻🇳', decimals: 0 },
 ];
 
 type CurrencyContextValue = {

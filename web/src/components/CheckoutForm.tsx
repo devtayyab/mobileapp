@@ -24,7 +24,19 @@ import { createClient } from '@/lib/supabase/client';
 import { getStripe } from '@/lib/stripe';
 import { useCart } from '@/providers/CartProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
-import { Button, EmptyState, Input, Select, Skeleton } from '@/components/ui';
+import {
+  Button,
+  EmptyState,
+  Input,
+  Select,
+  Skeleton,
+  VisaLogo,
+  MastercardLogo,
+  AmexLogo,
+  StripeLogo,
+  ApplePayLogo,
+  GooglePayLogo,
+} from '@/components/ui';
 import { CheckoutSuccess } from '@/components/checkout/CheckoutSuccess';
 import { OrderTotals } from '@/components/checkout/OrderTotals';
 import { SupplierPackageList } from '@/components/checkout/SupplierPackageList';
@@ -672,11 +684,21 @@ function CheckoutInner({
             animate={{ opacity: 1, y: 0, transition: { delay: 0.05 } }}
             className="rounded-2xl border border-edge bg-surface p-5"
           >
-            <div className="mb-4 flex items-center gap-2">
-              <CreditCard size={18} className="text-primary" />
-              <h2 className="text-2xl font-bold text-content-primary">
-                {t.paymentMethod ?? 'Payment Method'}
-              </h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CreditCard size={18} className="text-primary" />
+                <h2 className="text-2xl font-bold text-content-primary">
+                  {t.paymentMethod ?? 'Payment Method'}
+                </h2>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <VisaLogo className="h-6 w-9 rounded" />
+                <MastercardLogo className="h-6 w-9 rounded" />
+                <AmexLogo className="h-6 w-9 rounded" />
+                <StripeLogo className="h-6 w-9 rounded" />
+                <ApplePayLogo className="h-6 w-9 rounded" />
+                <GooglePayLogo className="h-6 w-9 rounded" />
+              </div>
             </div>
 
             <div className="min-h-[52px] rounded-xl border-[1.5px] border-edge bg-surface-page px-3.5 py-3.5 focus-within:border-primary">
@@ -698,9 +720,12 @@ function CheckoutInner({
                 }}
               />
             </div>
-            <p className="mt-2 text-sm text-content-tertiary">
-              {t.creditDebitCard ?? 'Credit/Debit Card'} — processed securely by Stripe.
-            </p>
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-sm text-content-tertiary">
+              <p>
+                {t.creditDebitCard ?? 'Credit/Debit Card, Apple Pay & Google Pay'} — processed securely by Stripe.
+              </p>
+              <span className="font-semibold text-success">256-bit Encrypted</span>
+            </div>
           </motion.section>
         </div>
 

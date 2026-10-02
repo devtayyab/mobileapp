@@ -11,6 +11,7 @@ import {
   ProductReviews,
   type ProductReviewItem,
 } from '@/components/product/ProductReviews';
+import { SimilarProducts } from '@/components/product/SimilarProducts';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,6 +171,12 @@ export default async function ProductDetailPage({
         productId={product.id}
         reviews={reviews}
         viewerId={user?.id ?? null}
+      />
+
+      <SimilarProducts
+        currentProductId={product.id}
+        categoryId={product.category_id}
+        productName={product.name}
       />
     </div>
   );

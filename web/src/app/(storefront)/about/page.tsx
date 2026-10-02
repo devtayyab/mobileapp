@@ -127,22 +127,34 @@ export default function AboutPage() {
               Who We Are
             </h2>
             <p className="text-sm sm:text-base text-content-secondary leading-relaxed">
-              SATHUN Global is operated from Cyprus by Sunita Shahi, a sole trader conducting business under the registered business name THAKURI BRAND.
+              <strong>Sathun Global Marketplace</strong> (sathunglobal.com) is operated from Cyprus by <strong>Sunita Shahi</strong>, an individual sole trader conducting business under the registered business name <strong>Takuri Brand</strong>.
             </p>
             <p className="text-sm sm:text-base text-content-secondary leading-relaxed">
-              We are building a marketplace where retail and wholesale opportunities meet, helping Suppliers grow beyond their local markets and giving Buyers access to a broader international selection.
+              We operate a unified Global Retail &amp; Wholesale Marketplace where verified suppliers and international buyers connect seamlessly with verified escrow protection, multi-currency pricing, and streamlined logistics.
             </p>
           </div>
 
           <div className="pt-4 border-t border-edge text-xs space-y-1.5 text-content-tertiary">
             <div>
-              Registered Business Name: <strong className="text-content-primary">THAKURI BRAND</strong>
+              Platform Brand: <strong className="text-content-primary">Sathun Global Marketplace</strong>
             </div>
             <div>
-              Operator: <strong className="text-content-primary">Sunita Shahi (Sole Trader)</strong>
+              Website: <a href="https://sathunglobal.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">sathunglobal.com</a>
             </div>
             <div>
-              Location: <strong className="text-content-primary">Cyprus</strong>
+              Sole Trader / Owner: <strong className="text-content-primary">Sunita Shahi</strong>
+            </div>
+            <div>
+              Registered Business Name: <strong className="text-content-primary">Takuri Brand</strong>
+            </div>
+            <div>
+              Jurisdiction: <strong className="text-content-primary">Cyprus</strong>
+            </div>
+            <div>
+              Business Activity: <strong className="text-content-primary">Global Retail &amp; Wholesale Marketplace</strong>
+            </div>
+            <div>
+              Support Email: <a href="mailto:shahisunita264@gmail.com" className="text-primary hover:underline">shahisunita264@gmail.com</a>
             </div>
           </div>
         </div>

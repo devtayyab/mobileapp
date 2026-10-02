@@ -14,6 +14,8 @@ import {
   Truck,
 } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { BrandLogo } from '@/components/ui/BrandLogo';
+import { PaymentMethodBadges } from '@/components/ui/PaymentLogos';
 
 export function StorefrontFooter() {
   const { t } = useLanguage();
@@ -315,32 +317,20 @@ export function StorefrontFooter() {
             <h4 className="text-xs font-black uppercase tracking-wider text-content-primary">
               We Accept
             </h4>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex h-8 items-center justify-center rounded-lg border border-edge bg-surface-page text-xs font-bold text-content-secondary">
-                VISA
-              </div>
-              <div className="flex h-8 items-center justify-center rounded-lg border border-edge bg-surface-page text-xs font-bold text-content-secondary">
-                MC
-              </div>
-              <div className="flex h-8 items-center justify-center rounded-lg border border-edge bg-surface-page text-xs font-bold text-content-secondary">
-                AMEX
-              </div>
-              <div className="flex h-8 items-center justify-center rounded-lg border border-edge bg-surface-page text-xs font-bold text-content-secondary">
-                Stripe
-              </div>
-              <div className="flex h-8 items-center justify-center rounded-lg border border-edge bg-surface-page text-xs font-bold text-content-secondary">
-                Apple Pay
-              </div>
-              <div className="flex h-8 items-center justify-center rounded-lg border border-edge bg-surface-page text-xs font-bold text-content-secondary">
-                G Pay
-              </div>
-            </div>
+            <PaymentMethodBadges />
 
             <div className="pt-2 flex flex-col gap-1.5">
               <span className="flex items-center gap-1.5 text-xs text-content-tertiary">
                 <Lock size={13} className="text-success" />
                 256-bit SSL Secure Checkout
               </span>
+              <a
+                href="mailto:shahisunita264@gmail.com"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-content-secondary hover:text-primary hover:underline"
+              >
+                <Mail size={12} className="text-primary" />
+                shahisunita264@gmail.com
+              </a>
               <Link
                 href="/payments"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
@@ -357,7 +347,7 @@ export function StorefrontFooter() {
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 text-xs text-content-tertiary sm:flex-row sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center sm:justify-start sm:text-left">
             <span>
-              &copy; {new Date().getFullYear()} SATHUN GLOBAL. Operated by Thakuri Brand, Cyprus.
+              &copy; {new Date().getFullYear()} Sathun Global Marketplace (sathunglobal.com). Operated by Takuri Brand (Sole Trader: Sunita Shahi), Cyprus.
             </span>
             <span className="hidden sm:inline">&bull;</span>
             <span>All rights reserved.</span>

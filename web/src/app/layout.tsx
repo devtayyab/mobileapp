@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: 'B2B & B2C marketplace — shop, sell, and manage your business',
 };
 
+import { CookieConsentBanner } from '@/components/ui/CookieConsentBanner';
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Resolve role server-side so the correct palette paints on first render.
   const [{ user, profile }, cookieStore] = await Promise.all([getAdminProfile(), cookies()]);
@@ -24,6 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="font-sans antialiased">
         <AppProviders role={role} userId={user?.id ?? null} initialLanguage={language}>
           {children}
+          <CookieConsentBanner />
         </AppProviders>
       </body>
     </html>

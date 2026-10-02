@@ -35,6 +35,26 @@ export function LanguageProvider({
   const t = useMemo(() => buildTranslations(code), [code]);
 
   useEffect(() => {
+    try {
+      // Automatic browser/device language detection when no explicit cookie is set
+      const hasCookie = document.cookie
+        .split('; ')
+        .some((row) => row.startsWith(`${LANGUAGE_COOKIE}=`));
+
+      if (!hasCookie && typeof navigator !== 'undefined' && navigator.language) {
+        const browserCode = navigator.language.split('-')[0].toLowerCase();
+        const matched = LANGUAGES.find((l) => l.code === browserCode);
+        if (matched && matched.code !== code) {
+          setCode(matched.code);
+          document.cookie = `${LANGUAGE_COOKIE}=${matched.code};path=/;max-age=31536000;samesite=lax`;
+        }
+      }
+    } catch {
+      // Ignore detection errors
+    }
+  }, []);
+
+  useEffect(() => {
     void i18n.changeLanguage(code);
     document.documentElement.lang = code;
     document.documentElement.dir = isRtl(code) ? 'rtl' : 'ltr';

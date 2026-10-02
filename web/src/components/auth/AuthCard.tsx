@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 
 /** Shared shell for the standalone auth pages (login, password recovery). */
 export function AuthCard({
@@ -15,12 +15,9 @@ export function AuthCard({
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-page px-4 py-10">
       <div className="w-full max-w-sm">
-        <Link
-          href="/"
-          className="mb-5 block text-center text-6xl font-extrabold tracking-[-0.5px] text-primary"
-        >
-          SATHUN GLOBAL
-        </Link>
+        <div className="mb-6 flex justify-center">
+          <BrandLogo size="lg" />
+        </div>
 
         <div className="rounded-4xl border border-edge bg-surface p-6">
           <h1 className="text-4xl font-extrabold tracking-[-0.3px] text-content-primary">
