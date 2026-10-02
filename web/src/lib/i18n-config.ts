@@ -26,10 +26,40 @@ export const LANGUAGES: Language[] = [
   { code: 'zh', name: 'Chinese', nativeName: '中文', flag: '🇨🇳', defaultCurrency: 'CNY', rtl: false },
   { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹', defaultCurrency: 'EUR', rtl: false },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: '🇹🇷', defaultCurrency: 'TRY', rtl: false },
+  { code: 'pt', name: 'Portuguese', nativeName: 'Português', flag: '🇵🇹', defaultCurrency: 'EUR', rtl: false },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский', flag: '🇷🇺', defaultCurrency: 'RUB', rtl: false },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', defaultCurrency: 'JPY', rtl: false },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', defaultCurrency: 'KRW', rtl: false },
+  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', flag: '🇳🇱', defaultCurrency: 'EUR', rtl: false },
+  { code: 'pl', name: 'Polish', nativeName: 'Polski', flag: '🇵🇱', defaultCurrency: 'PLN', rtl: false },
+  { code: 'sv', name: 'Swedish', nativeName: 'Svenska', flag: '🇸🇪', defaultCurrency: 'SEK', rtl: false },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇧🇩', defaultCurrency: 'BDT', rtl: false },
+  { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', flag: '🇮🇩', defaultCurrency: 'IDR', rtl: false },
+  { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', flag: '🇻🇳', defaultCurrency: 'VND', rtl: false },
+  { code: 'th', name: 'Thai', nativeName: 'ไทย', flag: '🇹🇭', defaultCurrency: 'THB', rtl: false },
+  { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: '🇮🇷', defaultCurrency: 'AED', rtl: true },
+  { code: 'ro', name: 'Romanian', nativeName: 'Română', flag: '🇷🇴', defaultCurrency: 'RON', rtl: false },
+  { code: 'cs', name: 'Czech', nativeName: 'Čeština', flag: '🇨🇿', defaultCurrency: 'CZK', rtl: false },
+  { code: 'hu', name: 'Hungarian', nativeName: 'Magyar', flag: '🇭🇺', defaultCurrency: 'HUF', rtl: false },
+  { code: 'uk', name: 'Ukrainian', nativeName: 'Українська', flag: '🇺🇦', defaultCurrency: 'UAH', rtl: false },
+  { code: 'he', name: 'Hebrew', nativeName: 'עברית', flag: '🇮🇱', defaultCurrency: 'ILS', rtl: true },
+  { code: 'ms', name: 'Malay', nativeName: 'Bahasa Melayu', flag: '🇲🇾', defaultCurrency: 'MYR', rtl: false },
+  { code: 'tl', name: 'Filipino', nativeName: 'Filipino', flag: '🇵🇭', defaultCurrency: 'PHP', rtl: false },
 ];
 
 export const LANGUAGE_COOKIE = 'app_language';
 
 export function isRtl(code: string) {
-  return LANGUAGES.find((l) => l.code === code)?.rtl ?? false;
+  return LANGUAGES.find((l) => l.code === code)?.rtl ?? ['ar', 'ur', 'fa', 'he'].includes(code);
 }
+
+/**
+ * Normalizes language codes for the Google Website Translator DOM engine
+ */
+export function getGoogleTranslateCode(langCode: string): string {
+  if (langCode === 'zh') return 'zh-CN';
+  if (langCode === 'he') return 'iw';
+  if (langCode === 'fil') return 'tl';
+  return langCode;
+}
+
