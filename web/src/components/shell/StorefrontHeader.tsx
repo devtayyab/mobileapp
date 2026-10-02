@@ -24,6 +24,7 @@ import { useLanguage } from '@/providers/LanguageProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import type { Role } from '@/types/database';
 
 const NAV = [
@@ -62,12 +63,7 @@ export function StorefrontHeader({
     <>
       <header className="sticky top-0 z-40 border-b border-edge bg-surface-translucent backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:gap-4">
-          <Link
-            href="/"
-            className="shrink-0 whitespace-nowrap text-xl font-extrabold tracking-[-0.5px] text-primary sm:text-3xl"
-          >
-            SATHUN GLOBAL
-          </Link>
+          <BrandLogo size="md" />
 
           <nav className="ml-4 hidden items-center gap-1 md:flex">
             {NAV.map((item) => {
@@ -201,7 +197,7 @@ export function StorefrontHeader({
           without the wordmark wrapping, so they move here instead of becoming
           unreachable on a phone. The row scrolls horizontally.
         */}
-        <nav className="flex items-center gap-1 overflow-x-auto border-t border-edge px-3 py-1.5 md:hidden">
+        <nav className="flex items-center gap-1.5 overflow-x-auto border-t border-edge px-3 py-2 scrollbar-none md:hidden overscroll-x-contain">
           {NAV.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
             return (
@@ -209,8 +205,8 @@ export function StorefrontHeader({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'shrink-0 rounded-lg px-3 py-1.5 text-base font-bold',
-                  active ? 'bg-surface-tint text-primary' : 'text-content-tertiary'
+                  'shrink-0 rounded-xl px-3.5 py-2 text-base font-bold transition-colors min-h-[38px] flex items-center',
+                  active ? 'bg-primary text-white shadow-xs' : 'bg-surface text-content-tertiary border border-edge/60'
                 )}
               >
                 {t[item.labelKey] ?? item.fallback}
@@ -218,39 +214,39 @@ export function StorefrontHeader({
             );
           })}
 
-          <span className="mx-1 h-5 w-px shrink-0 bg-edge" aria-hidden />
+          <span className="mx-1 h-6 w-px shrink-0 bg-edge" aria-hidden />
 
           <button
             onClick={() => setPrefsOpen(true)}
             aria-label="Language and currency"
-            className="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-sm font-bold text-content-tertiary sm:hidden"
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-edge bg-surface px-2.5 text-sm font-bold text-content-secondary shadow-2xs active:scale-95 transition-transform"
           >
-            <Globe size={15} />
+            <Globe size={15} className="text-primary" />
             {language.code.toUpperCase()} · {currency.code}
           </button>
 
           <button
             onClick={toggleScheme}
             aria-label={scheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-content-tertiary sm:hidden"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-edge bg-surface text-content-secondary shadow-2xs active:scale-95 transition-transform"
           >
-            {scheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {scheme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
 
           {isSignedIn && (
             <Link
               href="/chat"
               aria-label="Messages"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-content-tertiary sm:hidden"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-edge bg-surface text-content-secondary shadow-2xs active:scale-95 transition-transform"
             >
-              <MessageSquare size={16} />
+              <MessageSquare size={17} />
             </Link>
           )}
 
           {canManage && (
             <Link
               href={role === 'admin' ? '/admin' : '/supplier/dashboard'}
-              className="flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-sm font-bold text-content-tertiary sm:hidden"
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-edge bg-surface px-2.5 text-sm font-bold text-primary shadow-2xs active:scale-95 transition-transform"
             >
               <LayoutDashboard size={15} />
               Dashboard
@@ -261,7 +257,7 @@ export function StorefrontHeader({
             <button
               onClick={handleSignOut}
               aria-label="Sign out"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-content-tertiary sm:hidden"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-edge bg-surface text-content-tertiary hover:text-error shadow-2xs active:scale-95 transition-transform"
             >
               <LogOut size={16} />
             </button>
@@ -284,16 +280,32 @@ export function StorefrontHeader({
               {languages.map((l) => (
                 <button
                   key={l.code}
-                  onClick={() => setLanguage(l.code)}
+                  onClick={() => {
+                    setLanguage(l.code);
+                    if (l.defaultCurrency) {
+                      const suggested = currencies.find((c) => c.code === l.defaultCurrency);
+                      if (suggested) {
+                        setCurrency(suggested);
+                      }
+                    }
+                  }}
                   className={cn(
-                    'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-md',
+                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-md transition-colors',
                     l.code === language.code
-                      ? 'bg-surface-tint font-bold text-primary'
-                      : 'hover:bg-surface-page'
+                      ? 'bg-surface-tint font-bold text-primary border border-primary/20'
+                      : 'hover:bg-surface-page text-content-secondary'
                   )}
                 >
-                  <span>{l.flag}</span>
-                  {l.nativeName}
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{l.flag}</span>
+                    <span>{l.nativeName}</span>
+                    <span className="text-2xs text-content-tertiary">({l.name})</span>
+                  </div>
+                  {l.defaultCurrency && (
+                    <span className="text-2xs font-bold text-content-tertiary">
+                      Auto: {l.defaultCurrency}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>

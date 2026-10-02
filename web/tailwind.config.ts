@@ -61,22 +61,22 @@ const config: Config = {
         },
       },
 
-      // Measured type scale from the mobile screens
+      // Scaled type scale (~20% increase for enhanced readability at 100% browser zoom)
       fontSize: {
-        '2xs': ['9px', '12px'],
-        xxs: ['10px', '14px'],
-        xs: ['11px', '15px'],
-        sm: ['12px', '16px'],
-        base: ['13px', '18px'],
-        md: ['14px', '20px'],
-        lg: ['15px', '22px'],
-        xl: ['16px', '24px'],
-        '2xl': ['18px', '26px'],
-        '3xl': ['20px', '28px'],
-        '4xl': ['22px', '30px'],
-        '5xl': ['24px', '32px'],
-        '6xl': ['28px', '36px'],
-        '7xl': ['30px', '38px'],
+        '2xs': ['11px', '15px'],
+        xxs: ['12px', '16px'],
+        xs: ['13px', '17px'],
+        sm: ['14px', '19px'],
+        base: ['15.5px', '22px'],
+        md: ['16.5px', '24px'],
+        lg: ['18px', '26px'],
+        xl: ['19.5px', '28px'],
+        '2xl': ['22px', '30px'],
+        '3xl': ['24px', '32px'],
+        '4xl': ['27px', '36px'],
+        '5xl': ['30px', '40px'],
+        '6xl': ['34px', '44px'],
+        '7xl': ['38px', '48px'],
       },
 
       borderRadius: {

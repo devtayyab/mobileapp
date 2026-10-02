@@ -76,16 +76,19 @@ export default function ContactPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent-dark">
               <MapPin size={20} />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5 text-xs text-content-tertiary">
               <h3 className="text-base font-bold text-content-primary">Operating Entity</h3>
               <p className="text-base font-extrabold text-content-primary">
-                Thakuri Brand
+                Takuri Brand
               </p>
               <p className="text-xs font-semibold text-content-secondary">
-                Registered Business Name in Cyprus
+                Sole Trader / Owner: Sunita Shahi
               </p>
               <p className="text-xs text-content-tertiary">
-                Operator of the Sathun Global Marketplace
+                Jurisdiction: Cyprus
+              </p>
+              <p className="text-xs text-content-tertiary">
+                Marketplace: Sathun Global Marketplace (sathunglobal.com)
               </p>
               <div className="pt-1.5">
                 <span className="inline-flex items-center rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">

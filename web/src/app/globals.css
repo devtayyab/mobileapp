@@ -103,6 +103,7 @@
 }
 
 html {
+  font-size: 16px;
   scroll-behavior: smooth;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
@@ -111,9 +112,12 @@ html {
 body {
   min-height: 100vh;
   overflow-x: hidden;
+  font-size: 1rem;
+  line-height: 1.55;
   background: var(--color-bg-primary);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Ensure horizontal scrollbars in headers/filters don't trap vertical gestures */

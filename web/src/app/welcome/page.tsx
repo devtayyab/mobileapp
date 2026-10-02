@@ -27,11 +27,15 @@ const FEATURES = [
   { icon: ShieldCheck, label: 'Secure Trade' },
 ];
 
+import { BrandLogo } from '@/components/ui/BrandLogo';
+
 export default function WelcomePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-page px-4 py-10">
       <div className="w-full max-w-md text-center">
-        <p className="text-7xl font-extrabold tracking-[-1px] text-primary">SATHUN GLOBAL</p>
+        <div className="flex justify-center mb-4">
+          <BrandLogo size="xl" asLink={false} />
+        </div>
 
         <h1 className="mt-6 text-4xl font-extrabold leading-8 tracking-[-0.3px] text-content-primary">
           Empowering <span className="italic text-secondary">Your Business,</span>

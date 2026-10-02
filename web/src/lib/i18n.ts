@@ -17,11 +17,17 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { resources } from '@shared/lib/translations';
+import { extendedResources } from './extended-translations';
+
+const mergedResources = {
+  ...resources,
+  ...extendedResources,
+};
 
 const i18n = i18next.createInstance();
 
 void i18n.use(initReactI18next).init({
-  resources,
+  resources: mergedResources,
   lng: 'en',
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
