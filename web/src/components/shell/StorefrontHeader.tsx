@@ -14,7 +14,7 @@ import {
   Sun,
   User,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/cn';
 import { createClient } from '@/lib/supabase/client';
 import { useCart } from '@/providers/CartProvider';
@@ -49,6 +49,18 @@ export function StorefrontHeader({
   const { t, language, languages, setLanguage } = useLanguage();
   const { currency, currencies, setCurrency } = useCurrency();
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
+
+  const filteredLanguages = useMemo(() => {
+    if (!langSearch.trim()) return languages;
+    const q = langSearch.trim().toLowerCase();
+    return languages.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) ||
+        l.nativeName.toLowerCase().includes(q) ||
+        l.code.toLowerCase().includes(q)
+    );
+  }, [languages, langSearch]);
 
   const isSignedIn = role != null;
   const canManage = role === 'supplier' || role === 'admin';
@@ -267,17 +279,34 @@ export function StorefrontHeader({
 
       <Modal
         open={prefsOpen}
-        onClose={() => setPrefsOpen(false)}
+        onClose={() => {
+          setPrefsOpen(false);
+          setLangSearch('');
+        }}
         title={t.general ?? 'Preferences'}
-        size="sm"
+        size="md"
       >
         <div className="space-y-5">
           <div>
-            <p className="mb-2 text-md font-bold text-content-primary">
-              {t.selectLanguage ?? 'Language'}
-            </p>
-            <div className="max-h-52 space-y-1 overflow-y-auto pr-1">
-              {languages.map((l) => (
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-md font-bold text-content-primary">
+                {t.selectLanguage ?? 'Language'} ({languages.length})
+              </p>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-2xs font-semibold text-primary">
+                Full-page DOM translation
+              </span>
+            </div>
+
+            <input
+              type="text"
+              value={langSearch}
+              onChange={(e) => setLangSearch(e.target.value)}
+              placeholder="Search language (e.g. Greek, Urdu, Nepali, Spanish)..."
+              className="mb-2 w-full rounded-xl border border-edge bg-surface px-3 py-1.5 text-sm text-content-primary placeholder:text-content-tertiary focus:border-primary focus:outline-none"
+            />
+
+            <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+              {filteredLanguages.map((l) => (
                 <button
                   key={l.code}
                   onClick={() => {
@@ -308,6 +337,12 @@ export function StorefrontHeader({
                   )}
                 </button>
               ))}
+
+              {filteredLanguages.length === 0 && (
+                <p className="py-4 text-center text-sm text-content-tertiary">
+                  No language found matching &ldquo;{langSearch}&rdquo;
+                </p>
+              )}
             </div>
           </div>
 

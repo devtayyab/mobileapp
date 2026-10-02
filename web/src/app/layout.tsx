@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={language} data-role={paletteAttr} suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <AppProviders role={role} userId={user?.id ?? null} initialLanguage={language}>
           {children}
           <CookieConsentBanner />
