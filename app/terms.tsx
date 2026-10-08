@@ -29,8 +29,10 @@ export default function TermsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>SATHUN GLOBAL TERMS AND CONDITIONS</Text>
 
-        <Text style={styles.heading}>1. Introduction</Text>
-        <Text style={styles.paragraph}>Welcome to SATHUN GLOBAL, a global dropshipping marketplace operated by Thakuri Brand, Cyprus. By using this platform, you agree to these Terms and Conditions.</Text>
+        <Text style={styles.heading}>1. Introduction & Operating Entity</Text>
+        <Text style={styles.paragraph}>Welcome to SATHUN GLOBAL (Sathun Global Marketplace, accessible at sathunglobal.com), a premier global retail and wholesale marketplace operated by Sole Trader / Owner: Sunita Shahi, under the business name Takuri Brand, established and registered in the jurisdiction of Cyprus.</Text>
+        <Text style={styles.paragraph}>Business Activity: Global Retail & Wholesale Marketplace.</Text>
+        <Text style={styles.paragraph}>Official Support Email: shahisunita264@gmail.com</Text>
 
         <Text style={styles.heading}>2. Platform Nature</Text>
         <Text style={styles.paragraph}>SATHUN GLOBAL is an international marketplace where sellers can list products for both retail and wholesale. The platform does not own, manufacture, or store any products.</Text>

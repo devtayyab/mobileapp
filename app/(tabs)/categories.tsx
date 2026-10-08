@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Image
@@ -6,7 +6,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Grid3x3, Tag, ChevronRight } from 'lucide-react-native';
+import { Grid3x3, Tag, ChevronRight, Sparkles } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -38,6 +38,57 @@ const CATEGORY_COLORS = [
   { bg: '#FFF7ED', accent: '#EA580C' },
   { bg: '#F0FDF4', accent: '#16A34A' },
   { bg: '#F8FAFC', accent: '#475569' },
+];
+
+export const CLOTHING_SUBCATEGORIES = [
+  {
+    id: 'womens-clothing',
+    name: "Women's Clothing",
+    slug: 'womens-clothing',
+    searchQuery: 'women',
+    image: 'https://images.pexels.com/photos/974911/pexels-photo-974911.jpeg?auto=compress&cs=tinysrgb&w=400',
+    count: '240+ Items',
+  },
+  {
+    id: 'mens-clothing',
+    name: "Men's Clothing",
+    slug: 'mens-clothing',
+    searchQuery: 'men',
+    image: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=400',
+    count: '180+ Items',
+  },
+  {
+    id: 'childrens-clothing',
+    name: "Children's Clothing",
+    slug: 'childrens-clothing',
+    searchQuery: 'children',
+    image: 'https://images.pexels.com/photos/3662850/pexels-photo-3662850.jpeg?auto=compress&cs=tinysrgb&w=400',
+    count: '110+ Items',
+  },
+  {
+    id: 'baby-clothing',
+    name: 'Baby Clothing',
+    slug: 'baby-clothing',
+    searchQuery: 'baby',
+    image: 'https://images.pexels.com/photos/3845493/pexels-photo-3845493.jpeg?auto=compress&cs=tinysrgb&w=400',
+    count: '95+ Items',
+  },
+  {
+    id: 'party-wear',
+    name: 'Party Wear',
+    slug: 'party-wear',
+    searchQuery: 'party',
+    image: 'https://images.pexels.com/photos/1755428/pexels-photo-1755428.jpeg?auto=compress&cs=tinysrgb&w=400',
+    count: '140+ Items',
+  },
+  {
+    id: 'wedding-dresses',
+    name: 'Wedding Dresses',
+    slug: 'wedding-dresses',
+    searchQuery: 'wedding',
+    image: 'https://images.pexels.com/photos/291759/pexels-photo-291759.jpeg?auto=compress&cs=tinysrgb&w=400',
+    count: '70+ Items',
+  },
 ];
 
 export default function CategoriesScreen() {
@@ -130,14 +181,14 @@ export default function CategoriesScreen() {
         </View>
       </View>
 
-      {categories.length > 0 ? (
-        <FlatList
-          data={categories}
-          renderItem={renderCategory}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
+      <FlatList
+        data={categories}
+        renderItem={renderCategory}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={{ marginBottom: 12 }}>
             <View style={[styles.bannerCard, language.rtl && { flexDirection: 'row-reverse' }]}>
               <Tag size={18} color="#1D4ED8" />
               <View style={[styles.bannerText, language.rtl && { alignItems: 'flex-end' }]}>
@@ -145,13 +196,47 @@ export default function CategoriesScreen() {
                 <Text style={styles.bannerSub}>{t.tapToShop}</Text>
               </View>
             </View>
-          }
-        />
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{t.noCategories}</Text>
-        </View>
-      )}
+
+            {/* Clothing & Fashion Subcategories Section */}
+            <View style={styles.subcatSection}>
+              <View style={styles.subcatHeadingRow}>
+                <Sparkles size={16} color="#1D4ED8" />
+                <Text style={[styles.subcatHeaderTitle, { color: Colors.text.primary }]}>
+                  Clothing Subcategories
+                </Text>
+              </View>
+              <Text style={[styles.subcatHeaderSubtitle, { color: Colors.text.tertiary }]}>
+                Women, Men, Children, Baby, Party Wear & Wedding Dresses
+              </Text>
+              <View style={styles.subcatGrid}>
+                {CLOTHING_SUBCATEGORIES.map((subcat) => (
+                  <TouchableOpacity
+                    key={subcat.id}
+                    style={[styles.subcatCard, { backgroundColor: Colors.background.secondary, borderColor: Colors.border.medium }]}
+                    onPress={() => router.push({ pathname: '/(tabs)/shop', params: { search: subcat.searchQuery } })}
+                    activeOpacity={0.85}
+                  >
+                    <Image source={{ uri: subcat.image }} style={styles.subcatImg} resizeMode="cover" />
+                    <View style={styles.subcatOverlay}>
+                      <Text style={styles.subcatName} numberOfLines={1}>{subcat.name}</Text>
+                      <Text style={styles.subcatCount}>{subcat.count}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <Text style={[styles.subcatHeaderTitle, { color: Colors.text.primary, marginTop: 14, marginBottom: 8 }]}>
+              All Collections
+            </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>{t.noCategories}</Text>
+          </View>
+        }
+      />
     </View>
   );
 }
@@ -181,11 +266,69 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   bannerCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: 'rgba(0, 168, 107, 0.1)', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: Colors.border.medium, marginBottom: 4,
+    borderWidth: 1, borderColor: Colors.border.medium, marginBottom: 12,
   },
   bannerText: { flex: 1 },
   bannerTitle: { fontSize: 14, fontWeight: '700', color: Colors.secondary },
   bannerSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 1 },
+
+  subcatSection: {
+    marginBottom: 8,
+  },
+  subcatHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  subcatHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  subcatHeaderSubtitle: {
+    fontSize: 12,
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  subcatGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  subcatCard: {
+    width: '48%',
+    height: 100,
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    position: 'relative',
+  },
+  subcatImg: {
+    width: '100%',
+    height: '100%',
+  },
+  subcatOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  subcatName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  subcatCount: {
+    fontSize: 10,
+    color: '#93C5FD',
+    marginTop: 1,
+  },
+
   categoryCard: {
     borderRadius: 20, overflow: 'hidden',
     height: 110, position: 'relative',
@@ -211,7 +354,6 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     backgroundColor: Colors.secondary,
     justifyContent: 'center', alignItems: 'center',
   },
-  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 },
   emptyText: { fontSize: 15, color: Colors.text.tertiary },
 });
-
