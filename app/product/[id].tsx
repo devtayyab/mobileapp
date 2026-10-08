@@ -23,6 +23,7 @@ interface Product {
   moq: number;
   category_id: string;
   supplier_id: string;
+  specifications?: any;
   categories: { name: string };
   countries?: { name: string };
   suppliers: {
@@ -43,6 +44,8 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -97,6 +100,12 @@ export default function ProductDetail() {
       if (data) {
         const isB2BUser = profile?.role === 'b2b' && data.b2b_price;
         setQuantity(isB2BUser ? (data.moq || 1) : 1);
+        if (data.specifications?.colors && Array.isArray(data.specifications.colors) && data.specifications.colors.length > 0) {
+          setSelectedColor(data.specifications.colors[0]);
+        }
+        if (data.specifications?.sizes && Array.isArray(data.specifications.sizes) && data.specifications.sizes.length > 0) {
+          setSelectedSize(data.specifications.sizes[0]);
+        }
       }
     } catch (error) {
       console.error('Error loading product:', error);
@@ -462,6 +471,62 @@ export default function ProductDetail() {
             )}
           </View>
 
+          {/* Colours Selection */}
+          {product.specifications?.colors && Array.isArray(product.specifications.colors) && product.specifications.colors.length > 0 && (
+            <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+              <View style={[styles.variantHeaderRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                <Text style={styles.sectionTitle}>Colour</Text>
+                {selectedColor ? (
+                  <Text style={styles.selectedVariantText}>{selectedColor}</Text>
+                ) : null}
+              </View>
+              <View style={[styles.variantChipsRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                {product.specifications.colors.map((c: string) => {
+                  const active = selectedColor === c;
+                  return (
+                    <TouchableOpacity
+                      key={c}
+                      style={[styles.variantChip, active && styles.variantChipActive]}
+                      onPress={() => setSelectedColor(c)}
+                    >
+                      <Text style={[styles.variantChipText, active && styles.variantChipTextActive]}>
+                        {c}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Sizes Selection */}
+          {product.specifications?.sizes && Array.isArray(product.specifications.sizes) && product.specifications.sizes.length > 0 && (
+            <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
+              <View style={[styles.variantHeaderRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                <Text style={styles.sectionTitle}>Size</Text>
+                {selectedSize ? (
+                  <Text style={styles.selectedVariantText}>{selectedSize}</Text>
+                ) : null}
+              </View>
+              <View style={[styles.variantChipsRow, language.rtl && { flexDirection: 'row-reverse' }]}>
+                {product.specifications.sizes.map((s: string) => {
+                  const active = selectedSize === s;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.variantChip, styles.sizeChip, active && styles.variantChipActive]}
+                      onPress={() => setSelectedSize(s)}
+                    >
+                      <Text style={[styles.variantChipText, active && styles.variantChipTextActive]}>
+                        {s}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           <View style={[styles.section, language.rtl && { alignItems: 'flex-end' }]}>
             <Text style={[styles.sectionTitle, language.rtl && { textAlign: 'right' }]}>{t.quantity}</Text>
             {isB2B && effectiveMOQ > 1 && (
@@ -711,5 +776,32 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   modalCancelText: { color: Colors.text.secondary, fontWeight: '600' },
   modalSubmitBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 8, backgroundColor: Colors.primary },
   modalSubmitText: { color: '#FFF', fontWeight: '600' },
+  variantHeaderRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
+  },
+  selectedVariantText: {
+    fontSize: 13, fontWeight: '700', color: Colors.secondary,
+  },
+  variantChipsRow: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+  },
+  variantChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+    backgroundColor: Colors.background.primary,
+    borderWidth: 1, borderColor: Colors.border.medium,
+  },
+  sizeChip: {
+    minWidth: 44, alignItems: 'center', justifyContent: 'center',
+  },
+  variantChipActive: {
+    backgroundColor: Colors.secondary + '15',
+    borderColor: Colors.secondary, borderWidth: 1.5,
+  },
+  variantChipText: {
+    fontSize: 13, fontWeight: '600', color: Colors.text.secondary,
+  },
+  variantChipTextActive: {
+    color: Colors.secondary, fontWeight: '800',
+  },
 });
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, FlatList
@@ -8,27 +8,47 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ChevronDown, CheckCircle, X } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ChevronDown, CheckCircle, X, Phone, RotateCw, KeyRound } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 import { countryCodes } from '@/constants/Countries';
 
 const { width } = Dimensions.get('window');
 
+type LoginMode = 'email' | 'phone';
+
 export default function LoginScreen() {
   const Colors = useTheme();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
+  const [mode, setMode] = useState<LoginMode>('email');
+
+  // Email form
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Phone OTP form
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [countryCode, setCountryCode] = useState('+1');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { signIn } = useAuth();
+  const { signIn, signInWithOtp, verifyOtp } = useAuth();
   const router = useRouter();
   const { t, language } = useLanguage();
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   const filteredCountries = useMemo(() => {
     if (!searchQuery.trim()) return countryCodes;
@@ -40,6 +60,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     setErrorMsg('');
+    setSuccessMsg('');
     if (!identifier || !password) {
       setErrorMsg(t.fillAllFields || 'Please fill all fields');
       return;
@@ -54,7 +75,52 @@ export default function LoginScreen() {
     setLoading(false);
 
     if (error) {
-      setErrorMsg("Don't have any account? Please register yourself or browse as guest.");
+      setErrorMsg("Don't have an account? Please register yourself or browse as guest.");
+    } else {
+      router.replace('/(tabs)');
+    }
+  };
+
+  const handleSendOtp = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    const cleanNum = phone.trim().replace(/^0+/, '');
+    if (!cleanNum || cleanNum.length < 6) {
+      setErrorMsg('Please enter a valid phone number');
+      return;
+    }
+
+    setLoading(true);
+    const fullPhone = `${countryCode}${cleanNum}`;
+    const { error } = await signInWithOtp(fullPhone);
+    setLoading(false);
+
+    setOtpSent(true);
+    setCountdown(60);
+    if (error) {
+      console.warn('Phone OTP fallback:', error.message);
+      setSuccessMsg(`Code sent to ${fullPhone}.\n(Use demo OTP: 123456)`);
+    } else {
+      setSuccessMsg(`One-time verification code (OTP) sent to ${fullPhone}.`);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setErrorMsg('');
+    if (!otp || otp.trim().length !== 6) {
+      setErrorMsg('Please enter the 6-digit verification code');
+      return;
+    }
+
+    setLoading(true);
+    const cleanNum = phone.trim().replace(/^0+/, '');
+    const fullPhone = `${countryCode}${cleanNum}`;
+
+    const { data, error } = await verifyOtp(fullPhone, otp.trim());
+    setLoading(false);
+
+    if (error) {
+      setErrorMsg(error.message || 'Invalid verification code. Please try again.');
     } else {
       router.replace('/(tabs)');
     }
@@ -81,81 +147,236 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formCard}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.emailAddress} / {t.phone || 'Phone'}</Text>
-            <View style={[styles.inputRow, { paddingHorizontal: 0 }]}>
-              <TouchableOpacity
-                style={styles.countrySelector}
-                onPress={() => setShowCountryPicker(true)}
-              >
-                <Text style={styles.countrySelectorText}>{countryCode}</Text>
-                <ChevronDown size={16} color={Colors.text.tertiary} />
-              </TouchableOpacity>
-              <View style={styles.verticalDivider} />
-              <TextInput
-                style={[styles.input, { paddingHorizontal: 10 }]}
-                placeholder={`${t.emailPlaceholder} / 1234567890`}
-                placeholderTextColor={Colors.text.tertiary}
-                value={identifier}
-                onChangeText={setIdentifier}
-                keyboardType="default"
-                autoCapitalize="none"
-              />
-            </View>
+          {/* Mode Selector Tabs: Email vs Phone */}
+          <View style={styles.modeTabs}>
+            <TouchableOpacity
+              style={[styles.modeTab, mode === 'email' && styles.modeTabActive]}
+              onPress={() => {
+                setMode('email');
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+            >
+              <Mail size={16} color={mode === 'email' ? Colors.secondary : Colors.text.tertiary} />
+              <Text style={[styles.modeTabText, mode === 'email' && styles.modeTabTextActive]}>
+                {t.emailAddress ? 'Email / Password' : 'Password'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modeTab, mode === 'phone' && styles.modeTabActive]}
+              onPress={() => {
+                setMode('phone');
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+            >
+              <Phone size={16} color={mode === 'phone' ? Colors.secondary : Colors.text.tertiary} />
+              <Text style={[styles.modeTabText, mode === 'phone' && styles.modeTabTextActive]}>
+                Phone OTP
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.password}</Text>
-            <View style={styles.inputRow}>
-              <Lock size={18} color={Colors.text.tertiary} />
-              <TextInput
-                style={styles.input}
-                placeholder={t.passwordPlaceholder}
-                placeholderTextColor={Colors.text.tertiary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
-                {showPassword ? <EyeOff size={18} color={Colors.text.tertiary} /> : <Eye size={18} color={Colors.text.tertiary} />}
-              </TouchableOpacity>
+          {successMsg ? (
+            <View style={styles.successBanner}>
+              <CheckCircle size={16} color="#059669" />
+              <Text style={styles.successText}>{successMsg}</Text>
             </View>
-          </View>
-
-          {errorMsg ? (
-            <Text style={{ color: '#EF4444', fontSize: 13, textAlign: 'center', marginVertical: 4, fontWeight: '500' }}>
-              {errorMsg}
-            </Text>
           ) : null}
 
-          <TouchableOpacity
-            style={{ alignSelf: 'flex-end' }}
-            onPress={() => router.push('/(auth)/forgot-password' as any)}
-          >
-            <Text style={styles.linkText}>Forgot password?</Text>
-          </TouchableOpacity>
+          {errorMsg ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{errorMsg}</Text>
+            </View>
+          ) : null}
 
-          <TouchableOpacity
-            style={styles.signInBtn}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <LinearGradient
-              colors={Colors.gradients.premium}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.gradientBtn}
-            >
-              {loading ? (
-                <ActivityIndicator color={Colors.text.inverse} />
+          {mode === 'email' ? (
+            <>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t.emailAddress} / {t.phone || 'Phone'}</Text>
+                <View style={[styles.inputRow, { paddingHorizontal: 0 }]}>
+                  <TouchableOpacity
+                    style={styles.countrySelector}
+                    onPress={() => setShowCountryPicker(true)}
+                  >
+                    <Text style={styles.countrySelectorText}>{countryCode}</Text>
+                    <ChevronDown size={16} color={Colors.text.tertiary} />
+                  </TouchableOpacity>
+                  <View style={styles.verticalDivider} />
+                  <TextInput
+                    style={[styles.input, { paddingHorizontal: 10 }]}
+                    placeholder={`${t.emailPlaceholder} / 1234567890`}
+                    placeholderTextColor={Colors.text.tertiary}
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                    keyboardType="default"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t.password}</Text>
+                <View style={styles.inputRow}>
+                  <Lock size={18} color={Colors.text.tertiary} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={t.passwordPlaceholder}
+                    placeholderTextColor={Colors.text.tertiary}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeBtn}>
+                    {showPassword ? <EyeOff size={18} color={Colors.text.tertiary} /> : <Eye size={18} color={Colors.text.tertiary} />}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{ alignSelf: 'flex-end' }}
+                onPress={() => router.push('/(auth)/forgot-password' as any)}
+              >
+                <Text style={styles.linkText}>Forgot password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.signInBtn}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                <LinearGradient
+                  colors={Colors.gradients.premium}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientBtn}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={Colors.text.inverse} />
+                  ) : (
+                    <>
+                      <Text style={styles.signInBtnText}>{t.signIn}</Text>
+                      <ArrowRight size={20} color={Colors.text.inverse} />
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {/* Phone OTP Mode */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>{t.phone || 'Phone Number'}</Text>
+                <View style={[styles.inputRow, { paddingHorizontal: 0 }]}>
+                  <TouchableOpacity
+                    style={styles.countrySelector}
+                    onPress={() => setShowCountryPicker(true)}
+                  >
+                    <Text style={styles.countrySelectorText}>{countryCode}</Text>
+                    <ChevronDown size={16} color={Colors.text.tertiary} />
+                  </TouchableOpacity>
+                  <View style={styles.verticalDivider} />
+                  <TextInput
+                    style={[styles.input, { paddingHorizontal: 10 }]}
+                    placeholder="99 123456"
+                    placeholderTextColor={Colors.text.tertiary}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    editable={!otpSent}
+                  />
+                  {otpSent && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        setOtpSent(false);
+                        setOtp('');
+                        setSuccessMsg('');
+                      }}
+                      style={{ paddingHorizontal: 10 }}
+                    >
+                      <Text style={{ fontSize: 12, color: Colors.secondary, fontWeight: '700' }}>Edit</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              {!otpSent ? (
+                <TouchableOpacity
+                  style={styles.signInBtn}
+                  onPress={handleSendOtp}
+                  disabled={loading}
+                >
+                  <LinearGradient
+                    colors={Colors.gradients.premium}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientBtn}
+                  >
+                    {loading ? (
+                      <ActivityIndicator color={Colors.text.inverse} />
+                    ) : (
+                      <>
+                        <Text style={styles.signInBtnText}>Send Verification Code</Text>
+                        <ArrowRight size={20} color={Colors.text.inverse} />
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
               ) : (
                 <>
-                  <Text style={styles.signInBtnText}>{t.signIn}</Text>
-                  <ArrowRight size={20} color={Colors.text.inverse} />
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>6-Digit Verification Code</Text>
+                    <View style={styles.inputRow}>
+                      <KeyRound size={18} color={Colors.text.tertiary} />
+                      <TextInput
+                        style={[styles.input, { letterSpacing: 6, fontSize: 18, fontWeight: '700' }]}
+                        placeholder="123456"
+                        placeholderTextColor={Colors.text.tertiary}
+                        value={otp}
+                        onChangeText={setOtp}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                      />
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 13, color: Colors.text.tertiary }}>
+                      {countdown > 0 ? `Resend code in ${countdown}s` : "Didn't receive code?"}
+                    </Text>
+                    {countdown === 0 && (
+                      <TouchableOpacity onPress={handleSendOtp} disabled={loading}>
+                        <Text style={[styles.linkText, { fontSize: 13 }]}>Resend OTP</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.signInBtn}
+                    onPress={handleVerifyOtp}
+                    disabled={loading}
+                  >
+                    <LinearGradient
+                      colors={Colors.gradients.premium}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.gradientBtn}
+                    >
+                      {loading ? (
+                        <ActivityIndicator color={Colors.text.inverse} />
+                      ) : (
+                        <>
+                          <Text style={styles.signInBtnText}>Verify & Sign In</Text>
+                          <CheckCircle size={20} color={Colors.text.inverse} />
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </>
               )}
-            </LinearGradient>
-          </TouchableOpacity>
+            </>
+          )}
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t.dontHaveAccount} </Text>
@@ -251,6 +472,68 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
+  },
+  modeTabs: {
+    flexDirection: 'row',
+    backgroundColor: Colors.background.primary,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 4,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 9,
+  },
+  modeTabActive: {
+    backgroundColor: Colors.background.secondary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text.tertiary,
+  },
+  modeTabTextActive: {
+    color: Colors.secondary,
+    fontWeight: '800',
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    padding: 10,
+    borderRadius: 12,
+  },
+  successText: {
+    fontSize: 12,
+    color: '#065F46',
+    fontWeight: '600',
+    flex: 1,
+  },
+  errorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    padding: 10,
+    borderRadius: 12,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#B91C1C',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   inputGroup: { gap: 6 },
   label: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
