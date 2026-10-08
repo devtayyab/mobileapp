@@ -34,7 +34,7 @@ export default async function EditSupplierProductPage({
     supabase
       .from('products')
       .select(
-        'id, name, description, category_id, b2c_price, b2b_price, moq, shipping_cost, stock_quantity, sku'
+        'id, name, description, category_id, b2c_price, b2b_price, moq, shipping_cost, stock_quantity, sku, specifications'
       )
       .eq('id', id)
       .eq('supplier_id', supplier.id)

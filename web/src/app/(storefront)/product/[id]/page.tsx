@@ -33,6 +33,7 @@ type ProductDetailRow = {
   shipping_cost: number | null;
   category_id: string | null;
   supplier_id: string;
+  specifications: any;
   categories: { name: string } | null;
   countries: { name: string } | null;
   suppliers: {
@@ -67,7 +68,7 @@ export default async function ProductDetailPage({
       .select(
         `
         id, name, description, sku, b2c_price, b2b_price, currency, stock_quantity,
-        moq, shipping_cost, category_id, supplier_id,
+        moq, shipping_cost, category_id, supplier_id, specifications,
         categories (name),
         countries!origin_country_id (name),
         suppliers (business_name, user_id, profiles (address)),
@@ -160,6 +161,7 @@ export default async function ProductDetailPage({
             moq={product.moq}
             stockQuantity={product.stock_quantity}
             shippingCost={product.shipping_cost}
+            specifications={product.specifications}
             isSignedIn={Boolean(user)}
           />
         </div>

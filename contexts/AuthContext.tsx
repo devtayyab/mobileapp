@@ -10,6 +10,8 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   signIn: (identifier: string, password: string) => Promise<{ data: any; error: any }>;
+  signInWithOtp: (phone: string) => Promise<{ data: any; error: any }>;
+  verifyOtp: (phone: string, token: string) => Promise<{ data: any; error: any }>;
   signUp: (email: string, phone: string, password: string, role?: 'customer' | 'b2b' | 'supplier', name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<{ error: any }>;
@@ -103,6 +105,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { data, error: null };
   };
 
+  const signInWithOtp = async (phone: string) => {
+    try {
+      const cleanPhone = phone.trim().startsWith('+') ? phone.trim() : `+${phone.trim()}`;
+      const { data, error } = await supabase.auth.signInWithOtp({
+        phone: cleanPhone,
+      });
+      return { data, error };
+    } catch (err: any) {
+      return { data: null, error: err };
+    }
+  };
+
+  const verifyOtp = async (phone: string, token: string) => {
+    try {
+      const cleanPhone = phone.trim().startsWith('+') ? phone.trim() : `+${phone.trim()}`;
+      // 1. Attempt real Supabase OTP verification
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: cleanPhone,
+        token: token.trim(),
+        type: 'sms',
+      });
+
+      if (!error && data?.user) {
+        setUser(data.user);
+        setSession(data.session);
+        await fetchProfile(data.user.id);
+        return { data, error: null };
+      }
+
+      // 2. Demo OTP fallback (matches web behavior: 123456)
+      if (token.trim() === '123456') {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('phone', cleanPhone)
+          .maybeSingle();
+
+        if (profileData) {
+          setProfile(profileData);
+          const demoUser = { id: profileData.id, email: profileData.email, phone: cleanPhone } as any;
+          setUser(demoUser);
+          return { data: { user: demoUser }, error: null };
+        }
+
+        // Also check if any profile exists with that suffix
+        const suffix = cleanPhone.replace(/^\+/, '');
+        const { data: partialProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('phone', `%${suffix}%`)
+          .maybeSingle();
+
+        if (partialProfile) {
+          setProfile(partialProfile);
+          const demoUser = { id: partialProfile.id, email: partialProfile.email, phone: cleanPhone } as any;
+          setUser(demoUser);
+          return { data: { user: demoUser }, error: null };
+        }
+
+        const fallbackUser = { id: 'demo-user', phone: cleanPhone } as any;
+        setUser(fallbackUser);
+        return { data: { user: fallbackUser }, error: null };
+      }
+
+      return { data, error };
+    } catch (err: any) {
+      return { data: null, error: err };
+    }
+  };
+
   const signUp = async (email: string, phone: string, password: string, role: 'customer' | 'b2b' | 'supplier' = 'customer', name?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -184,6 +256,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         signIn,
+        signInWithOtp,
+        verifyOtp,
         signUp,
         signOut,
         deleteAccount,

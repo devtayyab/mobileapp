@@ -27,6 +27,7 @@ export function ProductPurchasePanel({
   moq,
   stockQuantity,
   shippingCost,
+  specifications,
   isSignedIn,
 }: {
   productId: string;
@@ -36,6 +37,7 @@ export function ProductPurchasePanel({
   moq: number | null;
   stockQuantity: number;
   shippingCost: number | null;
+  specifications?: any;
   isSignedIn: boolean;
 }) {
   const { t } = useLanguage();
@@ -43,6 +45,12 @@ export function ProductPurchasePanel({
   const { addItem } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+
+  const colors: string[] = Array.isArray(specifications?.colors) ? specifications.colors : [];
+  const sizes: string[] = Array.isArray(specifications?.sizes) ? specifications.sizes : [];
+
+  const [selectedColor, setSelectedColor] = useState<string>(colors[0] ?? '');
+  const [selectedSize, setSelectedSize] = useState<string>(sizes[0] ?? '');
 
   const hasB2BPrice = isB2B && b2bPrice != null && b2bPrice > 0;
   const price = hasB2BPrice ? (b2bPrice as number) : b2cPrice;
@@ -78,8 +86,66 @@ export function ProductPurchasePanel({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.05, ease: 'easeOut' }}
-      className="space-y-3 rounded-2xl border border-edge bg-surface p-4"
+      className="space-y-4 rounded-2xl border border-edge bg-surface p-4"
     >
+      {/* Colour selection if available */}
+      {colors.length > 0 && (
+        <div className="space-y-2 border-b border-edge-light pb-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-content-primary">Colour:</span>
+            <span className="text-sm font-semibold text-secondary">{selectedColor}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {colors.map((c) => {
+              const active = selectedColor === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setSelectedColor(c)}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-bold transition-all ${
+                    active
+                      ? 'border-2 border-secondary bg-surface text-secondary shadow-sm ring-1 ring-secondary/20'
+                      : 'border border-edge bg-surface text-content-secondary hover:border-content-tertiary'
+                  }`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Size selection if available */}
+      {sizes.length > 0 && (
+        <div className="space-y-2 border-b border-edge-light pb-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-content-primary">Size:</span>
+            <span className="text-sm font-semibold text-secondary">{selectedSize}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {sizes.map((s) => {
+              const active = selectedSize === s;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSelectedSize(s)}
+                  className={`min-w-[40px] rounded-xl px-3 py-1.5 text-center text-sm font-bold transition-all ${
+                    active
+                      ? 'border-2 border-secondary bg-surface text-secondary shadow-sm ring-1 ring-secondary/20'
+                      : 'border border-edge bg-surface text-content-secondary hover:border-content-tertiary'
+                  }`}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <h2 className="text-xl font-bold text-content-primary">{t.quantity ?? 'Quantity'}</h2>
 
       {minQuantity > 1 && (

@@ -22,6 +22,25 @@ type Country = {
   name: string;
 };
 
+const PRESET_COLORS = [
+  { name: 'Black', hex: '#000000' },
+  { name: 'White', hex: '#FFFFFF', border: true },
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Navy', hex: '#1E3A8A' },
+  { name: 'Green', hex: '#10B981' },
+  { name: 'Yellow', hex: '#F59E0B' },
+  { name: 'Gray', hex: '#6B7280' },
+  { name: 'Pink', hex: '#EC4899' },
+  { name: 'Purple', hex: '#8B5CF6' },
+  { name: 'Beige', hex: '#D4B996' },
+  { name: 'Brown', hex: '#78350F' },
+  { name: 'Orange', hex: '#F97316' },
+];
+
+const PRESET_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+const PRESET_SHOE_SIZES = ['38', '39', '40', '41', '42', '43', '44', '45'];
+
 type FormData = {
   name: string;
   description: string;
@@ -49,6 +68,54 @@ export default function AddProductScreen() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Colours and Sizes (Variants) state
+  const [colors, setColors] = useState<string[]>([]);
+  const [sizes, setSizes] = useState<string[]>([]);
+  const [customColor, setCustomColor] = useState('');
+  const [customSize, setCustomSize] = useState('');
+
+  const toggleColor = (name: string) => {
+    if (colors.includes(name)) {
+      setColors(colors.filter(c => c !== name));
+    } else {
+      setColors([...colors, name]);
+    }
+  };
+
+  const handleAddCustomColor = () => {
+    const trimmed = customColor.trim();
+    if (!trimmed) return;
+    if (!colors.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      setColors([...colors, trimmed]);
+    }
+    setCustomColor('');
+  };
+
+  const removeColor = (name: string) => {
+    setColors(colors.filter(c => c !== name));
+  };
+
+  const toggleSize = (name: string) => {
+    if (sizes.includes(name)) {
+      setSizes(sizes.filter(s => s !== name));
+    } else {
+      setSizes([...sizes, name]);
+    }
+  };
+
+  const handleAddCustomSize = () => {
+    const trimmed = customSize.trim();
+    if (!trimmed) return;
+    if (!sizes.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+      setSizes([...sizes, trimmed]);
+    }
+    setCustomSize('');
+  };
+
+  const removeSize = (name: string) => {
+    setSizes(sizes.filter(s => s !== name));
+  };
 
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -202,6 +269,11 @@ export default function AddProductScreen() {
     try {
       const slug = formData.name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now();
 
+      const specifications = {
+        colors: colors.map((c) => c.trim()).filter(Boolean),
+        sizes: sizes.map((s) => s.trim()).filter(Boolean),
+      };
+
       const productData = {
         supplier_id: supplierId,
         name: formData.name.trim(),
@@ -216,6 +288,7 @@ export default function AddProductScreen() {
         currency: 'USD',
         shipping_cost: formData.shipping_cost ? parseFloat(formData.shipping_cost) : 0,
         origin_country_id: formData.origin_country_id || null,
+        specifications,
         is_active: true,
         is_featured: false,
       };
@@ -240,6 +313,10 @@ export default function AddProductScreen() {
       Alert.alert('Product Added', 'Your product has been listed successfully.', [
         { text: 'Add Another', onPress: () => {
           setFormData({ name: '', description: '', category_id: '', b2c_price: '', b2b_price: '', moq: '1', stock_quantity: '', sku: '', image_url: '', shipping_cost: '0', origin_country_id: '' });
+          setColors([]);
+          setSizes([]);
+          setCustomColor('');
+          setCustomSize('');
           setErrors({});
         }},
         { text: 'Done', onPress: () => router.canGoBack() ? router.back() : router.replace('/supplier/dashboard') },
@@ -528,6 +605,153 @@ export default function AddProductScreen() {
             </View>
           </View>
 
+          {/* Product Variants (Colours & Sizes) */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Product Variants (Colours & Sizes)</Text>
+            <Text style={styles.labelSub}>Select or add options for shoppers to choose from</Text>
+
+            {/* Colours */}
+            <View style={[styles.fieldGroup, { marginTop: 12 }]}>
+              <Text style={styles.label}>Available Colours</Text>
+
+              {/* Quick Presets */}
+              <View style={styles.presetsRow}>
+                {PRESET_COLORS.map((col) => {
+                  const active = colors.includes(col.name);
+                  return (
+                    <TouchableOpacity
+                      key={col.name}
+                      style={[styles.presetChip, active && styles.presetChipActive]}
+                      onPress={() => toggleColor(col.name)}
+                    >
+                      <View
+                        style={[
+                          styles.colorDot,
+                          { backgroundColor: col.hex },
+                          col.border && styles.colorDotBorder,
+                        ]}
+                      />
+                      <Text style={[styles.presetChipText, active && styles.presetChipTextActive]}>
+                        {col.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Custom Color Input */}
+              <View style={styles.customInputRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1, height: 44 }]}
+                  placeholder="Custom color (e.g. Lavender, Rose Gold)"
+                  placeholderTextColor="#94A3B8"
+                  value={customColor}
+                  onChangeText={setCustomColor}
+                  onSubmitEditing={handleAddCustomColor}
+                />
+                <TouchableOpacity style={styles.addVariantBtn} onPress={handleAddCustomColor}>
+                  <Plus size={16} color="#FFF" />
+                  <Text style={styles.addVariantBtnText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Selected Colors */}
+              {colors.length > 0 && (
+                <View style={styles.selectedVariantsContainer}>
+                  <Text style={styles.selectedLabel}>Selected ({colors.length}):</Text>
+                  <View style={styles.selectedTagsRow}>
+                    {colors.map((c) => (
+                      <View key={c} style={styles.selectedTag}>
+                        <Text style={styles.selectedTagText}>{c}</Text>
+                        <TouchableOpacity onPress={() => removeColor(c)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <X size={14} color="#1D4ED8" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Divider */}
+            <View style={styles.variantDivider} />
+
+            {/* Sizes */}
+            <View style={[styles.fieldGroup, { marginTop: 8 }]}>
+              <Text style={styles.label}>Available Sizes</Text>
+
+              {/* Standard Sizes Presets */}
+              <View style={styles.presetsRow}>
+                {PRESET_SIZES.map((sz) => {
+                  const active = sizes.includes(sz);
+                  return (
+                    <TouchableOpacity
+                      key={sz}
+                      style={[styles.presetChip, active && styles.presetChipActive]}
+                      onPress={() => toggleSize(sz)}
+                    >
+                      <Text style={[styles.presetChipText, active && styles.presetChipTextActive]}>
+                        {sz}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Shoe Sizes Presets */}
+              <View style={[styles.presetsRow, { marginTop: 6 }]}>
+                <Text style={[styles.labelSub, { alignSelf: 'center', marginRight: 4, marginBottom: 0 }]}>Shoes:</Text>
+                {PRESET_SHOE_SIZES.map((sz) => {
+                  const active = sizes.includes(sz);
+                  return (
+                    <TouchableOpacity
+                      key={sz}
+                      style={[styles.presetChipSmall, active && styles.presetChipActive]}
+                      onPress={() => toggleSize(sz)}
+                    >
+                      <Text style={[styles.presetChipTextSmall, active && styles.presetChipTextActive]}>
+                        {sz}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Custom Size Input */}
+              <View style={styles.customInputRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1, height: 44 }]}
+                  placeholder="Custom size (e.g. One Size, 32x30, 250ml)"
+                  placeholderTextColor="#94A3B8"
+                  value={customSize}
+                  onChangeText={setCustomSize}
+                  onSubmitEditing={handleAddCustomSize}
+                />
+                <TouchableOpacity style={styles.addVariantBtn} onPress={handleAddCustomSize}>
+                  <Plus size={16} color="#FFF" />
+                  <Text style={styles.addVariantBtnText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Selected Sizes */}
+              {sizes.length > 0 && (
+                <View style={styles.selectedVariantsContainer}>
+                  <Text style={styles.selectedLabel}>Selected ({sizes.length}):</Text>
+                  <View style={styles.selectedTagsRow}>
+                    {sizes.map((s) => (
+                      <View key={s} style={styles.selectedTag}>
+                        <Text style={styles.selectedTagText}>{s}</Text>
+                        <TouchableOpacity onPress={() => removeSize(s)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <X size={14} color="#1D4ED8" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Image</Text>
             <View style={styles.fieldGroup}>
@@ -703,4 +927,44 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.text.primary },
   modalSaveBtn: { backgroundColor: '#1D4ED8', height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 24, marginBottom: 20 },
   modalSaveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  presetsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 4 },
+  presetChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.background.primary,
+    borderWidth: 1, borderColor: Colors.border.medium,
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  presetChipActive: {
+    backgroundColor: Colors.secondary + '15',
+    borderColor: Colors.secondary,
+    borderWidth: 1.5,
+  },
+  presetChipText: { fontSize: 12, fontWeight: '600', color: Colors.text.secondary },
+  presetChipTextActive: { color: Colors.secondary, fontWeight: '700' },
+  presetChipSmall: {
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.background.primary,
+    borderWidth: 1, borderColor: Colors.border.medium,
+    borderRadius: 6, minWidth: 32, paddingHorizontal: 6, paddingVertical: 4,
+  },
+  presetChipTextSmall: { fontSize: 11, fontWeight: '600', color: Colors.text.secondary },
+  colorDot: { width: 12, height: 12, borderRadius: 6 },
+  colorDotBorder: { borderWidth: 1, borderColor: '#CBD5E1' },
+  customInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  addVariantBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: Colors.secondary,
+    borderRadius: 10, paddingHorizontal: 14, height: 44,
+  },
+  addVariantBtnText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  selectedVariantsContainer: { marginTop: 8 },
+  selectedLabel: { fontSize: 11, fontWeight: '700', color: Colors.text.tertiary, marginBottom: 4 },
+  selectedTagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  selectedTag: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: Colors.secondary + '18',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
+  },
+  selectedTagText: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  variantDivider: { height: 1, backgroundColor: Colors.border.light, marginVertical: 14 },
 });
