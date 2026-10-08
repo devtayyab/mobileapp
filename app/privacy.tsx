@@ -29,8 +29,8 @@ export default function PrivacyScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>SATHUN GLOBAL PRIVACY POLICY</Text>
 
-        <Text style={styles.heading}>1. Introduction</Text>
-        <Text style={styles.paragraph}>SATHUN GLOBAL is committed to protecting user and seller data.</Text>
+        <Text style={styles.heading}>1. Introduction & Data Controller</Text>
+        <Text style={styles.paragraph}>SATHUN GLOBAL (sathunglobal.com) is operated by Sole Trader / Owner: Sunita Shahi under the business name Takuri Brand, registered in Cyprus. For all privacy, GDPR, or data queries, contact our official support email: shahisunita264@gmail.com.</Text>
 
         <Text style={styles.heading}>2. Information Collected</Text>
         <Text style={styles.listItem}>• Name, email, phone number</Text>

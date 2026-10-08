@@ -57,6 +57,40 @@ type ShippingRate = {
 
 type SupplierRateMap = Record<string, { charge: number; deliveryDays: number | null }>;
 
+function PaymentBrandBadges() {
+  return (
+    <View style={styles.brandLogosRow}>
+      {/* Visa */}
+      <View style={[styles.brandBadge, { backgroundColor: '#0A2540' }]}>
+        <Text style={[styles.brandBadgeText, { color: '#FFF', fontStyle: 'italic', fontWeight: '900' }]}>VISA</Text>
+      </View>
+      {/* Mastercard */}
+      <View style={[styles.brandBadge, { backgroundColor: '#252525' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#EB001B', marginRight: -3 }} />
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#F79E1B' }} />
+        </View>
+      </View>
+      {/* Amex */}
+      <View style={[styles.brandBadge, { backgroundColor: '#006FCF' }]}>
+        <Text style={[styles.brandBadgeText, { color: '#FFF', fontWeight: '800', fontSize: 9 }]}>AMEX</Text>
+      </View>
+      {/* Stripe */}
+      <View style={[styles.brandBadge, { backgroundColor: '#635BFF' }]}>
+        <Text style={[styles.brandBadgeText, { color: '#FFF', fontWeight: '800', fontSize: 10 }]}>stripe</Text>
+      </View>
+      {/* Apple Pay */}
+      <View style={[styles.brandBadge, { backgroundColor: '#000000' }]}>
+        <Text style={[styles.brandBadgeText, { color: '#FFF', fontWeight: '700', fontSize: 10 }]}>Pay</Text>
+      </View>
+      {/* Google Pay */}
+      <View style={[styles.brandBadge, { backgroundColor: '#FFFFFF', borderColor: '#CBD5E1', borderWidth: 1 }]}>
+        <Text style={[styles.brandBadgeText, { color: '#3C4043', fontWeight: '700', fontSize: 10 }]}>GPay</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
@@ -309,7 +343,7 @@ export default function CheckoutScreen() {
         }
 
         const { error: initError } = await initPaymentSheet({
-          merchantDisplayName: 'B2B Marketplace',
+          merchantDisplayName: 'Sathun Global Marketplace',
           paymentIntentClientSecret: paymentIntentData.clientSecret,
           applePay: {
             merchantCountryCode: 'DE',
@@ -562,7 +596,11 @@ export default function CheckoutScreen() {
             <View style={[styles.radioButton, paymentMethod === 'card' && styles.radioButtonActive, language.rtl && { marginRight: 0, marginLeft: 12 }]}>
               {paymentMethod === 'card' && <View style={styles.radioButtonInner} />}
             </View>
-            <Text style={styles.paymentOptionText}>{t.creditDebitCard}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.paymentOptionText}>{t.creditDebitCard} & Digital Wallets</Text>
+              <PaymentBrandBadges />
+              <Text style={styles.paymentSecureHint}>Official Support: Visa, Mastercard, AMEX, Stripe, Apple Pay, Google Pay</Text>
+            </View>
           </TouchableOpacity>
 
           {/* Cash on Delivery option hidden for now */}
@@ -743,7 +781,15 @@ const styles = StyleSheet.create({
   },
   radioButtonActive: { borderColor: '#1D4ED8' },
   radioButtonInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#1D4ED8' },
-  paymentOptionText: { fontSize: 15, color: '#111827', fontWeight: '500' },
+  paymentOptionText: { fontSize: 15, color: '#111827', fontWeight: '700' },
+  brandLogosRow: {
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 8, marginBottom: 4,
+  },
+  brandBadge: {
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5, justifyContent: 'center', alignItems: 'center', minWidth: 42, height: 22,
+  },
+  brandBadgeText: { fontSize: 10, letterSpacing: 0.5 },
+  paymentSecureHint: { fontSize: 11, color: '#64748B', marginTop: 2 },
   orderItem: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingVertical: 8,

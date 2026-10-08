@@ -7,10 +7,32 @@ import {
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag, MessageSquare } from 'lucide-react-native';
+import { ArrowLeft, ShoppingCart, Store, MapPin, Star, Package, Minus, Plus, Tag, MessageSquare, ZoomIn, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import { Colors, Palette } from '@/constants/Colors';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTheme } from '@/contexts/ThemeContext';
+
+const COLOR_HEX_MAP: Record<string, string> = {
+  black: '#000000',
+  white: '#FFFFFF',
+  red: '#EF4444',
+  blue: '#3B82F6',
+  green: '#10B981',
+  navy: '#1E3A8A',
+  grey: '#6B7280',
+  gray: '#6B7280',
+  beige: '#D4C5B9',
+  pink: '#EC4899',
+  yellow: '#F59E0B',
+  brown: '#78350F',
+  purple: '#8B5CF6',
+  orange: '#F97316',
+  gold: '#D97706',
+  silver: '#9CA3AF',
+  maroon: '#800000',
+  olive: '#556B2F',
+  cream: '#FFFDD0',
+};
 
 interface Product {
   id: string;
@@ -48,6 +70,7 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [zoomModalVisible, setZoomModalVisible] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -320,11 +343,47 @@ export default function ProductDetail() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.imageSection}>
           {images.length > 0 ? (
-            <Image
-              source={{ uri: images[selectedImageIdx]?.image_url }}
-              style={styles.mainImage}
-              resizeMode="contain"
-            />
+            <View style={styles.mainImageContainer}>
+              <TouchableOpacity
+                activeOpacity={0.92}
+                onPress={() => setZoomModalVisible(true)}
+                style={styles.mainImageTouch}
+              >
+                <Image
+                  source={{ uri: images[selectedImageIdx]?.image_url }}
+                  style={styles.mainImage}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+
+              {/* Zoom Pill Button */}
+              <TouchableOpacity
+                style={styles.zoomPill}
+                onPress={() => setZoomModalVisible(true)}
+                activeOpacity={0.8}
+              >
+                <ZoomIn size={16} color="#FFF" />
+                <Text style={styles.zoomPillText}>Zoom</Text>
+              </TouchableOpacity>
+
+              {/* Image Navigation Arrows */}
+              {images.length > 1 && (
+                <>
+                  <TouchableOpacity
+                    style={styles.imageNavBtnLeft}
+                    onPress={() => setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                  >
+                    <ChevronLeft size={20} color="#FFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.imageNavBtnRight}
+                    onPress={() => setSelectedImageIdx((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                  >
+                    <ChevronRight size={20} color="#FFF" />
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
           ) : (
             <View style={styles.imagePlaceholder}>
               <Package size={64} color="#CBD5E1" />
@@ -483,12 +542,29 @@ export default function ProductDetail() {
               <View style={[styles.variantChipsRow, language.rtl && { flexDirection: 'row-reverse' }]}>
                 {product.specifications.colors.map((c: string) => {
                   const active = selectedColor === c;
+                  const colorKey = c.toLowerCase().trim();
+                  const hex = COLOR_HEX_MAP[colorKey] || '#6366F1';
                   return (
                     <TouchableOpacity
                       key={c}
-                      style={[styles.variantChip, active && styles.variantChipActive]}
-                      onPress={() => setSelectedColor(c)}
+                      style={[styles.variantChip, styles.colorChip, active && styles.variantChipActive]}
+                      onPress={() => {
+                        setSelectedColor(c);
+                        if (product.specifications?.colors && images.length > 1) {
+                          const idx = product.specifications.colors.indexOf(c);
+                          if (idx >= 0 && idx < images.length) {
+                            setSelectedImageIdx(idx);
+                          }
+                        }
+                      }}
                     >
+                      <View
+                        style={[
+                          styles.colorDot,
+                          { backgroundColor: hex },
+                          colorKey === 'white' && { borderWidth: 1, borderColor: '#CBD5E1' }
+                        ]}
+                      />
                       <Text style={[styles.variantChipText, active && styles.variantChipTextActive]}>
                         {c}
                       </Text>
@@ -615,6 +691,66 @@ export default function ProductDetail() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* Full-Screen Product Image Zoom Modal */}
+      <Modal
+        visible={zoomModalVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={() => setZoomModalVisible(false)}
+      >
+        <View style={styles.fullZoomContainer}>
+          <View style={styles.zoomHeader}>
+            <Text style={styles.zoomCounter}>
+              {images.length > 0 ? `${selectedImageIdx + 1} / ${images.length}` : 'Image Viewer'}
+            </Text>
+            <TouchableOpacity style={styles.zoomCloseBtn} onPress={() => setZoomModalVisible(false)}>
+              <X size={22} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.zoomMainArea}>
+            {images.length > 0 ? (
+              <Image
+                source={{ uri: images[selectedImageIdx]?.image_url }}
+                style={styles.zoomImage}
+                resizeMode="contain"
+              />
+            ) : null}
+
+            {images.length > 1 && (
+              <>
+                <TouchableOpacity
+                  style={styles.zoomNavLeft}
+                  onPress={() => setSelectedImageIdx((prev) => (prev > 0 ? prev - 1 : images.length - 1))}
+                >
+                  <ChevronLeft size={28} color="#FFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.zoomNavRight}
+                  onPress={() => setSelectedImageIdx((prev) => (prev < images.length - 1 ? prev + 1 : 0))}
+                >
+                  <ChevronRight size={28} color="#FFF" />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {images.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.zoomThumbsBar}>
+              {images.map((img, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.zoomThumbItem, idx === selectedImageIdx && styles.zoomThumbItemActive]}
+                  onPress={() => setSelectedImageIdx(idx)}
+                >
+                  <Image source={{ uri: img.image_url }} style={styles.zoomThumbImg} resizeMode="cover" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </Modal>
     </View>
@@ -790,6 +926,12 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     backgroundColor: Colors.background.primary,
     borderWidth: 1, borderColor: Colors.border.medium,
   },
+  colorChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  colorDot: {
+    width: 14, height: 14, borderRadius: 7,
+  },
   sizeChip: {
     minWidth: 44, alignItems: 'center', justifyContent: 'center',
   },
@@ -802,6 +944,83 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   },
   variantChipTextActive: {
     color: Colors.secondary, fontWeight: '800',
+  },
+
+  mainImageContainer: {
+    width: '100%', height: 320, position: 'relative',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  mainImageTouch: {
+    width: '100%', height: '100%',
+  },
+  zoomPill: {
+    position: 'absolute', top: 12, right: 12,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 20, zIndex: 10,
+  },
+  zoomPillText: {
+    color: '#FFF', fontSize: 12, fontWeight: '700',
+  },
+  imageNavBtnLeft: {
+    position: 'absolute', left: 10, top: '45%',
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center', alignItems: 'center', zIndex: 10,
+  },
+  imageNavBtnRight: {
+    position: 'absolute', right: 10, top: '45%',
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center', alignItems: 'center', zIndex: 10,
+  },
+
+  fullZoomContainer: {
+    flex: 1, backgroundColor: '#000',
+  },
+  zoomHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingTop: 50, paddingBottom: 16,
+  },
+  zoomCounter: {
+    color: '#FFF', fontSize: 15, fontWeight: '700',
+  },
+  zoomCloseBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  zoomMainArea: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', position: 'relative',
+  },
+  zoomImage: {
+    width: '100%', height: '80%',
+  },
+  zoomNavLeft: {
+    position: 'absolute', left: 16, top: '46%',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  zoomNavRight: {
+    position: 'absolute', right: 16, top: '46%',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  zoomThumbsBar: {
+    paddingVertical: 16, paddingHorizontal: 16, gap: 10,
+  },
+  zoomThumbItem: {
+    width: 60, height: 60, borderRadius: 10, overflow: 'hidden',
+    borderWidth: 2, borderColor: 'transparent',
+  },
+  zoomThumbItemActive: {
+    borderColor: '#3B82F6',
+  },
+  zoomThumbImg: {
+    width: '100%', height: '100%',
   },
 });
 
