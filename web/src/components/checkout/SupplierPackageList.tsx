@@ -12,7 +12,9 @@
 import { motion } from 'framer-motion';
 import { Clock, Package, Truck } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
-import { formatAmount, type SupplierPackage } from './types';
+import { useCurrency } from '@/providers/CurrencyProvider';
+import { getVariantsForProduct } from '@/lib/cart-variants';
+import { type SupplierPackage } from './types';
 
 export function SupplierPackageList({
   packages,
@@ -21,11 +23,12 @@ export function SupplierPackageList({
   calculating,
 }: {
   packages: SupplierPackage[];
-  currency: string;
+  currency?: string;
   unitPrice: (row: SupplierPackage['items'][number]) => number;
   calculating: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
 
   return (
     <div className="flex flex-col gap-3">
@@ -44,17 +47,61 @@ export function SupplierPackageList({
             </span>
           </div>
 
-          <ul className="flex flex-col gap-1.5">
-            {pkg.items.map((row) => (
-              <li key={row.id} className="flex items-center justify-between gap-3">
-                <span className="truncate text-base text-content-tertiary">
-                  {row.products?.name ?? 'Product'} &times; {row.quantity}
-                </span>
-                <span className="shrink-0 text-base font-bold text-content-primary">
-                  {formatAmount(currency, unitPrice(row) * row.quantity)}
-                </span>
-              </li>
-            ))}
+          <ul className="flex flex-col gap-2">
+            {pkg.items.map((row) => {
+              const variants = getVariantsForProduct(row.product_id);
+
+              return (
+                <li
+                  key={row.id}
+                  className="flex flex-col gap-1 rounded-xl border border-edge/60 bg-surface/80 p-2.5 text-xs shadow-2xs"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-sm font-bold text-content-primary">
+                      {row.products?.name ?? 'Product'}
+                    </span>
+                    <span className="shrink-0 text-sm font-bold text-secondary">
+                      {formatPrice(unitPrice(row) * row.quantity)}
+                    </span>
+                  </div>
+
+                  {/* Summary of order variants in checkout */}
+                  {variants.length > 0 ? (
+                    <div className="flex flex-col gap-1 border-t border-edge/40 pt-1.5 notranslate" translate="no">
+                      {variants.map((v, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center justify-between text-2xs font-semibold text-content-secondary"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-md bg-primary/10 px-1 text-3xs font-extrabold text-primary">
+                              {v.quantity}&times;
+                            </span>
+                            {v.color && (
+                              <span>
+                                {language.code === 'el' ? 'Χρώμα: ' : 'Colour: '}
+                                <strong className="text-content-primary">{v.color}</strong>
+                              </span>
+                            )}
+                            {v.color && v.size && <span className="text-edge">·</span>}
+                            {v.size && (
+                              <span>
+                                {language.code === 'el' ? 'Μέγεθος: ' : 'Size: '}
+                                <strong className="text-content-primary">{v.size}</strong>
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-2xs text-content-tertiary">
+                      &times; {row.quantity}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
 
           <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-edge-light pt-2.5">
@@ -67,7 +114,7 @@ export function SupplierPackageList({
                   : `${t.shipping ?? 'Shipping'} (standard)`}
             </span>
             <span className="shrink-0 text-sm font-bold text-content-primary">
-              {pkg.shippingFee > 0 ? formatAmount(currency, pkg.shippingFee) : (t.free ?? 'Free')}
+              {pkg.shippingFee > 0 ? formatPrice(pkg.shippingFee) : (t.free ?? 'Free')}
             </span>
           </div>
 

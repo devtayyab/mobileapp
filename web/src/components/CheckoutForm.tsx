@@ -12,7 +12,7 @@
  *  - `payments` uses payment_gateway + payment_method (no stripe intent column)
  *  - `supplier_shipping_rates` uses shipping_charge / delivery_time_days / is_active
  *  - `orders` carries vat_amount + shipping_country_id
- *  - order_items split 90/10 (supplier_amount / platform_commission)
+ *  - order_items split: 6% platform commission for wholesale (B2B) / 11% for retail (B2C)
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -24,6 +24,9 @@ import { createClient } from '@/lib/supabase/client';
 import { getStripe } from '@/lib/stripe';
 import { useCart } from '@/providers/CartProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
+import { useToast } from '@/providers/ToastProvider';
+import { getVariantsForProduct, clearCartVariants } from '@/lib/cart-variants';
 import {
   Button,
   EmptyState,
@@ -41,7 +44,6 @@ import { CheckoutSuccess } from '@/components/checkout/CheckoutSuccess';
 import { OrderTotals } from '@/components/checkout/OrderTotals';
 import { SupplierPackageList } from '@/components/checkout/SupplierPackageList';
 import {
-  formatAmount,
   type CheckoutCartRow,
   type ShippingAddress,
   type SupplierPackage,
@@ -232,6 +234,8 @@ function CheckoutInner({
   initialAddress: Partial<ShippingAddress> | null;
 }) {
   const { t } = useLanguage();
+  const { currency: activeCurrency, formatPrice } = useCurrency();
+  const { toast } = useToast();
   const { clear, refresh } = useCart();
   const stripe = useStripe();
   const elements = useElements();
@@ -252,6 +256,7 @@ function CheckoutInner({
     id: string | null;
     number: string;
     total: number;
+    currency: string;
     /** Post-charge bookkeeping that did not land — shown as a warning. */
     issues: string[];
   } | null>(null);
@@ -358,7 +363,7 @@ function CheckoutInner({
   const vatAmount =
     selectedCountry && !vatIncluded ? (subtotal * selectedCountry.vat_percentage) / 100 : 0;
   const total = subtotal + shippingFee + vatAmount;
-  const currency = cartItems[0]?.products?.currency ?? 'USD';
+  const currency = activeCurrency?.code ?? cartItems[0]?.products?.currency ?? 'USD';
 
   /*
     The parent blocks a mixed-currency cart before rendering this form, so this
@@ -414,12 +419,26 @@ function CheckoutInner({
       if (!user) throw new Error('Not signed in');
 
       const orderNumber = `ORD-${Date.now()}`;
-      const platformCommission = subtotal * 0.1;
+      const commissionRate = isB2B ? 0.06 : 0.11;
+      const supplierRate = 1 - commissionRate; // 0.94 wholesale (B2B), 0.89 retail
+      const activeRate = activeCurrency?.rate ?? 1;
+      const convertedTotal = Math.round(total * activeRate * 100) / 100;
+      const convertedSubtotal = Math.round(subtotal * activeRate * 100) / 100;
+      const convertedShippingFee = Math.round(shippingFee * activeRate * 100) / 100;
+      const convertedVatAmount = Math.round(vatAmount * activeRate * 100) / 100;
+      const convertedCommission = Math.round(subtotal * commissionRate * activeRate * 100) / 100;
       const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
 
       const { data: intentData, error: intentError } = await supabase.functions.invoke(
         'create-payment-intent',
-        { body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId } }
+        {
+          body: {
+            amount: convertedTotal,
+            currency: currency.toLowerCase(),
+            supplier_id: supplierId,
+            is_b2b: isB2B,
+          },
+        }
       );
 
       if (intentError || !intentData?.clientSecret) {
@@ -436,22 +455,41 @@ function CheckoutInner({
 
       const fullAddress = { ...address, country: selectedCountry.name };
 
+      // Compile detailed order variant notes (e.g. 2 blue shoes size 38, 2 red shoes size 42)
+      const orderSummaryNotes = cartItems
+        .filter((row) => row.products)
+        .map((row) => {
+          const variants = getVariantsForProduct(row.product_id);
+          const varText =
+            variants.length > 0
+              ? variants
+                  .map(
+                    (v) =>
+                      `${v.quantity}x [${v.color ? `Colour: ${v.color}` : ''}${v.color && v.size ? ', ' : ''}${v.size ? `Size: ${v.size}` : ''}]`
+                  )
+                  .join(', ')
+              : `${row.quantity}x`;
+          return `${row.products!.name}: ${varText}`;
+        })
+        .join(' | ');
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           order_number: orderNumber,
           user_id: user.id,
           status: 'pending',
-          subtotal,
+          subtotal: convertedSubtotal,
           tax: 0,
-          shipping_fee: shippingFee,
-          vat_amount: vatAmount,
+          shipping_fee: convertedShippingFee,
+          vat_amount: convertedVatAmount,
           shipping_country_id: selectedCountry.id,
-          platform_commission: platformCommission,
-          total,
+          platform_commission: convertedCommission,
+          total: convertedTotal,
           currency,
           shipping_address: fullAddress,
           billing_address: fullAddress,
+          notes: orderSummaryNotes || null,
         })
         .select()
         .single();
@@ -460,17 +498,52 @@ function CheckoutInner({
 
       const orderItems = cartItems
         .filter((row) => row.products)
-        .map((row) => ({
-          order_id: order.id,
-          product_id: row.product_id,
-          supplier_id: row.products!.supplier_id,
-          product_name: row.products!.name,
-          quantity: row.quantity,
-          unit_price: unitPrice(row),
-          subtotal: unitPrice(row) * row.quantity,
-          supplier_amount: unitPrice(row) * row.quantity * 0.9,
-          platform_commission: unitPrice(row) * row.quantity * 0.1,
-        }));
+        .flatMap((row) => {
+          const variants = getVariantsForProduct(row.product_id);
+          const convertedUnitPrice = Math.round(unitPrice(row) * activeRate * 100) / 100;
+
+          if (variants.length > 0) {
+            return variants.map((v) => {
+              const details = [
+                v.color ? `Colour: ${v.color}` : '',
+                v.size ? `Size: ${v.size}` : '',
+              ]
+                .filter(Boolean)
+                .join(', ');
+              const fullProductName = details
+                ? `${row.products!.name} (${details})`
+                : row.products!.name;
+
+              const lineSubtotal = Math.round(convertedUnitPrice * v.quantity * 100) / 100;
+              return {
+                order_id: order.id,
+                product_id: row.product_id,
+                supplier_id: row.products!.supplier_id,
+                product_name: fullProductName,
+                quantity: v.quantity,
+                unit_price: convertedUnitPrice,
+                subtotal: lineSubtotal,
+                supplier_amount: Math.round(lineSubtotal * supplierRate * 100) / 100,
+                platform_commission: Math.round(lineSubtotal * commissionRate * 100) / 100,
+              };
+            });
+          }
+
+          const lineSubtotal = Math.round(convertedUnitPrice * row.quantity * 100) / 100;
+          return [
+            {
+              order_id: order.id,
+              product_id: row.product_id,
+              supplier_id: row.products!.supplier_id,
+              product_name: row.products!.name,
+              quantity: row.quantity,
+              unit_price: convertedUnitPrice,
+              subtotal: lineSubtotal,
+              supplier_amount: Math.round(lineSubtotal * supplierRate * 100) / 100,
+              platform_commission: Math.round(lineSubtotal * commissionRate * 100) / 100,
+            },
+          ];
+        });
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw new Error(itemsError.message);
@@ -525,7 +598,7 @@ function CheckoutInner({
           order_id: order.id,
           payment_gateway: 'stripe',
           payment_method: 'card',
-          amount: total,
+          amount: convertedTotal,
           currency,
           status: 'completed',
         })
@@ -557,11 +630,21 @@ function CheckoutInner({
       }
 
       clear();
+      clearCartVariants();
       void refresh();
 
-      setPlaced({ id: order.id, number: orderNumber, total, issues });
+      setPlaced({ id: order.id, number: orderNumber, total: convertedTotal, currency, issues });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
+      setError(msg);
+      toast({
+        title: 'Payment Failed',
+        message: msg,
+        kind: 'error',
+      });
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } finally {
       setPlacing(false);
     }
@@ -573,7 +656,7 @@ function CheckoutInner({
         orderId={placed.id}
         orderNumber={placed.number}
         total={placed.total}
-        currency={currency}
+        currency={placed.currency}
         issues={placed.issues}
       />
     );
@@ -726,6 +809,13 @@ function CheckoutInner({
               </p>
               <span className="font-semibold text-success">256-bit Encrypted</span>
             </div>
+
+            {error && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-error bg-error/10 p-3 text-md font-bold text-error">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0 text-error" />
+                <span>{error}</span>
+              </div>
+            )}
           </motion.section>
         </div>
 
@@ -755,6 +845,13 @@ function CheckoutInner({
             country={selectedCountry}
           />
 
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl border border-error bg-error/10 p-3 text-sm font-bold text-error">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-error" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <Button
             size="lg"
             fullWidth
@@ -764,8 +861,12 @@ function CheckoutInner({
           >
             {placing
               ? (t.placeOrder ?? 'Place Order')
-              : `${t.placeOrder ?? 'Place Order'} · ${formatAmount(currency, total)}`}
+              : `${t.placeOrder ?? 'Place Order'} · ${formatPrice(total)}`}
           </Button>
+
+          <p className="text-center text-2xs font-bold uppercase tracking-[0.5px] text-content-tertiary">
+            Shown in {currency}
+          </p>
         </motion.aside>
       </div>
     </div>

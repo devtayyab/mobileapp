@@ -2,6 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import {
+  addCartVariant,
+  removeVariantsForProduct,
+  clearCartVariants,
+  type CartItemVariant,
+} from '@/lib/cart-variants';
 import { useToast } from './ToastProvider';
 
 /**
@@ -22,7 +28,12 @@ type CartContextValue = {
   count: number;
   loading: boolean;
   /** Each resolves false when the write did not land (guest, RLS, or error). */
-  addItem: (productId: string, price: number, quantity?: number) => Promise<boolean>;
+  addItem: (
+    productId: string,
+    price: number,
+    quantity?: number,
+    variant?: CartItemVariant
+  ) => Promise<boolean>;
   updateQuantity: (lineId: string, quantity: number) => Promise<boolean>;
   removeItem: (lineId: string) => Promise<boolean>;
   refresh: () => Promise<void>;
@@ -64,7 +75,12 @@ export function CartProvider({
   }, [refresh]);
 
   /** Resolves false when the write did not happen, so callers can react. */
-  const addItem = async (productId: string, price: number, quantity = 1) => {
+  const addItem = async (
+    productId: string,
+    price: number,
+    quantity = 1,
+    variant?: CartItemVariant
+  ) => {
     if (!userId) {
       // Guests previously got no feedback at all — the click just did nothing.
       toast({
@@ -119,6 +135,11 @@ export function CartProvider({
       setLines((prev) => [...prev, data as CartLine]);
     }
 
+    // Persist variant information (color, size) for cart display and checkout
+    if (variant && (variant.color || variant.size)) {
+      addCartVariant(productId, quantity, variant);
+    }
+
     toast({ title: 'Added to cart', kind: 'success' });
     return true;
   };
@@ -148,6 +169,7 @@ export function CartProvider({
 
   const removeItem = async (lineId: string) => {
     const supabase = createClient();
+    const line = lines.find((l) => l.id === lineId);
     const { data, error } = await supabase
       .from('cart_items')
       .delete()
@@ -164,6 +186,9 @@ export function CartProvider({
       return false;
     }
 
+    if (line) {
+      removeVariantsForProduct(line.product_id);
+    }
     setLines((prev) => prev.filter((l) => l.id !== lineId));
     return true;
   };
@@ -178,7 +203,10 @@ export function CartProvider({
         updateQuantity,
         removeItem,
         refresh,
-        clear: () => setLines([]),
+        clear: () => {
+          clearCartVariants();
+          setLines([]);
+        },
       }}
     >
       {children}

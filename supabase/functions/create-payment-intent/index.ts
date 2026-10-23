@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { amount, currency, supplier_id } = await req.json()
+    const { amount, currency, supplier_id, is_b2b } = await req.json()
 
     if (!amount || !currency) {
       return new Response(JSON.stringify({ error: 'Amount and currency are required' }), {
@@ -69,7 +69,19 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Default to taking 10% as platform fee if supplier_id is provided
+    let isWholesale = Boolean(is_b2b);
+    if (is_b2b === undefined) {
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      isWholesale = userProfile?.role === 'b2b';
+    }
+
+    // Platform commission: 6% for wholesale (b2b) and 11% for retail
+    const platformCommissionRate = isWholesale ? 0.06 : 0.11;
+
     let paymentIntentParams: any = {
       amount: Math.round(amount * 100), // Stripe expects amounts in cents
       currency,
@@ -77,6 +89,8 @@ Deno.serve(async (req: Request) => {
       metadata: {
         userId: user.id,
         supplierId: supplier_id || 'platform',
+        orderType: isWholesale ? 'wholesale' : 'retail',
+        platformFeeRate: `${(platformCommissionRate * 100).toFixed(0)}%`,
       },
     }
 
@@ -90,8 +104,8 @@ Deno.serve(async (req: Request) => {
 
       if (supplierData?.stripe_account_id && supplierData?.stripe_onboarding_complete) {
         // Stripe Connect: Separate Charges and Transfers or Destination Charges
-        // 10% platform fee
-        const applicationFeeAmount = Math.round((amount * 0.10) * 100) 
+        // 6% on wholesale and 11% on retail
+        const applicationFeeAmount = Math.round((amount * platformCommissionRate) * 100) 
         
         paymentIntentParams = {
           ...paymentIntentParams,

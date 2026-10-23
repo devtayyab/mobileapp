@@ -25,6 +25,7 @@ import { useCurrency } from '@/providers/CurrencyProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { Button, EmptyState, QuantityStepper, SkeletonRows } from '@/components/ui';
+import { getVariantsForProduct, getProductUrlWithVariant } from '@/lib/cart-variants';
 
 type CartProduct = {
   id: string;
@@ -59,7 +60,7 @@ export default function CartView({
   isB2B: boolean;
 }) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   /*
     Catalog prices are stored in USD and `formatPrice` converts them into the
     viewer's selected display currency, so the footer label has to name that
@@ -171,9 +172,10 @@ export default function CartView({
           action={
             <Link
               href="/login?next=/cart"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-xl font-bold text-white transition-colors hover:bg-secondary-dark"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-xl font-bold text-white transition-colors hover:bg-secondary-dark notranslate"
+              translate="no"
             >
-              {t.signIn ?? 'Sign In'}
+              {language.code === 'el' ? 'Σύνδεση' : (t.signIn ?? 'Sign In')}
               <ArrowRight size={16} />
             </Link>
           }
@@ -228,6 +230,10 @@ export default function CartView({
               const showStrike =
                 isB2B && row.products?.b2b_price != null && row.products.b2b_price < row.products.b2c_price;
 
+              const variants = getVariantsForProduct(row.product_id);
+              const primaryVariant = variants[0];
+              const productUrl = getProductUrlWithVariant(row.product_id, primaryVariant);
+
               return (
                 <motion.li
                   key={row.id}
@@ -239,7 +245,7 @@ export default function CartView({
                   className="flex gap-3.5 overflow-hidden rounded-2xl border border-edge bg-surface p-3.5"
                 >
                   <Link
-                    href={`/product/${row.product_id}`}
+                    href={productUrl}
                     className="h-[88px] w-[88px] shrink-0 overflow-hidden rounded-lg bg-surface-page"
                   >
                     {image ? (
@@ -255,11 +261,46 @@ export default function CartView({
 
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <Link
-                      href={`/product/${row.product_id}`}
+                      href={productUrl}
                       className="line-clamp-2 text-md font-bold text-content-primary hover:text-primary"
                     >
                       {row.products?.name ?? 'Product'}
                     </Link>
+
+                    {/* Selected Colour & Size badges */}
+                    {variants.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 py-0.5 notranslate" translate="no">
+                        {variants.map((v, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-edge bg-surface-page px-2 py-0.5 text-xs font-semibold text-content-secondary"
+                          >
+                            {v.color && (
+                              <span className="flex items-center gap-1">
+                                <span className="text-content-tertiary">
+                                  {language.code === 'el' ? 'Χρώμα:' : 'Colour:'}
+                                </span>
+                                <span className="font-bold text-primary">{v.color}</span>
+                              </span>
+                            )}
+                            {v.color && v.size && <span className="text-edge">·</span>}
+                            {v.size && (
+                              <span className="flex items-center gap-1">
+                                <span className="text-content-tertiary">
+                                  {language.code === 'el' ? 'Μέγεθος:' : 'Size:'}
+                                </span>
+                                <span className="font-bold text-secondary">{v.size}</span>
+                              </span>
+                            )}
+                            {variants.length > 1 && (
+                              <span className="ml-1 rounded-full bg-primary/10 px-1.5 text-3xs font-bold text-primary">
+                                &times;{v.quantity}
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-extrabold text-secondary">{formatPrice(unitPrice)}</span>

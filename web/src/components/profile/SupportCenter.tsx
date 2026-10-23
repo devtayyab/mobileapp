@@ -230,7 +230,9 @@ export function SupportCenter({
                     can reply to your registered email address.
                   </p>
                   <Link href="/login?next=/help" className="w-fit">
-                    <Button>{t.signIn ?? 'Sign In'}</Button>
+                    <Button className="notranslate" translate="no">
+                      {language.code === 'el' ? 'Σύνδεση' : (t.signIn ?? 'Sign In')}
+                    </Button>
                   </Link>
                 </>
               )}

@@ -10,7 +10,7 @@
 
 import type { Country } from '@/types/database';
 import { useLanguage } from '@/providers/LanguageProvider';
-import { formatAmount } from './types';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 export function OrderTotals({
   currency,
@@ -20,7 +20,7 @@ export function OrderTotals({
   total,
   country,
 }: {
-  currency: string;
+  currency?: string;
   subtotal: number;
   shippingFee: number;
   vatAmount: number;
@@ -28,27 +28,28 @@ export function OrderTotals({
   country: Country | null;
 }) {
   const { t } = useLanguage();
+  const { formatPrice } = useCurrency();
   const vatIncluded = country?.vat_type === 'included';
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Row label={t.subtotal ?? 'Subtotal'} value={formatAmount(currency, subtotal)} />
+      <Row label={t.subtotal ?? 'Subtotal'} value={formatPrice(subtotal)} />
       <Row
         label={`${t.shipping ?? 'Shipping'} (total)`}
-        value={shippingFee > 0 ? formatAmount(currency, shippingFee) : (t.free ?? 'Free')}
+        value={shippingFee > 0 ? formatPrice(shippingFee) : (t.free ?? 'Free')}
       />
 
       {country && (
         <Row
           label={`${t.vat ?? 'VAT'}/Tax (${country.vat_percentage}%)${vatIncluded ? ' — included in price' : ''}`}
-          value={vatIncluded ? 'Included' : `+ ${formatAmount(currency, vatAmount)}`}
+          value={vatIncluded ? 'Included' : `+ ${formatPrice(vatAmount)}`}
         />
       )}
 
       <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-edge pt-2.5">
         <span className="text-xl font-bold text-content-primary">{t.total ?? 'Total'}</span>
         <span className="text-4xl font-extrabold text-content-primary">
-          {formatAmount(currency, total)}
+          {formatPrice(total)}
         </span>
       </div>
     </div>

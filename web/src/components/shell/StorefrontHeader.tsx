@@ -73,7 +73,10 @@ export function StorefrontHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-edge bg-surface-translucent backdrop-blur">
+      <header
+        className="sticky top-0 z-40 border-b border-edge bg-surface-translucent backdrop-blur notranslate"
+        translate="no"
+      >
         <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-3 sm:gap-4">
           <BrandLogo size="md" />
 
@@ -194,8 +197,8 @@ export function StorefrontHeader({
               </div>
             ) : (
               <Link href="/login">
-                <Button size="sm" className="whitespace-nowrap">
-                  {t.signIn ?? 'Sign in'}
+                <Button size="sm" className="whitespace-nowrap notranslate" translate="no">
+                  {language.code === 'el' ? 'Σύνδεση' : (t.signIn ?? 'Sign In')}
                 </Button>
               </Link>
             )}

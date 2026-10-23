@@ -38,11 +38,19 @@ export type ShippingAddress = {
 
 export type SupplierRateMap = Record<string, { charge: number; deliveryDays: number | null }>;
 
+import { CURRENCIES } from '@/providers/CurrencyProvider';
+
 /**
- * Checkout works in the order's own currency (the amount actually charged by
- * Stripe), so it prints raw amounts rather than running them through the
- * display-currency converter — same as mobile.
+ * Format amounts in the given currency code (e.g. charged order amounts).
+ * Formats using the matching currency symbol and decimal rules when available.
  */
 export function formatAmount(currency: string, amount: number) {
+  const found = CURRENCIES.find((c) => c.code.toUpperCase() === (currency ?? '').toUpperCase());
+  if (found) {
+    return `${found.symbol} ${amount.toLocaleString(undefined, {
+      minimumFractionDigits: found.decimals,
+      maximumFractionDigits: found.decimals,
+    })}`;
+  }
   return `${currency} ${amount.toFixed(2)}`;
 }

@@ -313,10 +313,13 @@ export default function CheckoutScreen() {
 
     try {
       const orderNumber = `ORD-${Date.now()}`;
+      const isB2B = profile?.role === 'b2b';
+      const commissionRate = isB2B ? 0.06 : 0.11;
+      const supplierRate = 1 - commissionRate; // 0.94 for wholesale (B2B), 0.89 for retail
       const subtotal = calculateSubtotal();
       const shippingFee = calculateTotalShipping();
       const vatAmount = calculateVat(subtotal);
-      const platformCommission = subtotal * 0.1;
+      const platformCommission = subtotal * commissionRate;
       const total = calculateTotal();
       const currency = cartItems[0]?.products?.currency || 'USD';
 
@@ -325,7 +328,7 @@ export default function CheckoutScreen() {
         const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
 
         const { data: paymentIntentData, error: paymentIntentError } = await supabase.functions.invoke('create-payment-intent', {
-          body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId },
+          body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId, is_b2b: isB2B },
         });
 
         if (paymentIntentError) {
@@ -394,8 +397,8 @@ export default function CheckoutScreen() {
           quantity: item.quantity,
           unit_price: getPrice(item),
           subtotal: getPrice(item) * item.quantity,
-          supplier_amount: getPrice(item) * item.quantity * 0.9,
-          platform_commission: getPrice(item) * item.quantity * 0.1,
+          supplier_amount: getPrice(item) * item.quantity * supplierRate,
+          platform_commission: getPrice(item) * item.quantity * commissionRate,
         }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);

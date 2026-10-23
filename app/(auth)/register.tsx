@@ -47,7 +47,7 @@ export default function RegisterScreen() {
     // Each role shows its own theme's brand color (Customer=green, B2B=pink, Supplier=blue).
     { key: 'customer', label: 'Customer', sub: '(Shop)', icon: ShoppingBag, color: '#4CAF50', bg: 'rgba(76, 175, 80, 0.1)' },
     { key: 'b2b', label: 'Wholesale', sub: '(B2B)', icon: Briefcase, color: '#FF4D8D', bg: 'rgba(255, 77, 141, 0.1)' },
-    { key: 'supplier', label: 'Retailer', sub: 'Sell products', icon: Store, color: '#2196F3', bg: 'rgba(33, 150, 243, 0.1)' },
+    { key: 'supplier', label: 'Supplier', sub: 'Sell products', icon: Store, color: '#2196F3', bg: 'rgba(33, 150, 243, 0.1)' },
   ];
 
   const handleRegister = async () => {

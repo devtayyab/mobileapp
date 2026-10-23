@@ -33,12 +33,12 @@ type UserRole = 'customer' | 'b2b' | 'supplier';
 const ROLES: { key: UserRole; label: string; sub: string; icon: typeof ShoppingBag }[] = [
   { key: 'customer', label: 'Customer', sub: '(Shop)', icon: ShoppingBag },
   { key: 'b2b', label: 'Wholesale', sub: '(B2B)', icon: Briefcase },
-  { key: 'supplier', label: 'Retailer', sub: 'Sell products', icon: Store },
+  { key: 'supplier', label: 'Supplier', sub: 'Sell products', icon: Store },
 ];
 
 export function RegisterForm() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [role, setRole] = useState<UserRole>('customer');
   const [name, setName] = useState('');
@@ -111,11 +111,35 @@ export function RegisterForm() {
       .update({ role, full_name: name.trim(), phone: fullPhone })
       .eq('id', data.user.id);
 
+    // If registering as a supplier, record supplier entry with pending approval from super admin
+    if (role === 'supplier') {
+      try {
+        const { data: existingSupplier } = await supabase
+          .from('suppliers')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
+
+        if (!existingSupplier) {
+          await supabase.from('suppliers').insert({
+            user_id: data.user.id,
+            business_name: name.trim(),
+            business_email: email.trim(),
+            business_phone: fullPhone,
+            kyc_status: 'pending',
+            is_active: false,
+          });
+        }
+      } catch (suppErr) {
+        console.error('Error recording pending supplier row:', suppErr);
+      }
+    }
+
     // Mobile signs the new user straight back out and routes to login.
     await supabase.auth.signOut();
 
     setLoading(false);
-    router.push('/login');
+    router.push(role === 'supplier' ? '/login?pending_supplier=1' : '/login');
     router.refresh();
   };
 
@@ -254,8 +278,12 @@ export function RegisterForm() {
 
           <p className="text-center text-md text-content-tertiary">
             {t.alreadyHaveAccount ?? 'Already have an account?'}{' '}
-            <Link href="/login" className="font-bold text-primary hover:underline">
-              {t.signIn ?? 'Sign In'}
+            <Link
+              href="/login"
+              className="font-bold text-primary hover:underline notranslate"
+              translate="no"
+            >
+              {language.code === 'el' ? 'Σύνδεση' : (t.signIn ?? 'Sign In')}
             </Link>
           </p>
         </div>

@@ -9,12 +9,14 @@ import { WEB_ROLES, homeForRole } from '@/lib/roles';
 import { AuthCard } from '@/components/auth/AuthCard';
 import { Button, Input } from '@/components/ui';
 import { cn } from '@/lib/cn';
+import { useLanguage } from '@/providers/LanguageProvider';
 
 type LoginMode = 'email' | 'phone';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { language, t } = useLanguage();
 
   const [mode, setMode] = useState<LoginMode>('email');
 
@@ -38,6 +40,12 @@ export default function LoginPage() {
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  useEffect(() => {
+    if (searchParams.get('pending_supplier')) {
+      setSuccess('Supplier account created! Your account is pending review and approval by the super admin.');
+    }
+  }, [searchParams]);
 
   const redirectAfterLogin = async (userId: string) => {
     const supabase = createClient();
@@ -167,8 +175,8 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      title="Welcome back"
-      subtitle="Sign in to your account"
+      title={language.code === 'el' ? 'Καλώς ήρθατε' : (t.welcomeBack ?? 'Welcome back')}
+      subtitle={language.code === 'el' ? 'Συνδεθείτε στον λογαριασμό σας' : (t.loginSubtitle ?? 'Sign in to your account')}
       footer={
         <span className="text-content-tertiary">
           Don&apos;t have an account?{' '}
@@ -264,8 +272,16 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <Button type="submit" fullWidth loading={loading}>
-              {loading ? 'Signing in…' : 'Sign in with Email'}
+            <Button
+              type="submit"
+              fullWidth
+              loading={loading}
+              className="notranslate"
+              translate="no"
+            >
+              {loading
+                ? (language.code === 'el' ? 'Σύνδεση…' : 'Signing in…')
+                : (language.code === 'el' ? 'Σύνδεση με Email' : 'Sign in with Email')}
             </Button>
           </form>
         ) : (
@@ -287,8 +303,16 @@ export default function LoginPage() {
                   Enter your phone number with international country code. We will send you a 6-digit OTP verification code.
                 </p>
 
-                <Button type="submit" fullWidth loading={loading}>
-                  {loading ? 'Sending Code…' : 'Send Verification Code (OTP)'}
+                <Button
+                  type="submit"
+                  fullWidth
+                  loading={loading}
+                  className="notranslate"
+                  translate="no"
+                >
+                  {loading
+                    ? (language.code === 'el' ? 'Αποστολή κωδικού…' : 'Sending Code…')
+                    : (language.code === 'el' ? 'Αποστολή κωδικού επαλήθευσης (OTP)' : 'Send Verification Code (OTP)')}
                 </Button>
               </form>
             ) : (
@@ -336,8 +360,16 @@ export default function LoginPage() {
                   )}
                 </div>
 
-                <Button type="submit" fullWidth loading={loading}>
-                  {loading ? 'Verifying…' : 'Verify & Sign In'}
+                <Button
+                  type="submit"
+                  fullWidth
+                  loading={loading}
+                  className="notranslate"
+                  translate="no"
+                >
+                  {loading
+                    ? (language.code === 'el' ? 'Επαλήθευση…' : 'Verifying…')
+                    : (language.code === 'el' ? 'Σύνδεση' : 'Verify & Sign In')}
                 </Button>
               </form>
             )}
