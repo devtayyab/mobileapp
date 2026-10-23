@@ -25,6 +25,7 @@ import { getStripe } from '@/lib/stripe';
 import { useCart } from '@/providers/CartProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
+import { useToast } from '@/providers/ToastProvider';
 import { getVariantsForProduct, clearCartVariants } from '@/lib/cart-variants';
 import {
   Button,
@@ -234,6 +235,7 @@ function CheckoutInner({
 }) {
   const { t } = useLanguage();
   const { currency: activeCurrency, formatPrice } = useCurrency();
+  const { toast } = useToast();
   const { clear, refresh } = useCart();
   const stripe = useStripe();
   const elements = useElements();
@@ -633,7 +635,16 @@ function CheckoutInner({
 
       setPlaced({ id: order.id, number: orderNumber, total: convertedTotal, currency, issues });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      const msg = err instanceof Error ? err.message : 'Something went wrong';
+      setError(msg);
+      toast({
+        title: 'Payment Failed',
+        message: msg,
+        kind: 'error',
+      });
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } finally {
       setPlacing(false);
     }
@@ -798,6 +809,13 @@ function CheckoutInner({
               </p>
               <span className="font-semibold text-success">256-bit Encrypted</span>
             </div>
+
+            {error && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-error bg-error/10 p-3 text-md font-bold text-error">
+                <AlertTriangle size={18} className="mt-0.5 shrink-0 text-error" />
+                <span>{error}</span>
+              </div>
+            )}
           </motion.section>
         </div>
 
@@ -826,6 +844,13 @@ function CheckoutInner({
             total={total}
             country={selectedCountry}
           />
+
+          {error && (
+            <div className="flex items-start gap-2 rounded-xl border border-error bg-error/10 p-3 text-sm font-bold text-error">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-error" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <Button
             size="lg"

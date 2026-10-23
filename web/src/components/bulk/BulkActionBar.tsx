@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, EyeOff, Percent, Star, Tag, Undo2, X } from 'lucide-react';
+import { Check, EyeOff, Percent, Star, Tag, Trash2, Undo2, X } from 'lucide-react';
 import { Button, Select } from '@/components/ui';
 import type { BulkCategory } from './bulk-types';
 
@@ -25,6 +25,7 @@ export function BulkActionBar({
   onSetCategory,
   onPrice,
   onStock,
+  onDelete,
   onUndo,
   onClear,
 }: {
@@ -38,6 +39,7 @@ export function BulkActionBar({
   onSetCategory: (categoryId: string) => void;
   onPrice: (mode: PriceMode, value: number) => void;
   onStock: (mode: StockMode, value: number) => void;
+  onDelete?: () => void;
   onUndo: () => void;
   onClear: () => void;
 }) {
@@ -179,6 +181,17 @@ export function BulkActionBar({
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
+          {onDelete && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={onDelete}
+              className="text-error hover:bg-error/10 hover:text-error"
+            >
+              <Trash2 size={14} /> Delete
+            </Button>
+          )}
           {canUndo && (
             <Button size="sm" variant="outline" disabled={busy} onClick={onUndo} title={undoLabel}>
               <Undo2 size={14} /> Undo

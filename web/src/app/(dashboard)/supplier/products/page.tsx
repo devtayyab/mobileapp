@@ -18,7 +18,7 @@ export default async function SupplierProductsPage() {
 
   const { data: supplier } = await supabase
     .from('suppliers')
-    .select('id')
+    .select('id, kyc_status')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -45,6 +45,8 @@ export default async function SupplierProductsPage() {
     );
   }
 
+  const isPendingApproval = supplier.kyc_status !== 'approved';
+
   const [{ data: products }, { data: categories }] = await Promise.all([
     supabase
       .from('products')
@@ -56,12 +58,21 @@ export default async function SupplierProductsPage() {
   ]);
 
   return (
-    <BulkProductManager
-      title="My Products"
-      initialProducts={(products ?? []) as BulkProduct[]}
-      categories={categories ?? []}
-      addHref="/supplier/products/new"
-      editHrefPattern="/supplier/products/{id}/edit"
-    />
+    <div className="space-y-4">
+      {isPendingApproval && (
+        <div className="rounded-xl border border-warning bg-warning/10 p-4 text-warning">
+          <p className="text-base font-bold">
+            Account Pending Approval: Your supplier account is awaiting approval by the super admin. You will be able to publish and sell products once approved.
+          </p>
+        </div>
+      )}
+      <BulkProductManager
+        title="My Products"
+        initialProducts={(products ?? []) as BulkProduct[]}
+        categories={categories ?? []}
+        addHref={isPendingApproval ? undefined : "/supplier/products/new"}
+        editHrefPattern="/supplier/products/{id}/edit"
+      />
+    </div>
   );
 }

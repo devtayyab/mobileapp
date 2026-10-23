@@ -17,6 +17,36 @@ type Message = {
   is_read?: boolean;
 };
 
+function maskContactInfo(text: string): string {
+  if (!text) return text;
+  let masked = text.replace(
+    /[a-zA-Z0-9._%+-]+(?:\s*@\s*|\s*\[at\]\s*)[a-zA-Z0-9.-]+(?:\s*\.\s*|\s*\[dot\]\s*)[a-zA-Z]{2,}/gi,
+    '[Email Hidden]'
+  );
+  const dates: string[] = [];
+  masked = masked.replace(
+    /\b(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})\b/g,
+    (d) => {
+      dates.push(d);
+      return `___PROT_DATE_${dates.length - 1}___`;
+    }
+  );
+  masked = masked.replace(
+    /(?:(?:\+|00)\d{1,3}[\s.-]*)?(?:\(?\d{2,4}\)?[\s.-]*)?\d{3,4}[\s.-]*\d{3,4}(?:[\s.-]*\d{1,5})?|\b(?:\d[\s.-]*){7,15}\b/g,
+    (match) => {
+      const digits = match.replace(/\D/g, '');
+      if (digits.length >= 7 && digits.length <= 15) {
+        return '[Phone Hidden]';
+      }
+      return match;
+    }
+  );
+  dates.forEach((d, idx) => {
+    masked = masked.replace(`___PROT_DATE_${idx}___`, d);
+  });
+  return masked;
+}
+
 export default function ChatRoomScreen() {
   const { id: roomId } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
@@ -226,7 +256,8 @@ export default function ChatRoomScreen() {
 
   const sendMessage = async () => {
     if (!inputText.trim() || !user) return;
-    const textToSend = inputText.trim();
+    const isSupportChat = otherUser?.role === 'admin';
+    const textToSend = !isSupportChat ? maskContactInfo(inputText.trim()) : inputText.trim();
     setInputText('');
     Keyboard.dismiss();
 
@@ -298,7 +329,7 @@ export default function ChatRoomScreen() {
             styles.messageText,
             isMine ? styles.myMessageText : styles.otherMessageText
           ]}>
-            {item.message}
+            {otherUser?.role !== 'admin' ? maskContactInfo(item.message) : item.message}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', gap: 4 }}>
             <Text style={[

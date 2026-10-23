@@ -41,6 +41,12 @@ export default function LoginPage() {
     }
   }, [countdown]);
 
+  useEffect(() => {
+    if (searchParams.get('pending_supplier')) {
+      setSuccess('Supplier account created! Your account is pending review and approval by the super admin.');
+    }
+  }, [searchParams]);
+
   const redirectAfterLogin = async (userId: string) => {
     const supabase = createClient();
     const { data: profile } = await supabase

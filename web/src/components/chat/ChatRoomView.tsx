@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, CheckCheck, MessageSquare, Send, User } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck, MessageSquare, Send, ShieldAlert, User } from 'lucide-react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/providers/LanguageProvider';
@@ -18,8 +18,10 @@ import {
   formatMessageDay,
   formatMessageTime,
   formatRelativeTime,
+  hasContactInfo,
   isOnline,
   localeFor,
+  maskContactInfo,
   roleLabel,
   roleTone,
   type ChatMessageRecord,
@@ -194,6 +196,17 @@ export function ChatRoomView({
     const text = input.trim();
     if (!text || sending) return;
 
+    // Filter personal contact information (email/phone) in direct buyer-supplier chats
+    const isP2P = roomType === 'p2p';
+    const messageToSend = isP2P ? maskContactInfo(text) : text;
+    if (isP2P && hasContactInfo(text)) {
+      toast({
+        title: 'Privacy Protected',
+        message: 'Personal contact details (email/phone) are masked to safeguard privacy.',
+        kind: 'info',
+      });
+    }
+
     setInput('');
     setSending(true);
 
@@ -202,7 +215,7 @@ export function ChatRoomView({
       id: optimisticId,
       room_id: roomId,
       sender_id: viewerId,
-      message: text,
+      message: messageToSend,
       is_read: false,
       created_at: new Date().toISOString(),
     };
@@ -212,7 +225,7 @@ export function ChatRoomView({
       const supabase = createClient();
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert({ room_id: roomId, sender_id: viewerId, message: text })
+        .insert({ room_id: roomId, sender_id: viewerId, message: messageToSend })
         .select('*')
         .single();
 
@@ -308,6 +321,13 @@ export function ChatRoomView({
         </div>
       </header>
 
+      {roomType === 'p2p' && (
+        <div className="flex items-center gap-2 border-b border-edge/60 bg-surface-tint/50 px-4 py-2 text-xs text-content-tertiary">
+          <ShieldAlert size={14} className="shrink-0 text-primary" />
+          <span>Direct contact details (email and telephone) are masked to safeguard both buyer and supplier.</span>
+        </div>
+      )}
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-8 text-center">
@@ -349,7 +369,7 @@ export function ChatRoomView({
                         )}
                       >
                         <p className="whitespace-pre-wrap break-words text-lg">
-                          {message.message}
+                          {roomType === 'p2p' ? maskContactInfo(message.message) : message.message}
                         </p>
                         <span
                           className={cn(

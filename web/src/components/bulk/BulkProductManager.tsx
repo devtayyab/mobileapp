@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
-import { Download, Package, Plus, Upload } from 'lucide-react';
+import { Download, Package, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/providers/ToastProvider';
 import {
@@ -11,6 +11,7 @@ import {
   Button,
   DataTable,
   EmptyState,
+  Modal,
   SearchInput,
   StatusBadge,
   Tabs,
@@ -77,6 +78,7 @@ export function BulkProductManager({
   const [busy, setBusy] = useState(false);
   const [csvOpen, setCsvOpen] = useState(false);
   const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const [deletingIds, setDeletingIds] = useState<string[] | null>(null);
 
   const categoryName = (id: string | null) =>
     categories.find((c) => c.id === id)?.name ?? '—';
@@ -360,6 +362,35 @@ export function BulkProductManager({
         </div>
       ),
     },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      render: (p) => (
+        <div className="flex items-center justify-end gap-1">
+          {editHrefFor && (
+            <Link
+              href={editHrefFor(p.id)}
+              className="rounded-lg p-1.5 text-content-tertiary transition-colors hover:bg-surface-page hover:text-content-primary"
+              title="Edit product"
+            >
+              <Pencil size={15} />
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setDeletingIds([p.id]);
+            }}
+            className="rounded-lg p-1.5 text-content-tertiary transition-colors hover:bg-error/10 hover:text-error"
+            title="Delete product"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   const exportCsv = () => {
@@ -467,11 +498,42 @@ export function BulkProductManager({
             onSetCategory={(id) => void bulkSet({ category_id: id }, 'Category changed')}
             onPrice={(mode, value) => void bulkPrice(mode, value)}
             onStock={(mode, value) => void bulkStock(mode, value)}
+            onDelete={() => setDeletingIds(Array.from(selected))}
             onUndo={() => void undo()}
             onClear={() => setSelected(new Set())}
           />
         )}
       </AnimatePresence>
+
+      <Modal
+        open={deletingIds != null}
+        onClose={() => setDeletingIds(null)}
+        title={`Delete ${deletingIds?.length === 1 ? 'Product' : `${deletingIds?.length} Products`}?`}
+      >
+        <div className="space-y-4">
+          <p className="text-md leading-6 text-content-secondary">
+            Are you sure you want to permanently delete{' '}
+            <strong className="text-content-primary">
+              {deletingIds?.length === 1
+                ? products.find((p) => p.id === deletingIds[0])?.name ?? 'this product'
+                : `${deletingIds?.length} selected products`}
+            </strong>
+            ? This action cannot be undone.
+          </p>
+          <div className="flex justify-end gap-2.5 pt-2">
+            <Button variant="outline" onClick={() => setDeletingIds(null)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-error hover:bg-error/90 text-white"
+              loading={busy}
+              onClick={() => void executeDelete(deletingIds!)}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <BulkCsvImport
         open={csvOpen}
@@ -482,6 +544,31 @@ export function BulkProductManager({
       />
     </div>
   );
+
+  async function executeDelete(ids: string[]) {
+    if (ids.length === 0) return;
+    setBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.from('products').delete().in('id', ids);
+
+    setBusy(false);
+    if (error) {
+      toast({ title: 'Delete failed', message: error.message, kind: 'error' });
+      return;
+    }
+
+    setProducts((prev) => prev.filter((p) => !ids.includes(p.id)));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+    setDeletingIds(null);
+    toast({
+      title: `${ids.length} product${ids.length === 1 ? '' : 's'} deleted`,
+      kind: 'success',
+    });
+  }
 
   /**
    * `bulk_update_products` intentionally does not touch is_featured, so the

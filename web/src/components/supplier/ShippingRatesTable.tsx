@@ -16,11 +16,12 @@ import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, Globe, Pencil } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/cn';
-import { Badge, Button, EmptyState, Input, Modal, SearchInput } from '@/components/ui';
+import { Badge, Button, EmptyState, Input, Modal, SearchInput, Select } from '@/components/ui';
 import { SupplierToggle } from '@/components/supplier/SupplierToggle';
 import { formatMoney } from '@/components/supplier/money';
 import { useToast } from '@/providers/ToastProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { useCurrency, CURRENCIES, type Currency } from '@/providers/CurrencyProvider';
 
 export type CountryShippingRate = {
   /** `countries.id` — also the `country_id` written on the rate row. */
@@ -44,14 +45,27 @@ export function ShippingRatesTable({
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { currency: globalCurrency } = useCurrency();
 
   const [search, setSearch] = useState('');
+  const [selectedCurrencyCode, setSelectedCurrencyCode] = useState(globalCurrency?.code || 'USD');
   const [editing, setEditing] = useState<CountryShippingRate | null>(null);
+  const [modalCurrencyCode, setModalCurrencyCode] = useState('USD');
   const [charge, setCharge] = useState('');
   const [days, setDays] = useState('');
   const [active, setActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const activeCurrency = useMemo(
+    () => CURRENCIES.find((c) => c.code === selectedCurrencyCode) ?? CURRENCIES[0],
+    [selectedCurrencyCode]
+  );
+
+  const modalCurrency = useMemo(
+    () => CURRENCIES.find((c) => c.code === modalCurrencyCode) ?? CURRENCIES[0],
+    [modalCurrencyCode]
+  );
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -63,10 +77,29 @@ export function ShippingRatesTable({
 
   const openEditor = (rate: CountryShippingRate) => {
     setEditing(rate);
-    setCharge(rate.shippingCharge != null ? String(rate.shippingCharge) : '');
+    const curr = activeCurrency;
+    setModalCurrencyCode(curr.code);
+    if (rate.shippingCharge != null) {
+      const converted = rate.shippingCharge * curr.rate;
+      setCharge(converted === 0 ? '0' : converted.toFixed(curr.decimals));
+    } else {
+      setCharge('');
+    }
     setDays(rate.deliveryTimeDays != null ? String(rate.deliveryTimeDays) : '');
     setActive(rate.rateId ? rate.isActive : true);
     setError(null);
+  };
+
+  const handleModalCurrencyChange = (newCode: string) => {
+    const newCurr = CURRENCIES.find((c) => c.code === newCode) ?? CURRENCIES[0];
+    const currentNum = Number.parseFloat(charge);
+    if (!Number.isNaN(currentNum) && currentNum > 0) {
+      // Convert from previous modal currency to USD, then to new currency
+      const baseUSD = currentNum / modalCurrency.rate;
+      const converted = (baseUSD * newCurr.rate).toFixed(newCurr.decimals);
+      setCharge(converted);
+    }
+    setModalCurrencyCode(newCode);
   };
 
   const save = async () => {
@@ -82,10 +115,14 @@ export function ShippingRatesTable({
 
     try {
       const supabase = createClient();
+      // Convert the entered amount from modal currency back to base USD
+      const rawNum = Number.parseFloat(charge) || 0;
+      const chargeInUSD = Math.round((rawNum / modalCurrency.rate) * 100) / 100;
+
       const payload = {
         supplier_id: supplierId,
         country_id: editing.countryId,
-        shipping_charge: Number.parseFloat(charge) || 0,
+        shipping_charge: chargeInUSD,
         delivery_time_days: days.trim() ? Number.parseInt(days, 10) : null,
         is_active: active,
       };
@@ -102,7 +139,7 @@ export function ShippingRatesTable({
       setEditing(null);
       toast({
         title: 'Rate saved',
-        message: `Shipping to ${editing.countryName} updated.`,
+        message: `Shipping to ${editing.countryName} updated (${modalCurrency.code} ${rawNum}).`,
         kind: 'success',
       });
       router.refresh();
@@ -125,11 +162,30 @@ export function ShippingRatesTable({
         </p>
       </div>
 
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder={`${t.search ?? 'Search'} countries…`}
-      />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex-1">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder={`${t.search ?? 'Search'} countries…`}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-content-tertiary">Display Currency:</span>
+          <select
+            value={selectedCurrencyCode}
+            onChange={(e) => setSelectedCurrencyCode(e.target.value)}
+            aria-label="Shipping rates currency"
+            className="h-[46px] rounded-xl border border-edge bg-surface px-3 py-1.5 text-md font-bold text-content-primary shadow-xs outline-none focus:border-secondary"
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.code} ({c.symbol})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       {visible.length === 0 ? (
         <EmptyState
@@ -195,9 +251,17 @@ export function ShippingRatesTable({
                     <div className="flex min-w-0 flex-1 gap-6">
                       <div>
                         <p className="text-sm text-content-tertiary">Shipping Fee</p>
-                        {/* The editor below prices in USD — the readout carries the same unit. */}
                         <p className="text-xl font-bold text-content-primary">
-                          {formatMoney('USD', rate.shippingCharge ?? 0)}
+                          {activeCurrency.symbol}{' '}
+                          {((rate.shippingCharge ?? 0) * activeCurrency.rate).toLocaleString(undefined, {
+                            minimumFractionDigits: activeCurrency.decimals,
+                            maximumFractionDigits: activeCurrency.decimals,
+                          })}
+                          {activeCurrency.code !== 'USD' && (
+                            <span className="ml-1 text-xs font-normal text-content-tertiary">
+                              ({formatMoney('USD', rate.shippingCharge ?? 0)})
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div>
@@ -237,16 +301,33 @@ export function ShippingRatesTable({
         title={editing ? `Set Rate: ${editing.countryName}` : 'Set Rate'}
       >
         <div className="flex flex-col gap-4">
-          <div>
-            <Input
-              label="Shipping Charge (USD)"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={charge}
-              onChange={(e) => setCharge(e.target.value)}
-            />
-            <p className="mt-1 text-sm text-content-tertiary">Enter 0 for free shipping</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="sm:col-span-1">
+              <Select
+                label="Currency"
+                value={modalCurrencyCode}
+                onChange={(e) => handleModalCurrencyChange(e.target.value)}
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.code} ({c.symbol})
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="sm:col-span-2">
+              <Input
+                label={`Shipping Charge (${modalCurrency.code})`}
+                inputMode="decimal"
+                placeholder="0.00"
+                value={charge}
+                onChange={(e) => setCharge(e.target.value)}
+              />
+            </div>
           </div>
+          <p className="-mt-2 text-sm text-content-tertiary">
+            Enter 0 for free shipping. Stored converted to platform base (USD).
+          </p>
 
           <Input
             label="Est. Delivery Time (Days)"

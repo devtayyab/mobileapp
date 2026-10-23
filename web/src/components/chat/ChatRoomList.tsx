@@ -17,6 +17,7 @@ import { fetchChatRooms } from './roomQueries';
 import {
   formatRelativeTime,
   localeFor,
+  maskContactInfo,
   roleLabel,
   roleTone,
   roomTitle,
@@ -270,7 +271,11 @@ export function ChatRoomList({
                         {room.last_message
                           ? `${
                               room.last_message.sender_id === viewerId ? 'You: ' : ''
-                            }${room.last_message.message}`
+                            }${
+                              room.room_type === 'p2p'
+                                ? maskContactInfo(room.last_message.message)
+                                : room.last_message.message
+                            }`
                           : t.noMessagesYet ?? 'No messages yet'}
                       </p>
                       {unread > 0 && (

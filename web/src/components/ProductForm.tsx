@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getOrCreateSupplierId } from '@/lib/supabase/supplier';
 import type { Category, Product } from '@/types/database';
-import { Button, Input, Select, Textarea } from '@/components/ui';
-import { Plus, X, Palette, Ruler } from 'lucide-react';
+import { Button, Input, Modal, Select, Textarea } from '@/components/ui';
+import { Plus, X, Palette, Ruler, Trash2 } from 'lucide-react';
 
 const PRESET_COLORS = [
   { name: 'Black', hex: '#000000' },
@@ -105,6 +105,8 @@ export default function ProductForm({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(existingImageUrl ?? null);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const toggleColor = (name: string) => {
@@ -562,9 +564,71 @@ export default function ProductForm({
         />
       </div>
 
-      <Button type="submit" loading={saving}>
-        {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create product'}
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <Button type="submit" loading={saving}>
+          {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create product'}
+        </Button>
+
+        {isEdit && existingProduct && (
+          <Button
+            type="button"
+            variant="outline"
+            className="border-error text-error hover:bg-error/10 hover:text-error"
+            onClick={() => setConfirmDelete(true)}
+            disabled={saving || deleting}
+          >
+            <Trash2 size={16} /> Delete product
+          </Button>
+        )}
+      </div>
+
+      {isEdit && existingProduct && (
+        <Modal
+          open={confirmDelete}
+          onClose={() => setConfirmDelete(false)}
+          title="Delete Product?"
+        >
+          <div className="space-y-4">
+            <p className="text-md leading-6 text-content-secondary">
+              Are you sure you want to permanently delete{' '}
+              <strong className="text-content-primary">{existingProduct.name}</strong>? This action
+              cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-error hover:bg-error/90 text-white"
+                loading={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  const supabase = createClient();
+                  const { error: delError } = await supabase
+                    .from('products')
+                    .delete()
+                    .eq('id', existingProduct.id);
+
+                  setDeleting(false);
+                  if (delError) {
+                    setError(delError.message);
+                    setConfirmDelete(false);
+                    return;
+                  }
+                  router.push('/supplier/products');
+                  router.refresh();
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </form>
   );
 }

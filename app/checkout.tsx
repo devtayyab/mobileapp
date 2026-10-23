@@ -312,6 +312,7 @@ export default function CheckoutScreen() {
     setPlacing(true);
 
     try {
+      const orderNumber = `ORD-${Date.now()}`;
       const isB2B = profile?.role === 'b2b';
       const commissionRate = isB2B ? 0.06 : 0.11;
       const supplierRate = 1 - commissionRate; // 0.94 for wholesale (B2B), 0.89 for retail
