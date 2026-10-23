@@ -38,7 +38,7 @@ const ROLES: { key: UserRole; label: string; sub: string; icon: typeof ShoppingB
 
 export function RegisterForm() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const [role, setRole] = useState<UserRole>('customer');
   const [name, setName] = useState('');
@@ -254,8 +254,12 @@ export function RegisterForm() {
 
           <p className="text-center text-md text-content-tertiary">
             {t.alreadyHaveAccount ?? 'Already have an account?'}{' '}
-            <Link href="/login" className="font-bold text-primary hover:underline">
-              {t.signIn ?? 'Sign In'}
+            <Link
+              href="/login"
+              className="font-bold text-primary hover:underline notranslate"
+              translate="no"
+            >
+              {language.code === 'el' ? 'Σύνδεση' : (t.signIn ?? 'Sign In')}
             </Link>
           </p>
         </div>

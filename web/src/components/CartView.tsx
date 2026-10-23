@@ -59,7 +59,7 @@ export default function CartView({
   isB2B: boolean;
 }) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   /*
     Catalog prices are stored in USD and `formatPrice` converts them into the
     viewer's selected display currency, so the footer label has to name that
@@ -171,9 +171,10 @@ export default function CartView({
           action={
             <Link
               href="/login?next=/cart"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-xl font-bold text-white transition-colors hover:bg-secondary-dark"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-secondary px-5 text-xl font-bold text-white transition-colors hover:bg-secondary-dark notranslate"
+              translate="no"
             >
-              {t.signIn ?? 'Sign In'}
+              {language.code === 'el' ? 'Σύνδεση' : (t.signIn ?? 'Sign In')}
               <ArrowRight size={16} />
             </Link>
           }
