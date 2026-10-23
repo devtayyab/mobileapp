@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getStripe } from '@/lib/stripe';
 import { useCart } from '@/providers/CartProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { getVariantsForProduct, clearCartVariants } from '@/lib/cart-variants';
 import {
   Button,
   EmptyState,
@@ -436,6 +437,24 @@ function CheckoutInner({
 
       const fullAddress = { ...address, country: selectedCountry.name };
 
+      // Compile detailed order variant notes (e.g. 2 blue shoes size 38, 2 red shoes size 42)
+      const orderSummaryNotes = cartItems
+        .filter((row) => row.products)
+        .map((row) => {
+          const variants = getVariantsForProduct(row.product_id);
+          const varText =
+            variants.length > 0
+              ? variants
+                  .map(
+                    (v) =>
+                      `${v.quantity}x [${v.color ? `Colour: ${v.color}` : ''}${v.color && v.size ? ', ' : ''}${v.size ? `Size: ${v.size}` : ''}]`
+                  )
+                  .join(', ')
+              : `${row.quantity}x`;
+          return `${row.products!.name}: ${varText}`;
+        })
+        .join(' | ');
+
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -452,6 +471,7 @@ function CheckoutInner({
           currency,
           shipping_address: fullAddress,
           billing_address: fullAddress,
+          notes: orderSummaryNotes || null,
         })
         .select()
         .single();
@@ -460,17 +480,48 @@ function CheckoutInner({
 
       const orderItems = cartItems
         .filter((row) => row.products)
-        .map((row) => ({
-          order_id: order.id,
-          product_id: row.product_id,
-          supplier_id: row.products!.supplier_id,
-          product_name: row.products!.name,
-          quantity: row.quantity,
-          unit_price: unitPrice(row),
-          subtotal: unitPrice(row) * row.quantity,
-          supplier_amount: unitPrice(row) * row.quantity * 0.9,
-          platform_commission: unitPrice(row) * row.quantity * 0.1,
-        }));
+        .flatMap((row) => {
+          const variants = getVariantsForProduct(row.product_id);
+          if (variants.length > 0) {
+            return variants.map((v) => {
+              const details = [
+                v.color ? `Colour: ${v.color}` : '',
+                v.size ? `Size: ${v.size}` : '',
+              ]
+                .filter(Boolean)
+                .join(', ');
+              const fullProductName = details
+                ? `${row.products!.name} (${details})`
+                : row.products!.name;
+
+              return {
+                order_id: order.id,
+                product_id: row.product_id,
+                supplier_id: row.products!.supplier_id,
+                product_name: fullProductName,
+                quantity: v.quantity,
+                unit_price: unitPrice(row),
+                subtotal: unitPrice(row) * v.quantity,
+                supplier_amount: unitPrice(row) * v.quantity * 0.9,
+                platform_commission: unitPrice(row) * v.quantity * 0.1,
+              };
+            });
+          }
+
+          return [
+            {
+              order_id: order.id,
+              product_id: row.product_id,
+              supplier_id: row.products!.supplier_id,
+              product_name: row.products!.name,
+              quantity: row.quantity,
+              unit_price: unitPrice(row),
+              subtotal: unitPrice(row) * row.quantity,
+              supplier_amount: unitPrice(row) * row.quantity * 0.9,
+              platform_commission: unitPrice(row) * row.quantity * 0.1,
+            },
+          ];
+        });
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw new Error(itemsError.message);
@@ -557,6 +608,7 @@ function CheckoutInner({
       }
 
       clear();
+      clearCartVariants();
       void refresh();
 
       setPlaced({ id: order.id, number: orderNumber, total, issues });

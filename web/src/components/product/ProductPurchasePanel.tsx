@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Tag, Truck } from 'lucide-react';
 import { Button, QuantityStepper } from '@/components/ui';
@@ -45,12 +45,52 @@ export function ProductPurchasePanel({
   const { addItem } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const colors: string[] = Array.isArray(specifications?.colors) ? specifications.colors : [];
   const sizes: string[] = Array.isArray(specifications?.sizes) ? specifications.sizes : [];
 
-  const [selectedColor, setSelectedColor] = useState<string>(colors[0] ?? '');
-  const [selectedSize, setSelectedSize] = useState<string>(sizes[0] ?? '');
+  const paramColor = searchParams.get('color');
+  const paramSize = searchParams.get('size');
+
+  const [selectedColor, setSelectedColor] = useState<string>(() => {
+    if (paramColor && colors.includes(paramColor)) return paramColor;
+    return colors[0] ?? '';
+  });
+  const [selectedSize, setSelectedSize] = useState<string>(() => {
+    if (paramSize && sizes.includes(paramSize)) return paramSize;
+    return sizes[0] ?? '';
+  });
+
+  useEffect(() => {
+    if (paramColor && colors.includes(paramColor)) {
+      setSelectedColor(paramColor);
+    }
+  }, [paramColor, colors]);
+
+  useEffect(() => {
+    if (paramSize && sizes.includes(paramSize)) {
+      setSelectedSize(paramSize);
+    }
+  }, [paramSize, sizes]);
+
+  const handleColorChange = (c: string) => {
+    setSelectedColor(c);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('color', c);
+      window.history.replaceState(null, '', url.pathname + url.search);
+    }
+  };
+
+  const handleSizeChange = (s: string) => {
+    setSelectedSize(s);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('size', s);
+      window.history.replaceState(null, '', url.pathname + url.search);
+    }
+  };
 
   const hasB2BPrice = isB2B && b2bPrice != null && b2bPrice > 0;
   const price = hasB2BPrice ? (b2bPrice as number) : b2cPrice;
@@ -68,7 +108,10 @@ export function ProductPurchasePanel({
   const handleAddToCart = async () => {
     setAdding(true);
     try {
-      await addItem(productId, price, quantity);
+      await addItem(productId, price, quantity, {
+        color: selectedColor || undefined,
+        size: selectedSize || undefined,
+      });
       router.push('/cart');
     } catch {
       toast({
@@ -92,8 +135,12 @@ export function ProductPurchasePanel({
       {colors.length > 0 && (
         <div className="space-y-2 border-b border-edge-light pb-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-content-primary">Colour:</span>
-            <span className="text-sm font-semibold text-secondary">{selectedColor}</span>
+            <span className="text-sm font-bold text-content-primary">
+              {t.colour ?? t.color ?? 'Colour'}:
+            </span>
+            <span className="text-sm font-semibold text-secondary notranslate" translate="no">
+              {selectedColor}
+            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {colors.map((c) => {
@@ -102,12 +149,13 @@ export function ProductPurchasePanel({
                 <button
                   key={c}
                   type="button"
-                  onClick={() => setSelectedColor(c)}
-                  className={`rounded-xl px-3 py-1.5 text-sm font-bold transition-all ${
+                  onClick={() => handleColorChange(c)}
+                  className={`rounded-xl px-3 py-1.5 text-sm font-bold transition-all notranslate ${
                     active
                       ? 'border-2 border-secondary bg-surface text-secondary shadow-sm ring-1 ring-secondary/20'
                       : 'border border-edge bg-surface text-content-secondary hover:border-content-tertiary'
                   }`}
+                  translate="no"
                 >
                   {c}
                 </button>
@@ -121,8 +169,12 @@ export function ProductPurchasePanel({
       {sizes.length > 0 && (
         <div className="space-y-2 border-b border-edge-light pb-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-content-primary">Size:</span>
-            <span className="text-sm font-semibold text-secondary">{selectedSize}</span>
+            <span className="text-sm font-bold text-content-primary">
+              {t.size ?? 'Size'}:
+            </span>
+            <span className="text-sm font-semibold text-secondary notranslate" translate="no">
+              {selectedSize}
+            </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {sizes.map((s) => {
@@ -131,12 +183,13 @@ export function ProductPurchasePanel({
                 <button
                   key={s}
                   type="button"
-                  onClick={() => setSelectedSize(s)}
-                  className={`min-w-[40px] rounded-xl px-3 py-1.5 text-center text-sm font-bold transition-all ${
+                  onClick={() => handleSizeChange(s)}
+                  className={`min-w-[40px] rounded-xl px-3 py-1.5 text-center text-sm font-bold transition-all notranslate ${
                     active
                       ? 'border-2 border-secondary bg-surface text-secondary shadow-sm ring-1 ring-secondary/20'
                       : 'border border-edge bg-surface text-content-secondary hover:border-content-tertiary'
                   }`}
+                  translate="no"
                 >
                   {s}
                 </button>
