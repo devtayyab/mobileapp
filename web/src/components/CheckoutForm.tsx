@@ -24,6 +24,7 @@ import { createClient } from '@/lib/supabase/client';
 import { getStripe } from '@/lib/stripe';
 import { useCart } from '@/providers/CartProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
 import { getVariantsForProduct, clearCartVariants } from '@/lib/cart-variants';
 import {
   Button,
@@ -42,7 +43,6 @@ import { CheckoutSuccess } from '@/components/checkout/CheckoutSuccess';
 import { OrderTotals } from '@/components/checkout/OrderTotals';
 import { SupplierPackageList } from '@/components/checkout/SupplierPackageList';
 import {
-  formatAmount,
   type CheckoutCartRow,
   type ShippingAddress,
   type SupplierPackage,
@@ -233,6 +233,7 @@ function CheckoutInner({
   initialAddress: Partial<ShippingAddress> | null;
 }) {
   const { t } = useLanguage();
+  const { currency: activeCurrency, formatPrice } = useCurrency();
   const { clear, refresh } = useCart();
   const stripe = useStripe();
   const elements = useElements();
@@ -253,6 +254,7 @@ function CheckoutInner({
     id: string | null;
     number: string;
     total: number;
+    currency: string;
     /** Post-charge bookkeeping that did not land — shown as a warning. */
     issues: string[];
   } | null>(null);
@@ -359,7 +361,7 @@ function CheckoutInner({
   const vatAmount =
     selectedCountry && !vatIncluded ? (subtotal * selectedCountry.vat_percentage) / 100 : 0;
   const total = subtotal + shippingFee + vatAmount;
-  const currency = cartItems[0]?.products?.currency ?? 'USD';
+  const currency = activeCurrency?.code ?? cartItems[0]?.products?.currency ?? 'USD';
 
   /*
     The parent blocks a mixed-currency cart before rendering this form, so this
@@ -415,12 +417,17 @@ function CheckoutInner({
       if (!user) throw new Error('Not signed in');
 
       const orderNumber = `ORD-${Date.now()}`;
-      const platformCommission = subtotal * 0.1;
+      const activeRate = activeCurrency?.rate ?? 1;
+      const convertedTotal = Math.round(total * activeRate * 100) / 100;
+      const convertedSubtotal = Math.round(subtotal * activeRate * 100) / 100;
+      const convertedShippingFee = Math.round(shippingFee * activeRate * 100) / 100;
+      const convertedVatAmount = Math.round(vatAmount * activeRate * 100) / 100;
+      const convertedCommission = Math.round(subtotal * 0.1 * activeRate * 100) / 100;
       const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
 
       const { data: intentData, error: intentError } = await supabase.functions.invoke(
         'create-payment-intent',
-        { body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId } }
+        { body: { amount: convertedTotal, currency: currency.toLowerCase(), supplier_id: supplierId } }
       );
 
       if (intentError || !intentData?.clientSecret) {
@@ -461,13 +468,13 @@ function CheckoutInner({
           order_number: orderNumber,
           user_id: user.id,
           status: 'pending',
-          subtotal,
+          subtotal: convertedSubtotal,
           tax: 0,
-          shipping_fee: shippingFee,
-          vat_amount: vatAmount,
+          shipping_fee: convertedShippingFee,
+          vat_amount: convertedVatAmount,
           shipping_country_id: selectedCountry.id,
-          platform_commission: platformCommission,
-          total,
+          platform_commission: convertedCommission,
+          total: convertedTotal,
           currency,
           shipping_address: fullAddress,
           billing_address: fullAddress,
@@ -482,6 +489,8 @@ function CheckoutInner({
         .filter((row) => row.products)
         .flatMap((row) => {
           const variants = getVariantsForProduct(row.product_id);
+          const convertedUnitPrice = Math.round(unitPrice(row) * activeRate * 100) / 100;
+
           if (variants.length > 0) {
             return variants.map((v) => {
               const details = [
@@ -494,20 +503,22 @@ function CheckoutInner({
                 ? `${row.products!.name} (${details})`
                 : row.products!.name;
 
+              const lineSubtotal = Math.round(convertedUnitPrice * v.quantity * 100) / 100;
               return {
                 order_id: order.id,
                 product_id: row.product_id,
                 supplier_id: row.products!.supplier_id,
                 product_name: fullProductName,
                 quantity: v.quantity,
-                unit_price: unitPrice(row),
-                subtotal: unitPrice(row) * v.quantity,
-                supplier_amount: unitPrice(row) * v.quantity * 0.9,
-                platform_commission: unitPrice(row) * v.quantity * 0.1,
+                unit_price: convertedUnitPrice,
+                subtotal: lineSubtotal,
+                supplier_amount: Math.round(lineSubtotal * 0.9 * 100) / 100,
+                platform_commission: Math.round(lineSubtotal * 0.1 * 100) / 100,
               };
             });
           }
 
+          const lineSubtotal = Math.round(convertedUnitPrice * row.quantity * 100) / 100;
           return [
             {
               order_id: order.id,
@@ -515,10 +526,10 @@ function CheckoutInner({
               supplier_id: row.products!.supplier_id,
               product_name: row.products!.name,
               quantity: row.quantity,
-              unit_price: unitPrice(row),
-              subtotal: unitPrice(row) * row.quantity,
-              supplier_amount: unitPrice(row) * row.quantity * 0.9,
-              platform_commission: unitPrice(row) * row.quantity * 0.1,
+              unit_price: convertedUnitPrice,
+              subtotal: lineSubtotal,
+              supplier_amount: Math.round(lineSubtotal * 0.9 * 100) / 100,
+              platform_commission: Math.round(lineSubtotal * 0.1 * 100) / 100,
             },
           ];
         });
@@ -576,7 +587,7 @@ function CheckoutInner({
           order_id: order.id,
           payment_gateway: 'stripe',
           payment_method: 'card',
-          amount: total,
+          amount: convertedTotal,
           currency,
           status: 'completed',
         })
@@ -611,7 +622,7 @@ function CheckoutInner({
       clearCartVariants();
       void refresh();
 
-      setPlaced({ id: order.id, number: orderNumber, total, issues });
+      setPlaced({ id: order.id, number: orderNumber, total: convertedTotal, currency, issues });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -625,7 +636,7 @@ function CheckoutInner({
         orderId={placed.id}
         orderNumber={placed.number}
         total={placed.total}
-        currency={currency}
+        currency={placed.currency}
         issues={placed.issues}
       />
     );
@@ -816,8 +827,12 @@ function CheckoutInner({
           >
             {placing
               ? (t.placeOrder ?? 'Place Order')
-              : `${t.placeOrder ?? 'Place Order'} · ${formatAmount(currency, total)}`}
+              : `${t.placeOrder ?? 'Place Order'} · ${formatPrice(total)}`}
           </Button>
+
+          <p className="text-center text-2xs font-bold uppercase tracking-[0.5px] text-content-tertiary">
+            Shown in {currency}
+          </p>
         </motion.aside>
       </div>
     </div>

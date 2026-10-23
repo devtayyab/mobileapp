@@ -12,8 +12,9 @@
 import { motion } from 'framer-motion';
 import { Clock, Package, Truck } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
 import { getVariantsForProduct } from '@/lib/cart-variants';
-import { formatAmount, type SupplierPackage } from './types';
+import { type SupplierPackage } from './types';
 
 export function SupplierPackageList({
   packages,
@@ -22,11 +23,12 @@ export function SupplierPackageList({
   calculating,
 }: {
   packages: SupplierPackage[];
-  currency: string;
+  currency?: string;
   unitPrice: (row: SupplierPackage['items'][number]) => number;
   calculating: boolean;
 }) {
   const { t, language } = useLanguage();
+  const { formatPrice } = useCurrency();
 
   return (
     <div className="flex flex-col gap-3">
@@ -59,7 +61,7 @@ export function SupplierPackageList({
                       {row.products?.name ?? 'Product'}
                     </span>
                     <span className="shrink-0 text-sm font-bold text-secondary">
-                      {formatAmount(currency, unitPrice(row) * row.quantity)}
+                      {formatPrice(unitPrice(row) * row.quantity)}
                     </span>
                   </div>
 
@@ -112,7 +114,7 @@ export function SupplierPackageList({
                   : `${t.shipping ?? 'Shipping'} (standard)`}
             </span>
             <span className="shrink-0 text-sm font-bold text-content-primary">
-              {pkg.shippingFee > 0 ? formatAmount(currency, pkg.shippingFee) : (t.free ?? 'Free')}
+              {pkg.shippingFee > 0 ? formatPrice(pkg.shippingFee) : (t.free ?? 'Free')}
             </span>
           </div>
 
