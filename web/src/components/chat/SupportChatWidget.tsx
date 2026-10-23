@@ -27,56 +27,98 @@ interface ChatMessage {
   link?: { href: string; label: string };
 }
 
+function renderMessageContent(text: string, sender: 'bot' | 'user') {
+  const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+  const parts = text.split(emailRegex);
+  return parts.map((part, i) => {
+    if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(part)) {
+      return (
+        <a
+          key={i}
+          href={`mailto:${part}`}
+          className={cn(
+            'inline-flex items-center gap-1 font-bold underline underline-offset-2 transition-opacity hover:opacity-80 notranslate',
+            sender === 'user' ? 'text-white' : 'text-primary'
+          )}
+          translate="no"
+        >
+          <Mail size={12} className="inline shrink-0" />
+          <span>{part}</span>
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
 const FAQ_KNOWLEDGE_BASE = [
   {
-    keywords: ['payment', 'pay', 'card', 'visa', 'mastercard', 'stripe', 'apple pay', 'google pay'],
+    keywords: ['payment', 'pay', 'card', 'visa', 'mastercard', 'stripe', 'apple pay', 'google pay', 'πληρωμή', 'πληρωμές', 'κάρτα'],
     answer:
       'We accept Visa, Mastercard, American Express, Apple Pay, Google Pay, and Stripe. All payments are encrypted with 256-bit SSL and processed with PCI Level 1 security.',
     link: { href: '/payments', label: 'View Payment Guide & FAQs' },
   },
   {
-    keywords: ['order', 'track', 'tracking', 'status', 'delivery', 'ship', 'shipping'],
+    keywords: ['order', 'track', 'tracking', 'status', 'delivery', 'ship', 'shipping', 'παραγγελία', 'παραγγελίες', 'αποστολή'],
     answer:
       'You can track your orders in real-time under your Account -> Orders page. Worldwide shipping is handled by verified supplier carriers with tracking codes provided upon dispatch.',
     link: { href: '/orders', label: 'Go to Order Tracking' },
   },
   {
-    keywords: ['refund', 'return', 'cancel', 'policy', 'money back', '14'],
+    keywords: ['refund', 'return', 'cancel', 'policy', 'money back', '14', 'επιστροφή', 'επιστροφές', 'ακύρωση'],
     answer:
       'We offer an EU-compliant 14-day return and refund protection on eligible products. If your item is damaged or does not match specifications, you can open a dispute or refund request.',
     link: { href: '/terms', label: 'Read Returns & Refund Policy' },
   },
   {
-    keywords: ['supplier', 'seller', 'vendor', 'sell', 'kyc', 'register as supplier', 'onboarding'],
+    keywords: ['supplier', 'seller', 'vendor', 'sell', 'kyc', 'register as supplier', 'onboarding', 'προμηθευτής', 'πωλητής'],
     answer:
       'Suppliers can register with 0 onboarding fees! Simply submit your business registration, government ID, and bank details in the Supplier Portal for automated verification.',
     link: { href: '/register', label: 'Register as Supplier' },
   },
   {
-    keywords: ['wholesale', 'b2b', 'bulk', 'moq', 'volume', 'discount'],
+    keywords: ['wholesale', 'b2b', 'bulk', 'moq', 'volume', 'discount', 'χονδρική'],
     answer:
       'Verified wholesale accounts unlock direct tiered B2B pricing with volume discounts and customizable MOQ orders directly from manufacturers.',
     link: { href: '/registration', label: 'Learn About B2B Wholesale' },
   },
   {
-    keywords: ['contact', 'email', 'support', 'owner', 'phone', 'help', 'sunita', 'shahi', 'takuri'],
+    keywords: [
+      'contact',
+      'email',
+      'support',
+      'owner',
+      'phone',
+      'help',
+      'sunita',
+      'shahi',
+      'takuri',
+      'mail',
+      'desk',
+      'επικοινωνία',
+      'υποστήριξη',
+      'ηλεκτρονικό ταχυδρομείο',
+      'ταχυδρομείο',
+      'μαιλ',
+      'email support',
+    ],
     answer:
-      'Official support email is shahisunita264@gmail.com. Operated by Sunita Shahi (Takuri Brand, Cyprus) for the Sathun Global Marketplace (sathunglobal.com).',
-    link: { href: '/contact', label: 'Contact Support Desk' },
+      'Official support email is shahisunita264@gmail.com. Operated by Sunita Shahi (Takuri Brand, Cyprus) for the Sathun Global Marketplace (sathunglobal.com). Click below to connect directly with our support team via email.',
+    link: { href: 'mailto:shahisunita264@gmail.com', label: 'Connect via Email (shahisunita264@gmail.com)' },
   },
   {
-    keywords: ['currency', 'currencies', 'euro', 'dollar', 'pkr', 'npr', 'exchange'],
+    keywords: ['currency', 'currencies', 'euro', 'dollar', 'pkr', 'npr', 'exchange', 'νόμισμα', 'ευρώ'],
     answer:
       'We support over 20 international currencies with real-time conversion. You can switch your preferred currency anytime from the top navigation bar.',
   },
 ];
 
 const QUICK_SUGGESTIONS = [
-  'How do payments work?',
+  'What is your support email?',
   'How to track my order?',
+  'How do payments work?',
   'What is the refund policy?',
   'How to become a supplier?',
-  'What is your support email?',
 ];
 
 export function SupportChatWidget() {
@@ -87,8 +129,9 @@ export function SupportChatWidget() {
     {
       id: 'msg-welcome',
       sender: 'bot',
-      text: 'Hello! Welcome to Sathun Global Marketplace Support. How can we assist you today? Ask about orders, shipping, payment methods, supplier registration, or returns.',
+      text: 'Hello! Welcome to Sathun Global Marketplace Support. How can we assist you today? You can connect with our support email directly at shahisunita264@gmail.com, or ask about orders, shipping, payment methods, supplier registration, and returns.',
       time: 'Just now',
+      link: { href: 'mailto:shahisunita264@gmail.com', label: 'Connect with Support Email' },
     },
   ]);
   const [isTyping, setIsTyping] = useState(false);
@@ -197,6 +240,15 @@ export function SupportChatWidget() {
               </div>
 
               <div className="flex items-center gap-1">
+                <a
+                  href="mailto:shahisunita264@gmail.com"
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-content-tertiary transition-colors hover:bg-surface hover:text-primary notranslate"
+                  translate="no"
+                  title="Connect with support email (shahisunita264@gmail.com)"
+                  aria-label="Email Support"
+                >
+                  <Mail size={16} />
+                </a>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="flex h-8 w-8 items-center justify-center rounded-xl text-content-tertiary transition-colors hover:bg-surface hover:text-content-primary"
@@ -225,15 +277,18 @@ export function SupportChatWidget() {
                         : 'border border-edge bg-surface-page text-content-primary rounded-bl-xs'
                     )}
                   >
-                    <p>{m.text}</p>
+                    <div className="whitespace-pre-line leading-relaxed">
+                      {renderMessageContent(m.text, m.sender)}
+                    </div>
                     {m.link && (
-                      <div className="mt-2 pt-1.5 border-t border-edge/60">
+                      <div className="mt-2.5 pt-2 border-t border-edge/60">
                         {m.link.href.startsWith('mailto:') ? (
                           <a
                             href={m.link.href}
-                            className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary-dark transition-colors notranslate"
+                            translate="no"
                           >
-                            <Mail size={12} />
+                            <Mail size={13} />
                             <span>{m.link.label}</span>
                           </a>
                         ) : (
