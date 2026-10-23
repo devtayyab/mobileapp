@@ -12,7 +12,7 @@
  *  - `payments` uses payment_gateway + payment_method (no stripe intent column)
  *  - `supplier_shipping_rates` uses shipping_charge / delivery_time_days / is_active
  *  - `orders` carries vat_amount + shipping_country_id
- *  - order_items split 90/10 (supplier_amount / platform_commission)
+ *  - order_items split: 6% platform commission for wholesale (B2B) / 11% for retail (B2C)
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -417,17 +417,26 @@ function CheckoutInner({
       if (!user) throw new Error('Not signed in');
 
       const orderNumber = `ORD-${Date.now()}`;
+      const commissionRate = isB2B ? 0.06 : 0.11;
+      const supplierRate = 1 - commissionRate; // 0.94 wholesale (B2B), 0.89 retail
       const activeRate = activeCurrency?.rate ?? 1;
       const convertedTotal = Math.round(total * activeRate * 100) / 100;
       const convertedSubtotal = Math.round(subtotal * activeRate * 100) / 100;
       const convertedShippingFee = Math.round(shippingFee * activeRate * 100) / 100;
       const convertedVatAmount = Math.round(vatAmount * activeRate * 100) / 100;
-      const convertedCommission = Math.round(subtotal * 0.1 * activeRate * 100) / 100;
+      const convertedCommission = Math.round(subtotal * commissionRate * activeRate * 100) / 100;
       const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
 
       const { data: intentData, error: intentError } = await supabase.functions.invoke(
         'create-payment-intent',
-        { body: { amount: convertedTotal, currency: currency.toLowerCase(), supplier_id: supplierId } }
+        {
+          body: {
+            amount: convertedTotal,
+            currency: currency.toLowerCase(),
+            supplier_id: supplierId,
+            is_b2b: isB2B,
+          },
+        }
       );
 
       if (intentError || !intentData?.clientSecret) {
@@ -512,8 +521,8 @@ function CheckoutInner({
                 quantity: v.quantity,
                 unit_price: convertedUnitPrice,
                 subtotal: lineSubtotal,
-                supplier_amount: Math.round(lineSubtotal * 0.9 * 100) / 100,
-                platform_commission: Math.round(lineSubtotal * 0.1 * 100) / 100,
+                supplier_amount: Math.round(lineSubtotal * supplierRate * 100) / 100,
+                platform_commission: Math.round(lineSubtotal * commissionRate * 100) / 100,
               };
             });
           }
@@ -528,8 +537,8 @@ function CheckoutInner({
               quantity: row.quantity,
               unit_price: convertedUnitPrice,
               subtotal: lineSubtotal,
-              supplier_amount: Math.round(lineSubtotal * 0.9 * 100) / 100,
-              platform_commission: Math.round(lineSubtotal * 0.1 * 100) / 100,
+              supplier_amount: Math.round(lineSubtotal * supplierRate * 100) / 100,
+              platform_commission: Math.round(lineSubtotal * commissionRate * 100) / 100,
             },
           ];
         });
