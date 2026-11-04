@@ -5,13 +5,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  BarChart3, Boxes, Building2, ChevronLeft, FileCheck2, Globe2, LayoutDashboard, LifeBuoy,
+  BarChart3, Coins, Boxes, Building2, ChevronLeft, FileCheck2, Globe2, LayoutDashboard, LifeBuoy,
   LogOut, Menu, MessageSquare, Moon, Package, Receipt, Settings, ShieldCheck, ShoppingBag,
   Star, Store, Sun, Tags, Truck, Users, Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { createClient } from '@/lib/supabase/client';
 import { useAppTheme } from '@/providers/ThemeProvider';
+import { useCurrency } from '@/providers/CurrencyProvider';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Role } from '@/types/database';
 
@@ -85,6 +86,7 @@ export function DashboardSidebar({
   const pathname = usePathname();
   const router = useRouter();
   const { scheme, toggleScheme } = useAppTheme();
+  const { currency, currencies, setCurrency } = useCurrency();
   const [open, setOpen] = useState(false);
 
   const nav = role === 'admin' ? ADMIN_NAV : SUPPLIER_NAV;
@@ -169,6 +171,27 @@ export function DashboardSidebar({
           {scheme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           {scheme === 'dark' ? 'Light mode' : 'Dark mode'}
         </button>
+        <div className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-md font-bold text-content-tertiary">
+          <span className="flex items-center gap-2.5">
+            <Coins size={17} />
+            Currency
+          </span>
+          <select
+            value={currency.code}
+            onChange={(e) => {
+              const selected = currencies.find((c) => c.code === e.target.value);
+              if (selected) setCurrency(selected);
+            }}
+            aria-label="Change currency"
+            className="rounded-lg border border-edge bg-surface px-2 py-1 text-xs font-bold text-content-primary focus:border-primary focus:outline-none cursor-pointer"
+          >
+            {currencies.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.code}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex items-center gap-2 rounded-lg px-2.5 py-2">
           <Avatar name={displayName ?? email} size={32} />
