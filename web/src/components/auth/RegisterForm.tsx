@@ -20,7 +20,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Briefcase, ShoppingBag, Store, User } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Package, ShoppingBag, Store, User } from 'lucide-react';
 import { countryCodes } from '@shared/constants/Countries';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/providers/LanguageProvider';
@@ -30,10 +30,10 @@ import { cn } from '@/lib/cn';
 type UserRole = 'customer' | 'b2b' | 'supplier';
 
 /** Mobile's three role cards, labels and sub-labels included. */
-const ROLES: { key: UserRole; label: string; sub: string; icon: typeof ShoppingBag }[] = [
-  { key: 'customer', label: 'Customer', sub: '(Shop)', icon: ShoppingBag },
-  { key: 'b2b', label: 'Wholesale', sub: '(B2B)', icon: Briefcase },
-  { key: 'supplier', label: 'Supplier', sub: 'Sell products', icon: Store },
+const ROLES: { key: UserRole; title: string; subtitle: string; icon: typeof ShoppingBag }[] = [
+  { key: 'customer', title: 'Buy for myself', subtitle: 'Shop products for personal use', icon: ShoppingBag },
+  { key: 'b2b', title: 'Buy in bulk', subtitle: 'Wholesale prices for my business', icon: Package },
+  { key: 'supplier', title: 'Sell my products', subtitle: 'Open a shop and reach buyers', icon: Store },
 ];
 
 export function RegisterForm() {
@@ -151,20 +151,20 @@ export function RegisterForm() {
             <User size={24} />
           </span>
           <h1 className="text-5xl font-extrabold tracking-[-0.4px] text-content-primary">
-            {t.createAccount ?? 'Create Account'}
+            Create account
           </h1>
           <p className="text-md text-content-tertiary">
-            {t.joinMarketplace ?? 'Join our marketplace'}
+            {t.joinMarketplace ?? 'Join our marketplace today'}
           </p>
         </div>
 
         <div className="space-y-4 rounded-2xl border border-edge bg-surface p-5">
-          <fieldset>
+          <fieldset className="space-y-2.5">
             <legend className="mb-2 text-md font-bold text-content-primary">
-              {t.accountType ?? 'Account Type'}
+              What do you want to do?
             </legend>
-            <div className="grid grid-cols-3 gap-2">
-              {ROLES.map(({ key, label, sub, icon: Icon }) => {
+            <div className="flex flex-col gap-2.5">
+              {ROLES.map(({ key, title, subtitle, icon: Icon }) => {
                 const active = role === key;
                 return (
                   <button
@@ -173,33 +173,47 @@ export function RegisterForm() {
                     onClick={() => setRole(key)}
                     aria-pressed={active}
                     className={cn(
-                      'flex flex-col items-center gap-1.5 rounded-xl border-[1.5px] px-2 py-3 transition-colors',
+                      'flex items-center gap-3 rounded-2xl border-[1.5px] p-3 text-left transition-all',
                       active
-                        ? 'border-primary bg-surface-tint'
-                        : 'border-edge hover:bg-surface-page'
+                        ? 'border-emerald-500 bg-emerald-500/5 shadow-xs'
+                        : 'border-edge bg-surface-page/50 hover:bg-surface-page'
                     )}
                   >
                     <span
                       className={cn(
-                        'flex h-9 w-9 items-center justify-center rounded-md',
-                        active ? 'bg-surface text-primary' : 'bg-surface-page text-content-tertiary'
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                        active ? 'bg-surface text-emerald-500' : 'bg-surface text-content-tertiary'
                       )}
                     >
-                      <Icon size={18} />
+                      <Icon size={20} />
                     </span>
-                    <span
-                      className={cn(
-                        'text-base font-bold',
-                        active ? 'text-primary' : 'text-content-primary'
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={cn(
+                          'block text-md font-bold',
+                          active ? 'text-emerald-500' : 'text-content-primary'
+                        )}
+                      >
+                        {title}
+                      </span>
+                      <span className="block text-xs text-content-tertiary">
+                        {subtitle}
+                      </span>
+                    </span>
+                    <span className="shrink-0">
+                      {active ? (
+                        <CheckCircle2 size={20} className="text-emerald-500" />
+                      ) : (
+                        <span className="block h-5 w-5 rounded-full border-[1.5px] border-content-tertiary/40" />
                       )}
-                    >
-                      {label}
                     </span>
-                    <span className="text-2xs text-content-tertiary">{sub}</span>
                   </button>
                 );
               })}
             </div>
+            <p className="mt-1 text-xs text-content-tertiary">
+              You can change this later. Business details are only asked if you choose bulk buying or selling.
+            </p>
           </fieldset>
 
           <Input
@@ -221,7 +235,7 @@ export function RegisterForm() {
 
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <Select
-              label={`${t.country ?? 'Country'} code`}
+              label="Code"
               value={countryIso}
               onChange={(e) => {
                 const iso = e.target.value;
@@ -238,7 +252,7 @@ export function RegisterForm() {
             </Select>
 
             <Input
-              label={`${t.phone ?? 'Phone Number'} *`}
+              label="Phone *"
               type="tel"
               placeholder="1234567890"
               value={phone}

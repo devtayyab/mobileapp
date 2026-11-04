@@ -8,7 +8,7 @@
   presentational tree client-side is the simple, correct fix.
 */
 import {
-  BarChart3,
+  BarChart3, Coins,
   DollarSign,
   Percent,
   ShoppingBag,
@@ -17,6 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import { StatCard } from '@/components/ui';
+import { useCurrency } from '@/providers/CurrencyProvider';
 
 /* ────────────────────────────────────────────────────────────────────────────
    Types — one entry per `orders.currency` for every monetary figure.
@@ -467,6 +468,7 @@ function TopSuppliersChart({
 /* ── The report ──────────────────────────────────────────────────────────── */
 
 export function RevenueReport({ data }: { data: RevenueReportData }) {
+  const { currency: activeCurrency, currencies: allCurrencies, setCurrency } = useCurrency();
   const {
     totalOrders,
     ordersByStatus,
@@ -479,15 +481,88 @@ export function RevenueReport({ data }: { data: RevenueReportData }) {
     moneyUnavailable,
   } = data;
 
+  const getRate = (code: string): number => {
+    const found = allCurrencies.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    return found?.rate && found.rate > 0 ? found.rate : 1;
+  };
+
+  const targetRate = activeCurrency.rate > 0 ? activeCurrency.rate : 1;
+
+  const totalConvertedRevenue = currencies.reduce((sum, row) => {
+    const originRate = getRate(row.currency);
+    const usd = (row.grossRevenue ?? 0) / originRate;
+    return sum + usd * targetRate;
+  }, 0);
+
+  const totalConvertedCommission = currencies.reduce((sum, row) => {
+    const originRate = getRate(row.currency);
+    const usd = (row.commission ?? 0) / originRate;
+    return sum + usd * targetRate;
+  }, 0);
+
   const multiCurrency = currencies.length > 1;
 
   return (
     <div className="space-y-4">
+      {/* Super Admin Currency Selector */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-edge bg-surface px-4 py-3 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-tint text-primary">
+            <Coins size={18} />
+          </span>
+          <div>
+            <p className="text-sm font-bold text-content-primary">
+              Results Currency: <span className="text-primary">{activeCurrency.code} ({activeCurrency.symbol})</span>
+            </p>
+            <p className="text-xs text-content-tertiary">
+              Change currency to view converted results across platform orders
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={activeCurrency.code}
+            onChange={(e) => {
+              const selected = allCurrencies.find((c) => c.code === e.target.value);
+              if (selected) setCurrency(selected);
+            }}
+            aria-label="Select report view currency"
+            className="h-10 rounded-xl border border-edge bg-surface-page px-3 text-sm font-bold text-content-primary transition-colors hover:border-primary focus:border-primary focus:outline-none cursor-pointer"
+          >
+            {allCurrencies.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.flag} {c.code} ({c.symbol}) — {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Aggregate Converted Summary */}
+      {currencies.length > 0 && !moneyUnavailable && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatCard
+            label={`Total Converted Revenue (${activeCurrency.code})`}
+            value={totalConvertedRevenue}
+            format={(n) => money(n, activeCurrency.code)}
+            icon={<DollarSign size={18} />}
+            hint={`Summed across ${currencies.length} charged currency window`}
+          />
+          <StatCard
+            label={`Total Converted Commission (${activeCurrency.code})`}
+            value={totalConvertedCommission}
+            format={(n) => money(n, activeCurrency.code)}
+            icon={<TrendingUp size={18} />}
+            hint="Platform earnings"
+          />
+        </div>
+      )}
+
       {multiCurrency && (
         <p className="rounded-xl border border-edge bg-surface-tint px-4 py-2.5 text-sm text-content-secondary">
           Orders were charged in {currencies.length} currencies (
-          {currencies.map((c) => c.currency).join(', ')}). Every monetary figure below is
-          reported per currency and never summed across them.
+          {currencies.map((c) => c.currency).join(', ')}). Below is the breakdown per charged currency.
         </p>
       )}
 

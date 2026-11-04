@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Briefcase, Store, ChevronDown, CheckCircle, X } from 'lucide-react-native';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, ArrowRight, User, ShoppingBag, Package, Store, ChevronDown, CheckCircle, CheckCircle2, Circle, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 import { countryCodes } from '@/constants/Countries';
@@ -43,11 +43,11 @@ export default function RegisterScreen() {
     );
   }, [searchQuery]);
 
-  const ROLES: Array<{ key: UserRole; label: string; sub: string; icon: any; color: string; bg: string }> = [
+  const ROLES: Array<{ key: UserRole; title: string; subtitle: string; icon: any }> = [
     // Each role shows its own theme's brand color (Customer=green, B2B=pink, Supplier=blue).
-    { key: 'customer', label: 'Customer', sub: '(Shop)', icon: ShoppingBag, color: '#4CAF50', bg: 'rgba(76, 175, 80, 0.1)' },
-    { key: 'b2b', label: 'Wholesale', sub: '(B2B)', icon: Briefcase, color: '#FF4D8D', bg: 'rgba(255, 77, 141, 0.1)' },
-    { key: 'supplier', label: 'Supplier', sub: 'Sell products', icon: Store, color: '#2196F3', bg: 'rgba(33, 150, 243, 0.1)' },
+    { key: 'customer', title: 'Buy for myself', subtitle: 'Shop products for personal use', icon: ShoppingBag },
+    { key: 'b2b', title: 'Buy in bulk', subtitle: 'Wholesale prices for my business', icon: Package },
+    { key: 'supplier', title: 'Sell my products', subtitle: 'Open a shop and reach buyers', icon: Store },
   ];
 
   const handleRegister = async () => {
@@ -95,30 +95,47 @@ export default function RegisterScreen() {
             <View style={styles.iconWrap}>
               <User size={24} color={Colors.secondary} />
             </View>
-            <Text style={styles.welcomeTitle}>{t.createAccount}</Text>
-            <Text style={styles.welcomeSub}>{t.joinMarketplace}</Text>
+            <Text style={styles.welcomeTitle}>Create Account</Text>
+            <Text style={styles.welcomeSub}>Join our marketplace today</Text>
           </View>
         </View>
 
         <View style={styles.formCard}>
           <View style={styles.roleSection}>
-            <Text style={styles.label}>{t.accountType}</Text>
-            <View style={styles.roleGrid}>
-              {ROLES.map(({ key, label, sub, icon: Icon, color, bg }) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.roleCard, role === key && { borderColor: color, backgroundColor: 'rgba(255,255,255,0.02)' }]}
-                  onPress={() => setRole(key)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.roleIcon, { backgroundColor: role === key ? bg : Colors.background.primary }]}>
-                    <Icon size={18} color={role === key ? color : Colors.text.tertiary} />
-                  </View>
-                  <Text style={[styles.roleLabel, { color: role === key ? color : Colors.text.primary }]}>{label}</Text>
-                  <Text style={styles.roleSub}>{sub}</Text>
-                </TouchableOpacity>
-              ))}
+            <Text style={styles.roleSectionTitle}>What do you want to do?</Text>
+            <View style={styles.roleList}>
+              {ROLES.map(({ key, title, subtitle, icon: Icon }) => {
+                const isSelected = role === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[styles.roleCard, isSelected && styles.roleCardSelected]}
+                    onPress={() => setRole(key)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.roleIconWrap, isSelected && styles.roleIconWrapSelected]}>
+                      <Icon size={20} color={isSelected ? '#22C55E' : Colors.text.tertiary} />
+                    </View>
+                    <View style={styles.roleTextWrap}>
+                      <Text style={[styles.roleTitle, isSelected && styles.roleTitleSelected]}>
+                        {title}
+                      </Text>
+                      <Text style={styles.roleSubtitle}>{subtitle}</Text>
+                    </View>
+                    <View style={styles.roleRadio}>
+                      {isSelected ? (
+                        <CheckCircle2 size={22} color="#22C55E" />
+                      ) : (
+                        <View style={styles.radioCircle} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+            <Text style={styles.roleHelperText}>
+              You can change this later. Business details are only asked if you choose bulk buying or selling.
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>
@@ -152,26 +169,30 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>{t.phone || 'Phone Number'} <Text style={{ color: Colors.secondary }}>*</Text></Text>
-            <View style={[styles.inputRow, { paddingHorizontal: 0 }]}>
+          <View style={styles.phoneSectionRow}>
+            <View style={styles.codeColumn}>
+              <Text style={styles.label}>Code</Text>
               <TouchableOpacity
-                style={styles.countrySelector}
+                style={styles.codeBox}
                 onPress={() => setShowCountryPicker(true)}
               >
                 <Text style={styles.countrySelectorText}>{countryCode}</Text>
                 <ChevronDown size={16} color={Colors.text.tertiary} />
               </TouchableOpacity>
-              <View style={styles.verticalDivider} />
-              <TextInput
-                style={[styles.input, { paddingHorizontal: 10 }]}
-                placeholder="1234567890"
-                placeholderTextColor={Colors.text.tertiary}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-                autoCapitalize="none"
-              />
+            </View>
+            <View style={styles.phoneColumn}>
+              <Text style={styles.label}>Phone <Text style={{ color: Colors.secondary }}>*</Text></Text>
+              <View style={styles.phoneBox}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="1234567890"
+                  placeholderTextColor={Colors.text.tertiary}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoCapitalize="none"
+                />
+              </View>
             </View>
           </View>
 
@@ -329,19 +350,76 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
   },
-  roleSection: { gap: 8 },
-  roleGrid: { flexDirection: 'row', gap: 8 },
+  roleSection: { gap: 10 },
+  roleSectionTitle: { fontSize: 16, fontWeight: '700', color: Colors.text.primary, marginBottom: 4 },
+  roleList: { gap: 10 },
   roleCard: {
-    flex: 1, alignItems: 'center', padding: 8, borderRadius: 16,
-    borderWidth: 1.5, borderColor: Colors.border.medium, gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.border.medium,
     backgroundColor: Colors.background.primary,
+    gap: 12,
   },
-  roleIcon: {
-    width: 32, height: 32, borderRadius: 10,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 2,
+  roleCardSelected: {
+    borderColor: '#22C55E',
+    backgroundColor: 'rgba(34, 197, 94, 0.05)',
   },
-  roleLabel: { fontSize: 12, fontWeight: '800' },
-  roleSub: { fontSize: 10, color: Colors.text.tertiary, textAlign: 'center' },
+  roleIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.background.secondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roleIconWrapSelected: {
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+  },
+  roleTextWrap: { flex: 1, gap: 2 },
+  roleTitle: { fontSize: 15, fontWeight: '700', color: Colors.text.primary },
+  roleTitleSelected: { color: '#22C55E' },
+  roleSubtitle: { fontSize: 12, color: Colors.text.tertiary },
+  roleRadio: { marginLeft: 4, justifyContent: 'center', alignItems: 'center' },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: Colors.text.tertiary,
+  },
+  roleHelperText: {
+    fontSize: 12,
+    color: Colors.text.tertiary,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  phoneSectionRow: { flexDirection: 'row', gap: 10 },
+  codeColumn: { width: 90, gap: 6 },
+  codeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.background.primary,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    height: 50,
+    borderWidth: 1.5,
+    borderColor: Colors.border.medium,
+  },
+  phoneColumn: { flex: 1, gap: 6 },
+  phoneBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.primary,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 50,
+    borderWidth: 1.5,
+    borderColor: Colors.border.medium,
+  },
   inputGroup: { gap: 6 },
   label: { fontSize: 14, fontWeight: '700', color: Colors.text.primary },
   inputRow: {

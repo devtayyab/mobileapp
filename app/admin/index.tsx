@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Platform
+  ActivityIndicator, RefreshControl, Platform, Modal, FlatList
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,9 +10,10 @@ import { supabase } from '@/lib/supabase';
 import {
   Users, Package, ShoppingBag, BarChart2, TrendingUp,
   DollarSign, Clock, LogOut, ChevronRight, AlertCircle,
-  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck, CreditCard, FolderTree
+  Store, Shield, RefreshCw, Activity, MessageSquare, LifeBuoy, Globe, Truck, CreditCard, FolderTree, Coins, Check, X
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useCurrency, CURRENCIES } from '@/contexts/CurrencyContext';
 import type { Palette } from '@/constants/Colors';
 
 type AdminStats = {
@@ -35,6 +36,8 @@ export default function AdminDashboard() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { currency, setCurrency } = useCurrency();
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0, totalSuppliers: 0, pendingKyc: 0, approvedSuppliers: 0,
     totalProducts: 0, activeProducts: 0, totalOrders: 0, pendingOrders: 0,
@@ -211,22 +214,53 @@ export default function AdminDashboard() {
           </TouchableOpacity>
         )}
 
-        <Text style={styles.sectionLabel}>Platform Overview</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 10 }}>
+          <Text style={[styles.sectionLabel, { marginTop: 0, marginBottom: 0 }]}>Platform Overview</Text>
+          <TouchableOpacity
+            onPress={() => setShowCurrencyModal(true)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: Colors.background.secondary,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: Colors.border.medium,
+            }}
+          >
+            <Text style={{ fontSize: 13, fontWeight: '700', color: Colors.text.primary }}>
+              {currency.flag} {currency.code} ({currency.symbol})
+            </Text>
+            <ChevronRight size={14} color={Colors.text.tertiary} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.revenueRow}>
           <View style={styles.revenueCard}>
             <View style={styles.revenueIconWrap}>
               <DollarSign size={22} color="#1E40AF" />
             </View>
-            <Text style={styles.revenueValue}>${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
-            <Text style={styles.revenueLabel}>Gross Revenue</Text>
+            <Text style={styles.revenueValue}>
+              {currency.symbol}{(stats.totalRevenue * currency.rate).toLocaleString('en-US', {
+                minimumFractionDigits: currency.decimals,
+                maximumFractionDigits: currency.decimals,
+              })}
+            </Text>
+            <Text style={styles.revenueLabel}>Gross Revenue ({currency.code})</Text>
           </View>
           <View style={[styles.revenueCard, { backgroundColor: '#ECFDF5' }]}>
             <View style={[styles.revenueIconWrap, { backgroundColor: '#D1FAE5' }]}>
               <TrendingUp size={22} color="#059669" />
             </View>
-            <Text style={[styles.revenueValue, { color: '#065F46' }]}>${stats.platformCommission.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
-            <Text style={styles.revenueLabel}>Commission Earned</Text>
+            <Text style={[styles.revenueValue, { color: '#065F46' }]}>
+              {currency.symbol}{(stats.platformCommission * currency.rate).toLocaleString('en-US', {
+                minimumFractionDigits: currency.decimals,
+                maximumFractionDigits: currency.decimals,
+              })}
+            </Text>
+            <Text style={styles.revenueLabel}>Commission ({currency.code})</Text>
           </View>
         </View>
 
@@ -285,6 +319,44 @@ export default function AdminDashboard() {
 
         <View style={{ height: insets.bottom + 32 }} />
       </ScrollView>
+
+      <Modal visible={showCurrencyModal} animationType="slide" transparent>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: Colors.background.secondary, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '80%' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: Colors.text.primary }}>Select Results Currency</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                <X size={24} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={CURRENCIES}
+              keyExtractor={(c) => c.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: 14,
+                    borderBottomWidth: 1,
+                    borderBottomColor: Colors.border.medium,
+                  }}
+                  onPress={() => {
+                    setCurrency(item);
+                    setShowCurrencyModal(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: Colors.text.primary, fontWeight: item.code === currency.code ? '700' : '400' }}>
+                    {item.flag} {item.name} ({item.code} {item.symbol})
+                  </Text>
+                  {item.code === currency.code && <Check size={20} color={Colors.primary} />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

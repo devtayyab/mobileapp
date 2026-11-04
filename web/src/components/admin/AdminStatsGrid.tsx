@@ -1,7 +1,19 @@
 'use client';
 
-import { Activity, DollarSign, FileCheck2, Package, ShoppingBag, Store, TrendingUp, Users } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Activity,
+  Coins,
+  DollarSign,
+  FileCheck2,
+  Package,
+  ShoppingBag,
+  Store,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 import { StatCard } from '@/components/ui';
+import { useCurrency, type Currency } from '@/providers/CurrencyProvider';
 
 export type RevenueByCurrency = {
   currency: string;
@@ -12,7 +24,7 @@ export type RevenueByCurrency = {
 
 /**
  * A count that could not be read (the query returned an error, so PostgREST
- * gave back no count) is `null` — never 0. A tile shows "—" for it rather than
+ * gave back no count) is null — never 0. A tile shows "—" for it rather than
  * asserting there are zero users / orders / products.
  */
 export type MaybeCount = number | null;
@@ -27,21 +39,13 @@ export type PlatformStats = {
   totalOrders: MaybeCount;
   pendingOrders: MaybeCount;
   /**
-   * One entry per `orders.currency`. Deliberately NOT collapsed into a single
-   * figure: the rows are in different currencies, so a blended sum would be
-   * a meaningless number.
+   * One entry per orders.currency.
    */
   revenueByCurrency: RevenueByCurrency[];
   /** True when the admin_platform_stats() RPC hasn't been applied yet. */
   revenueUnavailable?: boolean;
 };
 
-/**
- * Order money is shown in the currency it was stored/charged in — never pushed
- * through `useCurrency().formatPrice` (see CONTRIBUTING.md) — and always to the
- * cent: rounding `USD 1234.56` to `USD 1,235` reports money that was never
- * charged. Same formatting as `components/supplier/money.ts`.
- */
 const money = (n: number, currency: string) =>
   `${currency} ${n.toLocaleString('en-US', {
     minimumFractionDigits: 2,
@@ -71,7 +75,7 @@ function UnavailableCard({ label, icon }: { label: string; icon?: React.ReactNod
   );
 }
 
-/** `StatCard` for a count that loaded, `UnavailableCard` for one that didn't. */
+/** StatCard for a count that loaded, UnavailableCard for one that didn't. */
 function CountCard({
   label,
   value,
@@ -88,6 +92,32 @@ function CountCard({
 }
 
 export function AdminStatsGrid({ stats }: { stats: PlatformStats }) {
+  const { currency, currencies, setCurrency } = useCurrency();
+  const [showOriginalBreakdown, setShowOriginalBreakdown] = useState(false);
+
+  // Helper to get exchange rate relative to USD (1 USD = X Currency)
+  const getRate = (code: string): number => {
+    const found = currencies.find((c) => c.code.toUpperCase() === code.toUpperCase());
+    return found?.rate && found.rate > 0 ? found.rate : 1;
+  };
+
+  // Convert all revenues from their charged currency to the selected admin currency
+  const targetRate = currency.rate > 0 ? currency.rate : 1;
+
+  const totalConvertedRevenue = stats.revenueByCurrency.reduce((sum, row) => {
+    const originRate = getRate(row.currency);
+    const usdAmount = row.revenue / originRate;
+    return sum + usdAmount * targetRate;
+  }, 0);
+
+  const totalConvertedCommission = stats.revenueByCurrency.reduce((sum, row) => {
+    const originRate = getRate(row.currency);
+    const usdAmount = row.commission / originRate;
+    return sum + usdAmount * targetRate;
+  }, 0);
+
+  const totalOrdersCount = stats.revenueByCurrency.reduce((sum, row) => sum + row.orders, 0);
+
   return (
     <div className="space-y-3">
       {stats.revenueUnavailable ? (
@@ -107,25 +137,98 @@ export function AdminStatsGrid({ stats }: { stats: PlatformStats }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {stats.revenueByCurrency.map((row) => (
-            <div key={row.currency} className="contents">
-              <StatCard
-                label={`Gross Revenue (${row.currency})`}
-                value={row.revenue}
-                format={(n) => money(n, row.currency)}
-                icon={<DollarSign size={18} />}
-                hint={`${row.orders.toLocaleString()} order${row.orders === 1 ? '' : 's'}`}
-              />
-              <StatCard
-                label={`Commission (${row.currency})`}
-                value={row.commission}
-                format={(n) => money(n, row.currency)}
-                icon={<TrendingUp size={18} />}
-                hint="Platform earnings"
-              />
+        <div className="space-y-3">
+          {/* Super Admin Currency Selector */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-edge bg-surface px-4 py-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-tint text-primary">
+                <Coins size={18} />
+              </span>
+              <div>
+                <p className="text-sm font-bold text-content-primary">
+                  Results Currency: <span className="text-primary">{currency.code} ({currency.symbol})</span>
+                </p>
+                <p className="text-xs text-content-tertiary">
+                  Change the currency you see your platform results and revenue in
+                </p>
+              </div>
             </div>
-          ))}
+
+            <div className="flex items-center gap-2">
+              <select
+                value={currency.code}
+                onChange={(e) => {
+                  const selected = currencies.find((c) => c.code === e.target.value);
+                  if (selected) setCurrency(selected);
+                }}
+                aria-label="Select admin view currency"
+                className="h-10 rounded-xl border border-edge bg-surface-page px-3 text-sm font-bold text-content-primary transition-colors hover:border-primary focus:border-primary focus:outline-none cursor-pointer"
+              >
+                {currencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.code} ({c.symbol}) — {c.name}
+                  </option>
+                ))}
+              </select>
+
+              {stats.revenueByCurrency.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setShowOriginalBreakdown(!showOriginalBreakdown)}
+                  className="h-10 rounded-xl border border-edge px-3 text-xs font-bold text-content-secondary hover:bg-surface-page"
+                >
+                  {showOriginalBreakdown ? 'Hide Breakdown' : 'Show Original Breakdown'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Primary Revenue and Commission Display in Chosen Currency */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <StatCard
+              label={`Gross Revenue (${currency.code})`}
+              value={totalConvertedRevenue}
+              format={(n) => money(n, currency.code)}
+              icon={<DollarSign size={18} />}
+              hint={`${totalOrdersCount.toLocaleString()} order${totalOrdersCount === 1 ? '' : 's'}${currency.code !== 'USD' ? ` · 1 USD = ${currency.rate} ${currency.code}` : ''}`}
+            />
+            <StatCard
+              label={`Commission (${currency.code})`}
+              value={totalConvertedCommission}
+              format={(n) => money(n, currency.code)}
+              icon={<TrendingUp size={18} />}
+              hint={`Platform earnings${currency.code !== 'USD' ? ` in ${currency.code}` : ''}`}
+            />
+          </div>
+
+          {/* Optional Original Charged Currency Breakdown */}
+          {showOriginalBreakdown && stats.revenueByCurrency.length > 0 && (
+            <div className="space-y-2 rounded-2xl border border-dashed border-edge p-3 bg-surface-page/50">
+              <p className="text-xs font-bold uppercase tracking-[0.5px] text-content-tertiary">
+                Original Charged Currency Breakdown
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {stats.revenueByCurrency.map((row) => (
+                  <div key={row.currency} className="contents">
+                    <StatCard
+                      label={`Gross Revenue (${row.currency})`}
+                      value={row.revenue}
+                      format={(n) => money(n, row.currency)}
+                      icon={<DollarSign size={18} />}
+                      hint={`${row.orders.toLocaleString()} order${row.orders === 1 ? '' : 's'} (charged in ${row.currency})`}
+                    />
+                    <StatCard
+                      label={`Commission (${row.currency})`}
+                      value={row.commission}
+                      format={(n) => money(n, row.currency)}
+                      icon={<TrendingUp size={18} />}
+                      hint={`Platform earnings in ${row.currency}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
