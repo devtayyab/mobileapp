@@ -226,17 +226,18 @@ export function LanguageProvider({
     document.documentElement.dir = isRtl(code) ? 'rtl' : 'ltr';
   }, [code]);
 
-  // Ensure full-page translation persists across client-side page navigations
+  // Ensure full-page translation persists across client-side page navigations without freezing React DOM
   useEffect(() => {
     if (code !== 'en') {
       const timer = setTimeout(() => {
+        if (typeof window === 'undefined') return;
         const select = document.querySelector<HTMLSelectElement>('.goog-te-combo');
         const googleLang = getGoogleTranslateCode(code);
         if (select && select.value !== googleLang) {
           select.value = googleLang;
           select.dispatchEvent(new Event('change'));
         }
-      }, 350);
+      }, 500);
       return () => clearTimeout(timer);
     }
   }, [pathname, code]);

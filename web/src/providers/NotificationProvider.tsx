@@ -10,6 +10,7 @@ import type { Notification } from '@/types/database';
 type NotificationContextValue = {
   notifications: Notification[];
   unreadCount: number;
+  unreadChatCount: number;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -147,11 +148,17 @@ export function NotificationProvider({
     );
   };
 
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const unreadChatCount = notifications.filter(
+    (n) => !n.is_read && (n.type === 'new_message' || n.type === 'chat' || n.title.toLowerCase().includes('message'))
+  ).length;
+
   return (
     <NotificationContext.Provider
       value={{
         notifications,
-        unreadCount: notifications.filter((n) => !n.is_read).length,
+        unreadCount,
+        unreadChatCount,
         markAsRead,
         markAllAsRead,
         refresh,

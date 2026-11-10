@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform
+  TextInput, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform, Image
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, UploadCloud, X, Plus } from 'lucide-react-native';
+import { ArrowLeft, Save, AlertCircle, ChevronDown, ChevronUp, UploadCloud, X, Plus, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -56,6 +56,8 @@ export default function EditProductScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [images, setImages] = useState<Array<{ url: string; is_primary: boolean }>>([]);
+  const [customImageUrl, setCustomImageUrl] = useState('');
 
   // Colours and Sizes (Variants) state
   const [colors, setColors] = useState<string[]>([]);
@@ -183,6 +185,17 @@ export default function EditProductScreen() {
       const primaryImage = p.product_images?.find((img: any) => img.is_primary);
       const imageUrl = primaryImage?.image_url || p.product_images?.[0]?.image_url || '';
 
+      const loadedImages = (p.product_images || []).map((img: any) => ({
+        url: img.image_url,
+        is_primary: !!img.is_primary,
+      }));
+      if (loadedImages.length > 0) {
+        if (!loadedImages.some((img: any) => img.is_primary)) {
+          loadedImages[0].is_primary = true;
+        }
+        setImages(loadedImages);
+      }
+
       const loadedColors = Array.isArray(p.specifications?.colors) ? p.specifications.colors : [];
       const loadedSizes = Array.isArray(p.specifications?.sizes) ? p.specifications.sizes : [];
       setColors(loadedColors);
@@ -277,7 +290,16 @@ export default function EditProductScreen() {
 
       if (productError) throw productError;
 
-      if (formData.image_url.trim()) {
+      if (images.length > 0) {
+        await supabase.from('product_images').delete().eq('product_id', id);
+        const rows = images.map((img, idx) => ({
+          product_id: id,
+          image_url: img.url,
+          is_primary: img.is_primary,
+          display_order: idx + 1,
+        }));
+        await supabase.from('product_images').insert(rows);
+      } else if (formData.image_url.trim()) {
         const { data: existing } = await supabase
           .from('product_images')
           .select('id')
@@ -317,32 +339,35 @@ export default function EditProductScreen() {
 
   const selectedCategory = categories.find(c => c.id === formData.category_id);
 
-  const pickImage = async () => {
+  const pickImages = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsMultipleSelection: true,
         quality: 0.8,
         base64: true,
+        selectionLimit: 10,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        uploadImage(result.assets[0].uri, result.assets[0].base64);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setUploadingImage(true);
+        for (const asset of result.assets) {
+          if (asset.uri && asset.base64) {
+            await uploadSingleImage(asset.uri, asset.base64);
+          }
+        }
+        setUploadingImage(false);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick image');
+      Alert.alert('Error', 'Failed to pick image(s)');
+      setUploadingImage(false);
     }
   };
 
-  const uploadImage = async (uri: string, base64Data?: string | null) => {
-    setUploadingImage(true);
+  const uploadSingleImage = async (uri: string, base64Data: string) => {
     try {
-      if (!base64Data) {
-        throw new Error('Image data is missing. Please try again.');
-      }
-      
       const fileExt = uri.split('.').pop() || 'jpg';
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${user?.id}/${fileName}`;
 
       const { error } = await supabase.storage
@@ -357,12 +382,49 @@ export default function EditProductScreen() {
         .from('product-images')
         .getPublicUrl(filePath);
 
-      updateField('image_url', publicUrl);
-    } catch (error: any) {
-      Alert.alert('Upload Failed', error.message || 'Could not upload image.');
-    } finally {
-      setUploadingImage(false);
+      setImages((prev) => {
+        const isFirst = prev.length === 0;
+        const next = [...prev, { url: publicUrl, is_primary: isFirst }];
+        if (isFirst) updateField('image_url', publicUrl);
+        return next;
+      });
+    } catch (err: any) {
+      console.error('Image upload failed:', err);
     }
+  };
+
+  const addImageUrl = () => {
+    const trimmed = customImageUrl.trim();
+    if (!trimmed) return;
+    setImages((prev) => {
+      const isFirst = prev.length === 0;
+      const next = [...prev, { url: trimmed, is_primary: isFirst }];
+      if (isFirst) updateField('image_url', trimmed);
+      return next;
+    });
+    setCustomImageUrl('');
+  };
+
+  const setPrimaryImage = (index: number) => {
+    setImages((prev) => {
+      const next = prev.map((img, idx) => ({ ...img, is_primary: idx === index }));
+      if (next[index]) updateField('image_url', next[index].url);
+      return next;
+    });
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      const wasPrimary = prev[index]?.is_primary;
+      const next = prev.filter((_, idx) => idx !== index);
+      if (wasPrimary && next.length > 0) {
+        next[0].is_primary = true;
+        updateField('image_url', next[0].url);
+      } else if (next.length === 0) {
+        updateField('image_url', '');
+      }
+      return next;
+    });
   };
 
   if (initializing) {
@@ -683,13 +745,56 @@ export default function EditProductScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Image</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Product Images ({images.length})</Text>
+              <Text style={{ fontSize: 12, color: '#64748B' }}>Multiple photos for colors/sizes</Text>
+            </View>
+
+            {images.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', gap: 10, paddingVertical: 4 }}>
+                  {images.map((img, idx) => (
+                    <View
+                      key={img.url + idx}
+                      style={{
+                        width: 110,
+                        borderRadius: 14,
+                        borderWidth: 2,
+                        borderColor: img.is_primary ? '#0066CC' : '#E2E8F0',
+                        backgroundColor: '#F8FAFC',
+                        overflow: 'hidden',
+                        position: 'relative',
+                      }}
+                    >
+                      <Image source={{ uri: img.url }} style={{ width: 110, height: 110 }} resizeMode="cover" />
+                      {img.is_primary ? (
+                        <View style={{ position: 'absolute', top: 6, left: 6, backgroundColor: '#0066CC', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '800' }}>COVER</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => setPrimaryImage(idx)}
+                          style={{ position: 'absolute', bottom: 6, left: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.7)', paddingVertical: 3, borderRadius: 6, alignItems: 'center' }}
+                        >
+                          <Text style={{ color: '#FFF', fontSize: 10, fontWeight: '700' }}>Set Cover</Text>
+                        </TouchableOpacity>
+                      )}
+                      <TouchableOpacity
+                        onPress={() => removeImage(idx)}
+                        style={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(239,68,68,0.9)', width: 22, height: 22, borderRadius: 11, justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        <Trash2 size={12} color="#FFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
+            )}
+
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Product Image</Text>
-              
               <TouchableOpacity 
                 style={[styles.uploadBtn, uploadingImage && styles.submitBtnDisabled]} 
-                onPress={pickImage}
+                onPress={pickImages}
                 disabled={uploadingImage}
               >
                 {uploadingImage ? (
@@ -697,28 +802,41 @@ export default function EditProductScreen() {
                 ) : (
                   <>
                     <UploadCloud size={20} color="#1D4ED8" />
-                    <Text style={styles.uploadBtnText}>Upload from Gallery</Text>
+                    <Text style={styles.uploadBtnText}>
+                      {images.length === 0 ? 'Upload Photos from Gallery' : '+ Add More Photos'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
-              <Text style={{ textAlign: 'center', fontSize: 12, color: '#64748B', marginTop: -2, marginBottom: 8 }}>Recommended size: 800x800px (1:1 Ratio)</Text>
+              <Text style={{ textAlign: 'center', fontSize: 12, color: '#64748B', marginTop: -2, marginBottom: 8 }}>
+                Select multiple photos to show all color and size variants
+              </Text>
               
               <View style={styles.dividerContainer}>
                 <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
+                <Text style={styles.dividerText}>OR ADD BY URL</Text>
                 <View style={styles.dividerLine} />
               </View>
 
-              <Text style={styles.labelSub}>Paste a public image link (Pexels, Unsplash, etc.)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="https://example.com/image.jpg"
-                placeholderTextColor="#94A3B8"
-                value={formData.image_url}
-                onChangeText={(t) => updateField('image_url', t)}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Paste image URL (https://...)"
+                  placeholderTextColor="#94A3B8"
+                  value={customImageUrl}
+                  onChangeText={setCustomImageUrl}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={[styles.addVariantBtn, !customImageUrl.trim() && { opacity: 0.5 }]}
+                  onPress={addImageUrl}
+                  disabled={!customImageUrl.trim()}
+                >
+                  <Plus size={16} color="#FFF" />
+                  <Text style={styles.addVariantBtnText}>Add</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 

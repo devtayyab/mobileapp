@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions } from 'react-native';
-import { Bell, ShoppingBag, Truck, Info, X } from 'lucide-react-native';
+import { Bell, ShoppingBag, Truck, Info, X, MessageSquare } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from './AuthContext';
+import { useLanguage } from './LanguageContext';
+import { localizeNotificationText } from '@/lib/localize-notification';
 import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
@@ -20,6 +22,7 @@ type Notification = {
 type NotificationContextType = {
   notifications: Notification[];
   unreadCount: number;
+  unreadChatCount: number;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
 };
@@ -106,9 +109,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
+  const unreadChatCount = notifications.filter(
+    (n) => !n.is_read && (n.type === 'new_message' || n.type === 'chat' || n.title?.toLowerCase().includes('message'))
+  ).length;
 
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, unreadChatCount, markAsRead, markAllAsRead }}>
       {children}
       {/* Toast Layer */}
       <View style={styles.toastContainer} pointerEvents="box-none">
@@ -122,6 +128,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
 function ToastItem({ toast, onDismiss }: { toast: Notification, onDismiss: () => void }) {
   const [slideAnim] = useState(new Animated.Value(-100));
+  const { language } = useLanguage();
+  const localized = localizeNotificationText(toast.title, toast.message, language.code);
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -137,12 +145,19 @@ function ToastItem({ toast, onDismiss }: { toast: Notification, onDismiss: () =>
       case 'new_order': return <ShoppingBag size={20} color="#1D4ED8" />;
       case 'order_status': return <Truck size={20} color="#059669" />;
       case 'new_product': return <Bell size={20} color="#EA580C" />;
+      case 'new_message':
+      case 'chat':
+        return <MessageSquare size={20} color="#0066CC" />;
       default: return <Info size={20} color="#6B7280" />;
     }
   };
 
   const handlePress = () => {
-    if (toast.payload?.order_id) {
+    if (toast.payload?.room_id) {
+      router.push(`/chat/${toast.payload.room_id}` as any);
+    } else if (toast.type === 'new_message' || toast.type === 'chat') {
+      router.push('/chat' as any);
+    } else if (toast.payload?.order_id) {
       router.push('/(tabs)/orders' as any);
     } else if (toast.payload?.product_id) {
       router.push(`/product/${toast.payload.product_id}` as any);
@@ -155,8 +170,8 @@ function ToastItem({ toast, onDismiss }: { toast: Notification, onDismiss: () =>
       <TouchableOpacity style={styles.toastInner} onPress={handlePress}>
         <View style={styles.toastIconWrap}>{getIcon()}</View>
         <View style={styles.toastTextWrap}>
-          <Text style={styles.toastTitle} numberOfLines={1}>{toast.title}</Text>
-          <Text style={styles.toastMsg} numberOfLines={2}>{toast.message}</Text>
+          <Text style={styles.toastTitle} numberOfLines={1}>{localized.title}</Text>
+          <Text style={styles.toastMsg} numberOfLines={2}>{localized.message}</Text>
         </View>
         <TouchableOpacity style={styles.toastClose} onPress={onDismiss}>
           <X size={16} color="#94A3B8" />

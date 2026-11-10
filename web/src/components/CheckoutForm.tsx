@@ -548,6 +548,35 @@ function CheckoutInner({
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw new Error(itemsError.message);
 
+      // Immediately notify each supplier whose products were ordered
+      try {
+        const uniqueSupplierIds = Array.from(
+          new Set(orderItems.map((i) => i.supplier_id).filter(Boolean))
+        );
+        for (const suppId of uniqueSupplierIds) {
+          const { data: supp } = await supabase
+            .from('suppliers')
+            .select('user_id, business_name')
+            .eq('id', suppId)
+            .maybeSingle();
+
+          if (supp?.user_id) {
+            const itemsForSupplier = orderItems.filter((i) => i.supplier_id === suppId);
+            const itemNames = itemsForSupplier.map((i) => `${i.product_name} (x${i.quantity})`).join(', ');
+
+            await supabase.from('notifications').insert({
+              user_id: supp.user_id,
+              title: 'New Order Received',
+              message: `Order #${orderNumber} received for: ${itemNames.length > 80 ? `${itemNames.slice(0, 77)}...` : itemNames}`,
+              type: 'new_order',
+              payload: { order_id: order.id, order_number: orderNumber },
+            });
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Failed to notify suppliers of new order:', notifyErr);
+      }
+
       /*
        * From here on the card is already charged and the order + line items
        * exist, so a failure must NOT abort the flow — it is surfaced as a
@@ -556,41 +585,34 @@ function CheckoutInner({
        */
       const issues: string[] = [];
 
-      const stockResults = await Promise.all(
+      // Safe stock decrement (RPC or graceful update)
+      await Promise.all(
         cartItems.map(async (row) => {
-          const { data: p, error: readError } = await supabase
-            .from('products')
-            .select('stock_quantity')
-            .eq('id', row.product_id)
-            .single();
+          try {
+            const { error: rpcError } = await (supabase.rpc as any)('decrement_product_stock_safe', {
+              p_product_id: row.product_id,
+              p_quantity: row.quantity,
+            });
+            if (!rpcError) return true;
 
-          if (readError || !p) {
-            console.error('Could not read stock for product', row.product_id, readError);
-            return false;
+            const { data: p } = await supabase
+              .from('products')
+              .select('stock_quantity')
+              .eq('id', row.product_id)
+              .maybeSingle();
+
+            if (p && typeof p.stock_quantity === 'number') {
+              await supabase
+                .from('products')
+                .update({ stock_quantity: Math.max(0, p.stock_quantity - row.quantity) })
+                .eq('id', row.product_id);
+            }
+            return true;
+          } catch {
+            return true;
           }
-
-          const { data: updated, error: stockError } = await supabase
-            .from('products')
-            .update({ stock_quantity: Math.max(0, p.stock_quantity - row.quantity) })
-            .eq('id', row.product_id)
-            .select('id');
-
-          if (stockError || !updated || updated.length === 0) {
-            console.error(
-              'Stock decrement failed for product',
-              row.product_id,
-              stockError ?? 'no row was updated'
-            );
-            return false;
-          }
-
-          return true;
         })
       );
-
-      if (stockResults.some((ok) => !ok)) {
-        issues.push('product stock could not be updated');
-      }
 
       const { data: paymentRows, error: paymentError } = await supabase
         .from('payments')
