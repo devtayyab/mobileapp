@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/lib/supabase';
 import {
   Search, Bell, Star, ArrowRight, Flame, Tag,
-  TrendingUp, ShoppingBag, Zap, ChevronRight
+  TrendingUp, ShoppingBag, Zap, ChevronRight, MessageSquare
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
@@ -95,7 +95,7 @@ export default function HomeScreen() {
   const { profile } = useAuth();
   const { t, language } = useLanguage();
   const { formatPrice } = useCurrency();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, unreadChatCount } = useNotifications();
   const insets = useSafeAreaInsets();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
@@ -188,6 +188,17 @@ export default function HomeScreen() {
           <View style={[styles.headerIcons, language.rtl && { flexDirection: 'row-reverse' }]}>
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/search')}>
               <Search size={20} color="#374151" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.iconBtn} 
+              onPress={() => router.push('/chat' as any)}
+            >
+              <MessageSquare size={20} color={unreadChatCount > 0 ? '#0066CC' : '#374151'} />
+              {unreadChatCount > 0 && (
+                <View style={[styles.notifDot, { backgroundColor: '#0066CC' }]}>
+                  <Text style={styles.notifDotText}>{unreadChatCount > 9 ? '9+' : unreadChatCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.iconBtn} 

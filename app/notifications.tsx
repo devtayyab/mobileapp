@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { Bell, ShoppingBag, Truck, Info, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
+import { Bell, ShoppingBag, Truck, Info, ArrowLeft, CheckCircle2, MessageSquare } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { localizeNotificationText } from '@/lib/localize-notification';
 import type { Palette } from '@/constants/Colors';
 
 export default function NotificationsScreen() {
@@ -18,33 +19,43 @@ export default function NotificationsScreen() {
       case 'new_order': return <ShoppingBag size={22} color={Colors.primary} />;
       case 'order_status': return <Truck size={22} color={Colors.success} />;
       case 'new_product': return <Bell size={22} color={Colors.warning} />;
+      case 'new_message':
+      case 'chat':
+        return <MessageSquare size={22} color="#0066CC" />;
       default: return <Info size={22} color={Colors.text.tertiary} />;
     }
   };
 
   const handleNotifPress = (notif: any) => {
     markAsRead(notif.id);
-    if (notif.payload?.order_id) {
+    if (notif.payload?.room_id) {
+      router.push(`/chat/${notif.payload.room_id}` as any);
+    } else if (notif.type === 'new_message' || notif.type === 'chat') {
+      router.push('/chat' as any);
+    } else if (notif.payload?.order_id) {
       router.push('/(tabs)/orders' as any);
     } else if (notif.payload?.product_id) {
       router.push(`/product/${notif.payload.product_id}` as any);
     }
   };
 
-  const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity 
-      style={[styles.notifItem, !item.is_read && styles.unreadItem]} 
-      onPress={() => handleNotifPress(item)}
-    >
-      <View style={styles.iconWrap}>{getIcon(item.type)}</View>
-      <View style={styles.textWrap}>
-        <Text style={[styles.notifTitle, !item.is_read && styles.unreadTitle]}>{item.title}</Text>
-        <Text style={styles.notifMsg}>{item.message}</Text>
-        <Text style={styles.notifTime}>{new Date(item.created_at).toLocaleString()}</Text>
-      </View>
-      {!item.is_read && <View style={styles.unreadDot} />}
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: any }) => {
+    const localized = localizeNotificationText(item.title, item.message, language.code);
+    return (
+      <TouchableOpacity 
+        style={[styles.notifItem, !item.is_read && styles.unreadItem]} 
+        onPress={() => handleNotifPress(item)}
+      >
+        <View style={styles.iconWrap}>{getIcon(item.type)}</View>
+        <View style={styles.textWrap}>
+          <Text style={[styles.notifTitle, !item.is_read && styles.unreadTitle]}>{localized.title}</Text>
+          <Text style={styles.notifMsg}>{localized.message}</Text>
+          <Text style={styles.notifTime}>{new Date(item.created_at).toLocaleString()}</Text>
+        </View>
+        {!item.is_read && <View style={styles.unreadDot} />}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={[styles.container, language.rtl && { direction: 'rtl' }]}>

@@ -56,6 +56,7 @@ export default function ChatRoomScreen() {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [otherUser, setOtherUser] = useState<{ full_name: string; role: string } | null>(null);
+  const [otherUserId, setOtherUserId] = useState<string | null>(null);
   
   const flatListRef = useRef<FlatList>(null);
 
@@ -139,6 +140,7 @@ export default function ChatRoomScreen() {
       if (room) {
         const other = room.chat_participants.find((p: any) => p.user_id !== user?.id);
         if (other) {
+          setOtherUserId(other.user_id);
           const profileData = Array.isArray(other.profiles) ? other.profiles[0] : (other.profiles as any);
           if (profileData) {
             setOtherUser({
@@ -294,6 +296,21 @@ export default function ChatRoomScreen() {
         setMessages((prev) => 
           prev.map((msg) => msg.id === optimisticId ? (insertedMsg as Message) : msg)
         );
+      }
+
+      // Notify the recipient
+      if (otherUserId) {
+        try {
+          await supabase.from('notifications').insert({
+            user_id: otherUserId,
+            title: 'New Message',
+            message: textToSend.length > 80 ? `${textToSend.slice(0, 77)}...` : textToSend,
+            type: 'new_message',
+            payload: { room_id: roomId },
+          });
+        } catch (notifErr) {
+          console.log('Failed to dispatch recipient notification:', notifErr);
+        }
       }
 
     } catch (err) {
@@ -503,11 +520,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1A1A1A',
     color: '#FFF',
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
     fontSize: 15,
-    maxHeight: 100,
+    lineHeight: 22,
+    minHeight: 46,
+    maxHeight: 120,
+    textAlignVertical: 'center',
     borderWidth: 1,
     borderColor: '#333',
   },

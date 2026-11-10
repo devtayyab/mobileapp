@@ -4,8 +4,10 @@ import { router } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe, Home, Star, RefreshCw } from 'lucide-react-native';
+import { Menu, X, DollarSign, Package, ShoppingCart, TrendingUp, Settings, LogOut, User, Store, ChevronRight, Bell, HelpCircle, FileText, ShieldCheck, AlertCircle, Clock, Globe, Home, Star, RefreshCw, MessageSquare, Languages, Check } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { useLanguage, LANGUAGES } from '@/contexts/LanguageContext';
 import type { Palette } from '@/constants/Colors';
 
 type KycStatus = 'pending' | 'under_review' | 'approved' | 'rejected' | null;
@@ -30,6 +32,9 @@ export default function SupplierDashboard() {
   const Colors = useTheme();
   const styles = useMemo(() => createStyles(Colors), [Colors]);
   const { user, profile, signOut } = useAuth();
+  const { unreadCount, unreadChatCount } = useNotifications();
+  const { language, setLanguage } = useLanguage();
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData>({
     totalRevenue: 0,
@@ -178,13 +183,28 @@ export default function SupplierDashboard() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Dashboard</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
           <TouchableOpacity style={styles.notificationButton} onPress={onRefresh}>
-            <RefreshCw size={24} color={Colors.text.primary} />
+            <RefreshCw size={22} color={Colors.text.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.notificationButton}>
-              <Bell size={24} color={Colors.text.primary} />
-            <View style={styles.badge} />
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => router.push('/chat' as any)}
+          >
+            <MessageSquare
+              size={22}
+              color={unreadChatCount > 0 ? '#0066CC' : Colors.text.primary}
+            />
+            {unreadChatCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: '#0066CC' }]} />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => router.push('/notifications' as any)}
+          >
+            <Bell size={22} color={Colors.text.primary} />
+            {unreadCount > 0 && <View style={styles.badge} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -420,6 +440,45 @@ export default function SupplierDashboard() {
             <ChevronRight size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.menuRow}
+            onPress={() => {
+              toggleMenu();
+              router.push('/chat' as any);
+            }}
+          >
+            <View style={styles.menuRowLeft}>
+              <MessageSquare
+                size={20}
+                color={unreadChatCount > 0 ? '#0066CC' : '#4B5563'}
+              />
+              <Text
+                style={[
+                  styles.menuRowText,
+                  unreadChatCount > 0 && { color: '#0066CC', fontWeight: '700' },
+                ]}
+              >
+                Live Chats
+              </Text>
+            </View>
+            {unreadChatCount > 0 ? (
+              <View
+                style={{
+                  backgroundColor: '#0066CC',
+                  borderRadius: 10,
+                  paddingHorizontal: 7,
+                  paddingVertical: 2,
+                }}
+              >
+                <Text style={{ color: '#FFF', fontSize: 11, fontWeight: '700' }}>
+                  {unreadChatCount}
+                </Text>
+              </View>
+            ) : (
+              <ChevronRight size={16} color="#9CA3AF" />
+            )}
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/supplier/shipping-rates'); }}>
             <View style={styles.menuRowLeft}>
               <Globe size={20} color="#4B5563" />
@@ -468,6 +527,14 @@ export default function SupplierDashboard() {
             <ChevronRight size={16} color="#9CA3AF" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.menuRow} onPress={() => setShowLanguageModal(true)}>
+            <View style={styles.menuRowLeft}>
+              <Languages size={20} color="#4B5563" />
+              <Text style={styles.menuRowText}>Language ({language.flag} {language.name})</Text>
+            </View>
+            <ChevronRight size={16} color="#9CA3AF" />
+          </TouchableOpacity>
+
           <View style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuRow} onPress={() => { toggleMenu(); router.push('/help'); }}>
@@ -497,6 +564,48 @@ export default function SupplierDashboard() {
           </TouchableOpacity>
         </View>
       </Animated.View>
+
+      {/* Language Switcher Modal */}
+      <Modal visible={showLanguageModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Dashboard Language</Text>
+              <TouchableOpacity onPress={() => setShowLanguageModal(false)} style={styles.closeBtn}>
+                <X size={20} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={{ maxHeight: 380 }}>
+              {LANGUAGES.map((lang) => {
+                const isSelected = language.code === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[
+                      styles.langOption,
+                      isSelected && { backgroundColor: Colors.background.tertiary, borderColor: '#0066CC' },
+                    ]}
+                    onPress={async () => {
+                      await setLanguage(lang);
+                      setShowLanguageModal(false);
+                      toggleMenu();
+                    }}
+                  >
+                    <Text style={{ fontSize: 24, marginRight: 12 }}>{lang.flag}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.langName, isSelected && { color: '#0066CC', fontWeight: '700' }]}>
+                        {lang.name}
+                      </Text>
+                      <Text style={styles.langNative}>{lang.nativeName}</Text>
+                    </View>
+                    {isSelected && <Check size={18} color="#0066CC" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -636,4 +745,27 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   kycBannerTitle: { fontSize: 14, fontWeight: '700', color: Colors.warning },
   kycBannerSub: { fontSize: 12, color: Colors.text.tertiary, marginTop: 2 },
   kycBadge: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.error },
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.background.secondary,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    padding: 20, maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.border.medium,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: Colors.text.primary },
+  closeBtn: { padding: 4 },
+  langOption: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: 14, borderRadius: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: Colors.border.medium,
+    backgroundColor: Colors.background.primary,
+  },
+  langName: { fontSize: 15, fontWeight: '600', color: Colors.text.primary },
+  langNative: { fontSize: 13, color: Colors.text.tertiary, marginTop: 2 },
 });

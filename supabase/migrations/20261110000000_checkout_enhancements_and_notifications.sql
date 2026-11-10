@@ -68,3 +68,4 @@ DROP TRIGGER IF EXISTS on_chat_message_notify ON chat_messages;
 CREATE TRIGGER on_chat_message_notify
 AFTER INSERT ON chat_messages
 FOR EACH ROW EXECUTE FUNCTION notify_chat_message();
+

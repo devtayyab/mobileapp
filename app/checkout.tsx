@@ -404,25 +404,70 @@ export default function CheckoutScreen() {
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
 
-      // Update product stock quantities
+      // Safe stock decrement (RPC with graceful fallback)
       await Promise.all(
         cartItems.map(async (item) => {
           if (!item.product_id || !item.quantity) return;
-          const { data: pData } = await supabase
-            .from('products')
-            .select('stock_quantity')
-            .eq('id', item.product_id)
-            .single();
+          try {
+            const { error: rpcError } = await (supabase.rpc as any)('decrement_product_stock_safe', {
+              p_product_id: item.product_id,
+              p_quantity: item.quantity,
+            });
+            if (!rpcError) return;
 
-          if (pData && typeof pData.stock_quantity === 'number') {
-            const newStock = Math.max(0, pData.stock_quantity - item.quantity);
-            await supabase
+            const { data: pData } = await supabase
               .from('products')
-              .update({ stock_quantity: newStock })
-              .eq('id', item.product_id);
+              .select('stock_quantity')
+              .eq('id', item.product_id)
+              .maybeSingle();
+
+            if (pData && typeof pData.stock_quantity === 'number') {
+              const newStock = Math.max(0, pData.stock_quantity - item.quantity);
+              await supabase
+                .from('products')
+                .update({ stock_quantity: newStock })
+                .eq('id', item.product_id);
+            }
+          } catch {
+            // graceful
           }
         })
       );
+
+      // Notify suppliers for their items in this order
+      const supplierIds = Array.from(
+        new Set(
+          orderItems
+            .map((it: any) => it.supplier_id)
+            .filter((id: any): id is string => typeof id === 'string' && id.length > 0)
+        )
+      );
+
+      for (const suppId of supplierIds) {
+        try {
+          const { data: suppRow } = await supabase
+            .from('suppliers')
+            .select('user_id')
+            .eq('id', suppId)
+            .maybeSingle();
+
+          const supplierUserId = suppRow?.user_id;
+          if (supplierUserId) {
+            await supabase.from('notifications').insert({
+              user_id: supplierUserId,
+              title: 'New Order Received',
+              message: `You have received a new order (${orderNumber})! Please review and prepare fulfillment.`,
+              type: 'new_order',
+              payload: {
+                order_id: order.id,
+                order_number: orderNumber,
+              },
+            });
+          }
+        } catch (suppErr) {
+          console.error('Failed to dispatch supplier notification:', suppErr);
+        }
+      }
 
       await supabase.from('payments').insert({
         order_id: order.id,
