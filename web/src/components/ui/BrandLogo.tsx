@@ -28,14 +28,14 @@ export function BrandLogo({
 
   const content = (
     <div className={cn('inline-flex items-center gap-2.5 select-none', className)}>
-      <div className="relative shrink-0 overflow-hidden rounded-xl bg-white/5 p-1 transition-transform group-hover:scale-105">
+      <div className="relative shrink-0 overflow-hidden rounded-xl bg-black/5 dark:bg-white/5 p-0.5 transition-transform group-hover:scale-105 shadow-2xs">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/logo.png"
           alt="Sathun Global Marketplace Logo"
           width={currentSize.image}
           height={currentSize.image}
-          className="h-auto w-auto object-contain max-h-[48px]"
+          className="h-11 w-auto object-contain max-h-[48px] rounded-lg"
           onError={(e) => {
             // Fallback to icon if logo fails to load
             (e.target as HTMLImageElement).src = '/images/icon.png';
