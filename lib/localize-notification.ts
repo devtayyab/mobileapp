@@ -213,3 +213,4 @@ export function localizeNotificationText(
 
   return { title: safeTitle, message: safeMessage };
 }
+
