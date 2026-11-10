@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import { getOrCreateSupplierId } from '@/lib/supabase/supplier';
 import type { Category, Product } from '@/types/database';
 import { Button, Input, Modal, Select, Textarea } from '@/components/ui';
-import { Plus, X, Palette, Ruler, Trash2 } from 'lucide-react';
+import { Plus, X, Palette, Ruler, Trash2, Upload } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
 const PRESET_COLORS = [
   { name: 'Black', hex: '#000000' },
@@ -47,6 +48,13 @@ function slugify(name: string) {
     .replace(/(^-|-$)/g, '');
 }
 
+export type GalleryImage = {
+  id?: string;
+  url: string;
+  file?: File;
+  is_primary: boolean;
+};
+
 export default function ProductForm({
   categories,
   userId,
@@ -54,6 +62,7 @@ export default function ProductForm({
   businessNameFallback,
   existingProduct,
   existingImageUrl,
+  existingImages = [],
 }: {
   categories: Pick<Category, 'id' | 'name'>[];
   userId: string;
@@ -75,6 +84,7 @@ export default function ProductForm({
     | 'specifications'
   >;
   existingImageUrl?: string | null;
+  existingImages?: { id?: string; image_url: string; is_primary?: boolean | null; display_order?: number | null }[];
 }) {
   const router = useRouter();
   const isEdit = Boolean(existingProduct);
@@ -102,8 +112,19 @@ export default function ProductForm({
   const [customColor, setCustomColor] = useState('');
   const [customSize, setCustomSize] = useState('');
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(existingImageUrl ?? null);
+  const [images, setImages] = useState<GalleryImage[]>(() => {
+    if (existingImages && existingImages.length > 0) {
+      return existingImages.map((img, idx) => ({
+        id: img.id,
+        url: img.image_url,
+        is_primary: img.is_primary ?? idx === 0,
+      }));
+    }
+    if (existingImageUrl) {
+      return [{ url: existingImageUrl, is_primary: true }];
+    }
+    return [];
+  });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -156,27 +177,44 @@ export default function ProductForm({
   const set = (field: keyof FormValues) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setValues((v) => ({ ...v, [field]: e.target.value }));
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setImageFile(file);
-    if (file) setImagePreview(URL.createObjectURL(file));
+  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const newItems: GalleryImage[] = files.map((file, idx) => ({
+      url: URL.createObjectURL(file),
+      file,
+      is_primary: images.length === 0 && idx === 0,
+    }));
+
+    setImages((prev) => {
+      const combined = [...prev, ...newItems];
+      if (!combined.some((x) => x.is_primary) && combined.length > 0) {
+        combined[0].is_primary = true;
+      }
+      return combined;
+    });
+
+    e.target.value = '';
   };
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return existingImageUrl ?? null;
+  const setPrimaryImage = (index: number) => {
+    setImages((prev) =>
+      prev.map((img, i) => ({
+        ...img,
+        is_primary: i === index,
+      }))
+    );
+  };
 
-    const supabase = createClient();
-    const ext = imageFile.name.split('.').pop();
-    const path = `${userId}/${Date.now()}.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(path, imageFile, { contentType: imageFile.type });
-
-    if (uploadError) throw new Error(uploadError.message);
-
-    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
-    return data.publicUrl;
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length > 0 && !next.some((x) => x.is_primary)) {
+        next[0].is_primary = true;
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,7 +225,6 @@ export default function ProductForm({
     try {
       const supabase = createClient();
       const supplierIdForWrite = await getOrCreateSupplierId(supabase, userId, businessNameFallback);
-      const imageUrl = await uploadImage();
 
       const specifications = {
         ...(existingProduct?.specifications && typeof existingProduct.specifications === 'object'
@@ -248,26 +285,49 @@ export default function ProductForm({
         productId = created.id;
       }
 
-      if (imageUrl && productId) {
-        const { data: existingImage } = await supabase
-          .from('product_images')
-          .select('id')
-          .eq('product_id', productId)
-          .eq('is_primary', true)
-          .maybeSingle();
+      if (productId && images.length > 0) {
+        // Upload any newly selected files to Supabase storage
+        const savedImages: { url: string; is_primary: boolean; display_order: number }[] = [];
 
-        if (existingImage) {
-          await supabase
-            .from('product_images')
-            .update({ image_url: imageUrl })
-            .eq('id', existingImage.id);
-        } else {
-          await supabase.from('product_images').insert({
-            product_id: productId,
-            image_url: imageUrl,
-            is_primary: true,
-            display_order: 1,
-          });
+        for (let i = 0; i < images.length; i++) {
+          const item = images[i];
+          if (item.file) {
+            const ext = item.file.name.split('.').pop() || 'jpg';
+            const path = `${userId}/${Date.now()}-${i}.${ext}`;
+            const { error: uploadError } = await supabase.storage
+              .from('product-images')
+              .upload(path, item.file, { contentType: item.file.type });
+
+            if (uploadError) {
+              console.error('Image upload failed for item', i, uploadError);
+            } else {
+              const { data: pubData } = supabase.storage.from('product-images').getPublicUrl(path);
+              savedImages.push({
+                url: pubData.publicUrl,
+                is_primary: item.is_primary,
+                display_order: i + 1,
+              });
+            }
+          } else {
+            savedImages.push({
+              url: item.url,
+              is_primary: item.is_primary,
+              display_order: i + 1,
+            });
+          }
+        }
+
+        if (savedImages.length > 0) {
+          // Delete existing image rows and insert updated gallery
+          await supabase.from('product_images').delete().eq('product_id', productId);
+          await supabase.from('product_images').insert(
+            savedImages.map((img) => ({
+              product_id: productId,
+              image_url: img.url,
+              is_primary: img.is_primary,
+              display_order: img.display_order,
+            }))
+          );
         }
       }
 
@@ -547,21 +607,97 @@ export default function ProductForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="pf-product-image" className="text-md font-bold text-content-primary">
-          Product image
-        </label>
-        {imagePreview && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imagePreview} alt="Preview" className="h-24 w-24 rounded-md object-cover" />
+      <div className="flex flex-col gap-3 rounded-2xl border border-edge bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <label className="text-md font-bold text-content-primary">
+              Product Images ({images.length})
+            </label>
+            <p className="text-xs text-content-tertiary">
+              Add multiple pictures for different colors, sizes, and angles. Click &ldquo;Make Cover&rdquo; to set the primary photo.
+            </p>
+          </div>
+          <label
+            htmlFor="pf-product-images"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-edge bg-surface-page px-3 py-1.5 text-xs font-bold text-content-primary shadow-2xs hover:border-primary hover:text-primary transition-colors"
+          >
+            <Upload size={14} />
+            <span>Add Photos</span>
+          </label>
+          <input
+            id="pf-product-images"
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImagesChange}
+            className="sr-only"
+          />
+        </div>
+
+        {images.length === 0 ? (
+          <label
+            htmlFor="pf-product-images"
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-edge py-8 hover:bg-surface-page/40 transition-colors"
+          >
+            <Upload size={28} className="text-content-tertiary" />
+            <span className="text-sm font-semibold text-content-secondary">
+              Click to choose multiple product photos
+            </span>
+            <span className="text-2xs text-content-tertiary">
+              Supports JPG, PNG, WEBP for multiple color and size variants
+            </span>
+          </label>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {images.map((img, idx) => (
+              <div
+                key={img.url + idx}
+                className={cn(
+                  'group relative flex flex-col overflow-hidden rounded-xl border bg-surface-page transition-all',
+                  img.is_primary ? 'border-primary ring-2 ring-primary/20' : 'border-edge'
+                )}
+              >
+                <div className="relative aspect-square w-full overflow-hidden bg-surface-tint">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.url}
+                    alt={`Product ${idx + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                  {img.is_primary && (
+                    <span className="absolute left-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-3xs font-extrabold uppercase text-white shadow-xs">
+                      Primary
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-md bg-black/60 text-white opacity-0 transition-opacity hover:bg-error group-hover:opacity-100"
+                    title="Remove image"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+
+                <div className="p-1.5">
+                  {!img.is_primary ? (
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryImage(idx)}
+                      className="w-full rounded-md border border-edge bg-surface py-1 text-3xs font-bold text-content-secondary hover:border-primary hover:text-primary transition-colors"
+                    >
+                      Make Cover
+                    </button>
+                  ) : (
+                    <span className="block text-center text-3xs font-bold text-primary py-1">
+                      Cover Photo
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-        <input
-          id="pf-product-image"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="block w-full text-md text-content-primary file:mr-3 file:rounded-lg file:border-[1.5px] file:border-edge file:bg-surface-page file:px-3 file:py-1.5 file:text-md file:font-bold file:text-content-primary"
-        />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">

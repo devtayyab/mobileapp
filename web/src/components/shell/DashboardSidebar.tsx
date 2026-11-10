@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  BarChart3, Coins, Boxes, Building2, ChevronLeft, FileCheck2, Globe2, LayoutDashboard, LifeBuoy,
+  BarChart3, Coins, Globe, Boxes, Building2, ChevronLeft, FileCheck2, Globe2, LayoutDashboard, LifeBuoy,
   LogOut, Menu, MessageSquare, Moon, Package, Receipt, Settings, ShieldCheck, ShoppingBag,
   Star, Store, Sun, Tags, Truck, Users, Wallet,
 } from 'lucide-react';
@@ -13,6 +13,8 @@ import { cn } from '@/lib/cn';
 import { createClient } from '@/lib/supabase/client';
 import { useAppTheme } from '@/providers/ThemeProvider';
 import { useCurrency } from '@/providers/CurrencyProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { useNotifications } from '@/providers/NotificationProvider';
 import { Avatar } from '@/components/ui/Avatar';
 import type { Role } from '@/types/database';
 
@@ -87,6 +89,8 @@ export function DashboardSidebar({
   const router = useRouter();
   const { scheme, toggleScheme } = useAppTheme();
   const { currency, currencies, setCurrency } = useCurrency();
+  const { language, languages, setLanguage } = useLanguage();
+  const { unreadChatCount } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const nav = role === 'admin' ? ADMIN_NAV : SUPPLIER_NAV;
@@ -102,7 +106,7 @@ export function DashboardSidebar({
       {/* Wordmark stacks above the role chip so the longer brand name doesn't
           overflow the 248px sidebar. */}
       <div className="mb-2 flex flex-col items-start gap-1 px-2 py-1">
-        <span className="text-2xl font-extrabold leading-tight tracking-[-0.5px] text-primary">
+        <span className="text-2xl font-extrabold leading-tight tracking-[-0.5px] text-[#0066CC] dark:text-[#38BDF8]">
           SATHUN GLOBAL
         </span>
         <span className="rounded-md bg-surface-tint px-1.5 py-0.5 text-2xs font-extrabold uppercase tracking-[0.5px] text-primary">
@@ -141,8 +145,26 @@ export function DashboardSidebar({
                     className="absolute inset-0 rounded-lg bg-surface-tint"
                   />
                 )}
-                <Icon size={17} className="relative z-10 shrink-0" />
-                <span className="relative z-10 truncate">{item.label}</span>
+                <Icon
+                  size={17}
+                  className={cn(
+                    'relative z-10 shrink-0',
+                    item.href === '/chat' && unreadChatCount > 0 ? 'text-blue-500' : ''
+                  )}
+                />
+                <span
+                  className={cn(
+                    'relative z-10 truncate',
+                    item.href === '/chat' && unreadChatCount > 0 ? 'text-blue-500 font-extrabold' : ''
+                  )}
+                >
+                  {item.label}
+                </span>
+                {item.href === '/chat' && unreadChatCount > 0 && (
+                  <span className="relative z-10 ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-2xs font-extrabold text-white animate-pulse">
+                    {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -171,6 +193,24 @@ export function DashboardSidebar({
           {scheme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           {scheme === 'dark' ? 'Light mode' : 'Dark mode'}
         </button>
+        <div className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-md font-bold text-content-tertiary">
+          <span className="flex items-center gap-2.5">
+            <Globe size={17} />
+            Language
+          </span>
+          <select
+            value={language.code}
+            onChange={(e) => setLanguage(e.target.value)}
+            aria-label="Change dashboard language"
+            className="max-w-[120px] truncate rounded-lg border border-edge bg-surface px-2 py-1 text-xs font-bold text-content-primary focus:border-primary focus:outline-none cursor-pointer"
+          >
+            {languages.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.flag} {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-md font-bold text-content-tertiary">
           <span className="flex items-center gap-2.5">
             <Coins size={17} />
@@ -226,13 +266,23 @@ export function DashboardSidebar({
         </button>
         {/* Nowrap: at 320px the wordmark otherwise wraps to two lines and
             doubles the height of the bar. */}
-        <span className="truncate whitespace-nowrap text-xl font-extrabold text-primary sm:text-2xl">
+        <span className="truncate whitespace-nowrap text-xl font-extrabold text-[#0066CC] dark:text-[#38BDF8] sm:text-2xl">
           SATHUN GLOBAL
         </span>
-        <span className="ml-auto flex shrink-0 items-center gap-1 text-sm font-bold uppercase text-content-tertiary">
-          <ShieldCheck size={14} />
-          {role}
-        </span>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <span className="flex items-center gap-1 text-sm font-bold uppercase text-content-tertiary">
+            <ShieldCheck size={14} />
+            {role}
+          </span>
+          <button
+            onClick={handleSignOut}
+            aria-label="Sign out"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:border-error hover:bg-error/10 hover:text-error"
+            title="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Mobile drawer */}

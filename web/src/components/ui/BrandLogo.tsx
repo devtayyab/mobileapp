@@ -44,7 +44,7 @@ export function BrandLogo({
       </div>
       {showText && (
         <div className="flex flex-col leading-tight">
-          <span className={cn('font-extrabold tracking-[-0.5px] text-primary', currentSize.text)}>
+          <span className={cn('font-extrabold tracking-[-0.5px] text-[#0066CC] dark:text-[#38BDF8]', currentSize.text)}>
             SATHUN GLOBAL
           </span>
           <span className={cn('font-semibold uppercase tracking-widest text-content-tertiary', currentSize.subtext)}>

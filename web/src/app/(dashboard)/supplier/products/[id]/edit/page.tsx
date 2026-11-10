@@ -30,7 +30,7 @@ export default async function EditSupplierProductPage({
     notFound();
   }
 
-  const [{ data: product }, { data: categories }, { data: image }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: images }] = await Promise.all([
     supabase
       .from('products')
       .select(
@@ -42,10 +42,9 @@ export default async function EditSupplierProductPage({
     supabase.from('categories').select('id, name').order('name'),
     supabase
       .from('product_images')
-      .select('image_url')
+      .select('id, image_url, is_primary, display_order')
       .eq('product_id', id)
-      .eq('is_primary', true)
-      .maybeSingle(),
+      .order('display_order', { ascending: true }),
   ]);
 
   // Someone else's product (or a bad id) is indistinguishable from "not found".
@@ -64,7 +63,7 @@ export default async function EditSupplierProductPage({
         supplierId={supplier.id}
         businessNameFallback={profile.full_name ?? profile.email}
         existingProduct={product}
-        existingImageUrl={image?.image_url}
+        existingImages={images ?? []}
       />
     </div>
   );

@@ -22,6 +22,7 @@ import {
   type PlatformStats,
   type RevenueByCurrency,
 } from '@/components/admin/AdminStatsGrid';
+import { AdminSignOutButton } from '@/components/admin/AdminSignOutButton';
 
 /** Shape returned by the `admin_platform_stats()` RPC. */
 type AdminPlatformStats = {
@@ -202,15 +203,20 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <span className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-2xs font-extrabold uppercase tracking-[0.5px] text-white">
-          <ShieldCheck size={10} />
-          Admin
-        </span>
-        <h1 className="mt-1.5 text-6xl font-extrabold tracking-[-0.5px] text-content-primary">
-          {profile.full_name ?? 'Administrator'}
-        </h1>
-        <p className="text-base text-content-tertiary">{profile.email}</p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <span className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-0.5 text-2xs font-extrabold uppercase tracking-[0.5px] text-white">
+            <ShieldCheck size={10} />
+            Admin
+          </span>
+          <h1 className="mt-1.5 text-6xl font-extrabold tracking-[-0.5px] text-content-primary">
+            {profile.full_name ?? 'Administrator'}
+          </h1>
+          <p className="text-base text-content-tertiary">{profile.email}</p>
+        </div>
+        <div className="pt-2">
+          <AdminSignOutButton />
+        </div>
       </header>
 
       {pendingKyc > 0 && (

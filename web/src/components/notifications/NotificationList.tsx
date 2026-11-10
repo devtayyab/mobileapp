@@ -51,6 +51,141 @@ function routeFor(notification: Notification): string | null {
   return null;
 }
 
+function localizeNotificationText(
+  title: string,
+  message: string,
+  lang: string
+): { title: string; message: string } {
+  if (lang === 'el') {
+    if (title.includes('Order Placed Successfully')) {
+      return {
+        title: 'Η παραγγελία τοποθετήθηκε επιτυχώς!',
+        message: message.replace('Your order #', 'Η παραγγελία σας #').replace(' has been received and is being processed.', ' παραλήφθηκε και επεξεργάζεται.'),
+      };
+    }
+    if (title.includes('New Order Received')) {
+      return {
+        title: 'Νέα Παραγγελία!',
+        message: message.replace('New order #', 'Νέα παραγγελία #').replace(' received for ', ' παραλήφθηκε για: '),
+      };
+    }
+    if (title.includes('Order Update')) {
+      return {
+        title: 'Ενημέρωση Παραγγελίας',
+        message: message.replace('Your order #', 'Η παραγγελία σας #').replace(' status is now ', ' είναι πλέον: '),
+      };
+    }
+    if (title.includes('New Message')) {
+      return {
+        title: 'Νέο Μήνυμα',
+        message,
+      };
+    }
+  } else if (lang === 'ur') {
+    if (title.includes('Order Placed Successfully')) {
+      return {
+        title: 'آرڈر کامیابی سے موصول ہو گیا!',
+        message: message.replace('Your order #', 'آپ کا آرڈر نمبر #').replace(' has been received and is being processed.', ' موصول ہو چکا ہے اور پراسیس ہو رہا ہے۔'),
+      };
+    }
+    if (title.includes('New Order Received')) {
+      return {
+        title: 'نیا آرڈر موصول ہوا!',
+        message: message.replace('New order #', 'نیا آرڈر نمبر #').replace(' received for ', ' موصول ہوا: '),
+      };
+    }
+    if (title.includes('Order Update')) {
+      return {
+        title: 'آرڈر کی صورتحال',
+        message: message.replace('Your order #', 'آپ کا آرڈر #').replace(' status is now ', ' اب ہے: '),
+      };
+    }
+    if (title.includes('New Message')) {
+      return {
+        title: 'نیا پیغام',
+        message,
+      };
+    }
+  } else if (lang === 'ar') {
+    if (title.includes('Order Placed Successfully')) {
+      return {
+        title: 'تم تقديم الطلب بنجاح!',
+        message: message.replace('Your order #', 'طلبك رقم #').replace(' has been received and is being processed.', ' تم استلامه وجاري معالجته.'),
+      };
+    }
+    if (title.includes('New Order Received')) {
+      return {
+        title: 'تم استلام طلب جديد!',
+        message: message.replace('New order #', 'طلب جديد رقم #').replace(' received for ', ' تم استلامه لـ: '),
+      };
+    }
+    if (title.includes('Order Update')) {
+      return {
+        title: 'تحديث الطلب',
+        message: message.replace('Your order #', 'طلبك رقم #').replace(' status is now ', ' أصبحت حالته: '),
+      };
+    }
+    if (title.includes('New Message')) {
+      return {
+        title: 'رسالة جديدة',
+        message,
+      };
+    }
+  } else if (lang === 'es') {
+    if (title.includes('Order Placed Successfully')) {
+      return {
+        title: '¡Pedido realizado con éxito!',
+        message: message.replace('Your order #', 'Su pedido #').replace(' has been received and is being processed.', ' ha sido recibido y se está procesando.'),
+      };
+    }
+    if (title.includes('New Order Received')) {
+      return {
+        title: '¡Nuevo pedido recibido!',
+        message: message.replace('New order #', 'Nuevo pedido #').replace(' received for ', ' recibido para: '),
+      };
+    }
+    if (title.includes('Order Update')) {
+      return {
+        title: 'Actualización del pedido',
+        message: message.replace('Your order #', 'Su pedido #').replace(' status is now ', ' ahora está: '),
+      };
+    }
+    if (title.includes('New Message')) {
+      return {
+        title: 'Nuevo mensaje',
+        message,
+      };
+    }
+  } else if (lang === 'fr') {
+    if (title.includes('Order Placed Successfully')) {
+      return {
+        title: 'Commande passée avec succès !',
+        message: message.replace('Your order #', 'Votre commande #').replace(' has been received and is being processed.', ' a été reçue et est en cours de traitement.'),
+      };
+    }
+    if (title.includes('New Order Received')) {
+      return {
+        title: 'Nouvelle commande reçue !',
+        message: message.replace('New order #', 'Nouvelle commande #').replace(' received for ', ' reçue pour : '),
+      };
+    }
+    if (title.includes('Order Update')) {
+      return {
+        title: 'Mise à jour de commande',
+        message: message.replace('Your order #', 'Votre commande #').replace(' status is now ', ' est maintenant : '),
+      };
+    }
+    if (title.includes('New Message')) {
+      return {
+        title: 'Nouveau message',
+        message,
+      };
+    }
+  }
+
+  return { title, message };
+}
+
 export function NotificationList() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { t, language } = useLanguage();
@@ -101,6 +236,7 @@ export function NotificationList() {
         <ul className="flex flex-col gap-3">
           {notifications.map((notification, index) => {
             const unread = !notification.is_read;
+            const localized = localizeNotificationText(notification.title, notification.message, language.code);
 
             return (
               <motion.li
@@ -137,9 +273,9 @@ export function NotificationList() {
                           : 'font-bold text-content-primary'
                       )}
                     >
-                      {notification.title}
+                      {localized.title}
                     </p>
-                    <p className="mt-0.5 text-md text-content-tertiary">{notification.message}</p>
+                    <p className="mt-0.5 text-md text-content-tertiary">{localized.message}</p>
                     <p className="mt-1.5 text-xs text-content-tertiary">
                       {new Date(notification.created_at).toLocaleString(locale)}
                     </p>

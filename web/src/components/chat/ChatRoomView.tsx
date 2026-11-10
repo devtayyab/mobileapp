@@ -231,6 +231,21 @@ export function ChatRoomView({
 
       if (error) throw error;
 
+      // Notify the recipient
+      if (counterparty?.id) {
+        try {
+          await supabase.from('notifications').insert({
+            user_id: counterparty.id,
+            title: 'New Message',
+            message: messageToSend.length > 80 ? `${messageToSend.slice(0, 77)}...` : messageToSend,
+            type: 'new_message',
+            payload: { room_id: roomId },
+          });
+        } catch (notifErr) {
+          console.error('Failed to dispatch recipient notification:', notifErr);
+        }
+      }
+
       setMessages((prev) => {
         // The realtime INSERT may have landed first.
         if (prev.some((m) => m.id === data.id)) {
@@ -404,7 +419,12 @@ export function ChatRoomView({
       >
         <textarea
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+            const el = event.target;
+            el.style.height = 'auto';
+            el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+          }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
@@ -414,7 +434,7 @@ export function ChatRoomView({
           rows={1}
           placeholder={t.typeYourMessage ?? 'Type your message...'}
           aria-label={t.typeYourMessage ?? 'Type your message'}
-          className="max-h-28 min-h-[44px] flex-1 resize-y rounded-3xl border-[1.5px] border-edge bg-surface-page px-4 py-3 text-md text-content-primary outline-none transition-colors placeholder:text-content-tertiary focus:border-secondary"
+          className="max-h-32 min-h-[48px] flex-1 resize-none rounded-2xl border-[1.5px] border-edge bg-surface-page px-4 py-2.5 text-base leading-relaxed text-content-primary outline-none transition-colors placeholder:text-content-tertiary focus:border-primary"
         />
         <button
           type="submit"

@@ -44,7 +44,7 @@ export function StorefrontHeader({
   const pathname = usePathname();
   const router = useRouter();
   const { count } = useCart();
-  const { unreadCount } = useNotifications();
+  const { unreadCount, unreadChatCount } = useNotifications();
   const { scheme, toggleScheme } = useAppTheme();
   const { t, language, languages, setLanguage } = useLanguage();
   const { currency, currencies, setCurrency } = useCurrency();
@@ -132,9 +132,20 @@ export function StorefrontHeader({
               <Link
                 href="/chat"
                 aria-label="Messages"
-                className="hidden h-10 w-10 items-center justify-center rounded-lg border border-edge text-content-tertiary hover:text-content-primary sm:flex"
+                className={cn(
+                  'relative hidden h-10 w-10 items-center justify-center rounded-lg border transition-colors sm:flex',
+                  unreadChatCount > 0
+                    ? 'border-blue-500 bg-blue-500/10 text-blue-600 shadow-xs'
+                    : 'border-edge text-content-tertiary hover:text-content-primary'
+                )}
+                title={unreadChatCount > 0 ? `${unreadChatCount} unread message${unreadChatCount > 1 ? 's' : ''}` : 'Messages'}
               >
                 <MessageSquare size={18} />
+                {unreadChatCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-[1.5px] border-surface bg-blue-600 px-1 text-2xs font-extrabold text-white animate-pulse">
+                    {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                  </span>
+                )}
               </Link>
             )}
 
@@ -252,9 +263,19 @@ export function StorefrontHeader({
             <Link
               href="/chat"
               aria-label="Messages"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-edge bg-surface text-content-secondary shadow-2xs active:scale-95 transition-transform"
+              className={cn(
+                'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border shadow-2xs active:scale-95 transition-transform',
+                unreadChatCount > 0
+                  ? 'border-blue-500 bg-blue-500/10 text-blue-600'
+                  : 'border-edge bg-surface text-content-secondary'
+              )}
             >
               <MessageSquare size={17} />
+              {unreadChatCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-3xs font-extrabold text-white">
+                  {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                </span>
+              )}
             </Link>
           )}
 
