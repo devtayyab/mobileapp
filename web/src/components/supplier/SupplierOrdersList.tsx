@@ -178,7 +178,7 @@ export function SupplierOrdersList({
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className="text-sm text-content-tertiary">Your payout (90%)</p>
+                    <p className="text-sm text-content-tertiary">Items net payout</p>
                     <p className="flex items-center gap-1 text-2xl font-extrabold text-success">
                       {formatOrderAmount(order.currency, order.payout)}
                       <ChevronRight size={16} className="text-content-tertiary" />

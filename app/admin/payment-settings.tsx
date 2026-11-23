@@ -17,6 +17,8 @@ export default function PaymentSettingsScreen() {
   
   const [secretKey, setSecretKey] = useState('');
   const [publishableKey, setPublishableKey] = useState('');
+  const [retailCommissionRate, setRetailCommissionRate] = useState('11');
+  const [b2bCommissionRate, setB2bCommissionRate] = useState('6');
 
   useEffect(() => {
     loadSettings();
@@ -27,7 +29,7 @@ export default function PaymentSettingsScreen() {
     try {
       const { data, error } = await supabase
         .from('payment_settings')
-        .select('stripe_secret_key, stripe_publishable_key')
+        .select('stripe_secret_key, stripe_publishable_key, retail_commission_rate, b2b_commission_rate')
         .eq('id', 1)
         .single();
 
@@ -36,6 +38,8 @@ export default function PaymentSettingsScreen() {
       if (data) {
         setSecretKey(data.stripe_secret_key || '');
         setPublishableKey(data.stripe_publishable_key || '');
+        setRetailCommissionRate(String(data.retail_commission_rate ?? 11));
+        setB2bCommissionRate(String(data.b2b_commission_rate ?? 6));
       }
     } catch (error: any) {
       console.error('Error loading settings:', error);
@@ -46,6 +50,13 @@ export default function PaymentSettingsScreen() {
   };
 
   const handleSave = async () => {
+    const retailNum = parseFloat(retailCommissionRate);
+    const b2bNum = parseFloat(b2bCommissionRate);
+    if (isNaN(retailNum) || retailNum < 0 || retailNum > 100 || isNaN(b2bNum) || b2bNum < 0 || b2bNum > 100) {
+      Alert.alert('Invalid Commission Rate', 'Please enter valid commission rates between 0 and 100.');
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase
@@ -54,12 +65,14 @@ export default function PaymentSettingsScreen() {
           id: 1,
           stripe_secret_key: secretKey.trim() || null,
           stripe_publishable_key: publishableKey.trim() || null,
+          retail_commission_rate: Math.round(retailNum * 100) / 100,
+          b2b_commission_rate: Math.round(b2bNum * 100) / 100,
           updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Payment settings saved successfully.');
+      Alert.alert('Success', 'Payment & commission settings saved successfully.');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to save settings.');
     } finally {
@@ -122,6 +135,37 @@ export default function PaymentSettingsScreen() {
                 autoCapitalize="none"
               />
               <Text style={[styles.helpText, { color: Colors.text.tertiary }]}>Used by the frontend UI if needed.</Text>
+            </View>
+          </View>
+
+          <View style={[styles.section, { backgroundColor: Colors.background.secondary, borderColor: Colors.border.light }]}>
+            <Text style={[styles.sectionTitle, { color: Colors.text.tertiary }]}>Platform Commission &amp; Split Rules</Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: Colors.text.primary }]}>Retail (B2C) Commission (%)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: Colors.background.primary, borderColor: Colors.border.medium, color: Colors.text.primary }]}
+                placeholder="11"
+                placeholderTextColor="#94A3B8"
+                value={retailCommissionRate}
+                onChangeText={setRetailCommissionRate}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.label, { color: Colors.text.primary }]}>Wholesale (B2B) Commission (%)</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: Colors.background.primary, borderColor: Colors.border.medium, color: Colors.text.primary }]}
+                placeholder="6"
+                placeholderTextColor="#94A3B8"
+                value={b2bCommissionRate}
+                onChangeText={setB2bCommissionRate}
+                keyboardType="decimal-pad"
+              />
+              <Text style={[styles.helpText, { color: Colors.text.tertiary }]}>
+                Applied on product subtotal. Shipping fee goes 100% to suppliers; VAT stays with Platform Admin.
+              </Text>
             </View>
           </View>
 

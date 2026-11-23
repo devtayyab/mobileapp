@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, TextInput, Modal, ScrollView, Alert, RefreshControl
@@ -26,6 +26,10 @@ type Supplier = {
   business_address: string | null;
   kyc_status: string;
   commission_rate: number;
+  b2b_commission_rate?: number | null;
+  custom_commission_enabled?: boolean | null;
+  stripe_account_id?: string | null;
+  stripe_onboarding_complete?: boolean | null;
   created_at: string;
   rejection_reason: string | null;
   reviewed_at: string | null;
@@ -70,6 +74,18 @@ export default function AdminSuppliersScreen() {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [editingCommission, setEditingCommission] = useState(false);
   const [commissionValue, setCommissionValue] = useState('');
+  const [b2bCommissionValue, setB2bCommissionValue] = useState('');
+  const [defaultRetailRate, setDefaultRetailRate] = useState(11);
+  const [defaultB2bRate, setDefaultB2bRate] = useState(6);
+
+  const effectiveRetail = (s: Supplier) =>
+    s.custom_commission_enabled && s.commission_rate != null
+      ? Number(s.commission_rate)
+      : defaultRetailRate;
+  const effectiveB2b = (s: Supplier) =>
+    s.custom_commission_enabled && (s.b2b_commission_rate != null || s.commission_rate != null)
+      ? Number(s.b2b_commission_rate ?? s.commission_rate)
+      : defaultB2bRate;
 
   const fetchSuppliers = useCallback(async () => {
     let query = supabase
@@ -77,7 +93,9 @@ export default function AdminSuppliersScreen() {
       .select(`
         id, user_id, business_name, business_registration_number, business_type,
         business_description, business_email, business_phone, business_address,
-        kyc_status, commission_rate, created_at, rejection_reason, reviewed_at,
+        kyc_status, commission_rate, b2b_commission_rate, custom_commission_enabled,
+        stripe_account_id, stripe_onboarding_complete,
+        created_at, rejection_reason, reviewed_at,
         profiles!suppliers_user_id_fkey (full_name, email, phone),
         kyc_documents (id, document_type, document_url, status)
       `)
@@ -85,7 +103,15 @@ export default function AdminSuppliersScreen() {
 
     if (filter !== 'all') query = query.eq('kyc_status', filter);
 
-    const { data, error } = await query;
+    const [{ data, error }, { data: ratesData }] = await Promise.all([
+      query,
+      (supabase.rpc as any)('get_platform_commission_rates'),
+    ]);
+
+    if (ratesData) {
+      setDefaultRetailRate(Number(ratesData.retail_commission_rate ?? 11));
+      setDefaultB2bRate(Number(ratesData.b2b_commission_rate ?? 6));
+    }
     if (!error) setSuppliers((data as any) || []);
     setLoading(false);
     setRefreshing(false);
@@ -165,21 +191,66 @@ export default function AdminSuppliersScreen() {
   };
 
   const handleSaveCommission = async (supplier: Supplier) => {
-    const rate = parseFloat(commissionValue);
-    if (isNaN(rate) || rate < 0 || rate > 100) {
-      Alert.alert('Invalid', 'Commission rate must be between 0 and 100');
+    const retailRate = parseFloat(commissionValue);
+    const b2bRate = b2bCommissionValue.trim() ? parseFloat(b2bCommissionValue) : retailRate;
+    if (
+      isNaN(retailRate) ||
+      retailRate < 0 ||
+      retailRate > 100 ||
+      isNaN(b2bRate) ||
+      b2bRate < 0 ||
+      b2bRate > 100
+    ) {
+      Alert.alert('Invalid', 'Commission rates must be between 0 and 100');
       return;
     }
     setActionLoading(true);
     const { error } = await supabase
       .from('suppliers')
-      .update({ commission_rate: rate })
+      .update({
+        custom_commission_enabled: true,
+        commission_rate: retailRate,
+        b2b_commission_rate: b2bRate,
+      })
       .eq('id', supplier.id);
 
     if (!error) {
       setEditingCommission(false);
       fetchSuppliers();
-      if (selectedSupplier) setSelectedSupplier({ ...selectedSupplier, commission_rate: rate });
+      if (selectedSupplier) {
+        setSelectedSupplier({
+          ...selectedSupplier,
+          custom_commission_enabled: true,
+          commission_rate: retailRate,
+          b2b_commission_rate: b2bRate,
+        });
+      }
+    } else {
+      Alert.alert('Error', error.message);
+    }
+    setActionLoading(false);
+  };
+
+  const handleResetCommissionToDefault = async (supplier: Supplier) => {
+    setActionLoading(true);
+    const { error } = await supabase
+      .from('suppliers')
+      .update({
+        custom_commission_enabled: false,
+        b2b_commission_rate: null,
+      })
+      .eq('id', supplier.id);
+
+    if (!error) {
+      setEditingCommission(false);
+      fetchSuppliers();
+      if (selectedSupplier) {
+        setSelectedSupplier({
+          ...selectedSupplier,
+          custom_commission_enabled: false,
+          b2b_commission_rate: null,
+        });
+      }
     } else {
       Alert.alert('Error', error.message);
     }
@@ -302,7 +373,10 @@ export default function AdminSuppliersScreen() {
                 </View>
                 <View style={styles.statItem}>
                   <Percent size={12} color="#059669" />
-                  <Text style={styles.statLabel}>{item.commission_rate}% comm.</Text>
+                  <Text style={styles.statLabel}>
+                    {effectiveRetail(item)}% / {effectiveB2b(item)}% B2B
+                    {item.custom_commission_enabled ? ' (Custom)' : ''}
+                  </Text>
                 </View>
                 <View style={styles.statItem}>
                   <FileText size={12} color="#64748B" />
@@ -407,15 +481,28 @@ export default function AdminSuppliersScreen() {
                 <Text style={styles.sectionTitle}>Commission Rate</Text>
                 {editingCommission ? (
                   <View style={styles.commissionEdit}>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 4 }}>Custom Retail (B2C) %</Text>
                     <View style={styles.commissionInputRow}>
                       <TextInput
                         style={styles.commissionInput}
                         value={commissionValue}
                         onChangeText={setCommissionValue}
                         keyboardType="decimal-pad"
-                        placeholder="e.g. 10"
+                        placeholder={String(defaultRetailRate)}
                         placeholderTextColor="#9CA3AF"
                         autoFocus
+                      />
+                      <Text style={styles.commissionPercent}>%</Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 4, marginTop: 8 }}>Custom Wholesale (B2B) %</Text>
+                    <View style={styles.commissionInputRow}>
+                      <TextInput
+                        style={styles.commissionInput}
+                        value={b2bCommissionValue}
+                        onChangeText={setB2bCommissionValue}
+                        keyboardType="decimal-pad"
+                        placeholder={String(defaultB2bRate)}
+                        placeholderTextColor="#9CA3AF"
                       />
                       <Text style={styles.commissionPercent}>%</Text>
                     </View>
@@ -425,11 +512,24 @@ export default function AdminSuppliersScreen() {
                         onPress={() => handleSaveCommission(selectedSupplier)}
                         disabled={actionLoading}
                       >
-                        <Text style={styles.commissionSaveBtnText}>Save</Text>
+                        <Text style={styles.commissionSaveBtnText}>Save Custom</Text>
                       </TouchableOpacity>
+                      {selectedSupplier.custom_commission_enabled && (
+                        <TouchableOpacity
+                          style={[styles.commissionCancelBtn, { backgroundColor: '#EFF6FF' }]}
+                          onPress={() => handleResetCommissionToDefault(selectedSupplier)}
+                          disabled={actionLoading}
+                        >
+                          <Text style={[styles.commissionCancelBtnText, { color: '#1D4ED8' }]}>Use Default</Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity
                         style={styles.commissionCancelBtn}
-                        onPress={() => { setEditingCommission(false); setCommissionValue(''); }}
+                        onPress={() => {
+                          setEditingCommission(false);
+                          setCommissionValue('');
+                          setB2bCommissionValue('');
+                        }}
                       >
                         <Text style={styles.commissionCancelBtnText}>Cancel</Text>
                       </TouchableOpacity>
@@ -438,12 +538,20 @@ export default function AdminSuppliersScreen() {
                 ) : (
                   <TouchableOpacity
                     style={styles.commissionRow}
-                    onPress={() => { setEditingCommission(true); setCommissionValue(String(selectedSupplier.commission_rate)); }}
+                    onPress={() => {
+                      setEditingCommission(true);
+                      setCommissionValue(String(effectiveRetail(selectedSupplier)));
+                      setB2bCommissionValue(String(effectiveB2b(selectedSupplier)));
+                    }}
                   >
                     <View style={styles.commissionDisplay}>
                       <Percent size={18} color="#059669" />
-                      <Text style={styles.commissionValue}>{selectedSupplier.commission_rate}%</Text>
-                      <Text style={styles.commissionDesc}>Platform takes {selectedSupplier.commission_rate}% of each sale</Text>
+                      <Text style={styles.commissionValue}>
+                        {effectiveRetail(selectedSupplier)}% / {effectiveB2b(selectedSupplier)}%
+                      </Text>
+                      <Text style={styles.commissionDesc}>
+                        {selectedSupplier.custom_commission_enabled ? 'Custom Rate' : 'Platform Default'} (Retail / B2B)
+                      </Text>
                     </View>
                     <Text style={styles.editLink}>Edit</Text>
                   </TouchableOpacity>

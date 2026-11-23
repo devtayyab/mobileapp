@@ -20,15 +20,22 @@ export default async function SupplierBusinessSettingsPage() {
   const { user } = await requireRole(['supplier', 'admin']);
   const supabase = await createClient();
 
-  const { data: supplier } = await supabase
-    .from('suppliers')
-    .select(
-      `id, business_name, business_description, business_email, business_phone,
-       business_address, website, is_active, kyc_status, commission_rate,
-       stripe_account_id, stripe_onboarding_complete`
-    )
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const [{ data: supplier }, { data: ratesData }] = await Promise.all([
+    supabase
+      .from('suppliers')
+      .select(
+        `id, business_name, business_description, business_email, business_phone,
+         business_address, website, is_active, kyc_status, commission_rate,
+         b2b_commission_rate, custom_commission_enabled,
+         stripe_account_id, stripe_onboarding_complete`
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    (supabase.rpc as any)('get_platform_commission_rates'),
+  ]);
+
+  const defaultRetail = Number(ratesData?.retail_commission_rate ?? 11);
+  const defaultB2b = Number(ratesData?.b2b_commission_rate ?? 6);
 
   return (
     <div className="space-y-5">
@@ -42,7 +49,11 @@ export default async function SupplierBusinessSettingsPage() {
       </div>
 
       {supplier ? (
-        <BusinessSettingsForm supplier={supplier as BusinessSettingsValues} />
+        <BusinessSettingsForm
+          supplier={supplier as unknown as BusinessSettingsValues}
+          defaultRetailRate={defaultRetail}
+          defaultB2bRate={defaultB2b}
+        />
       ) : (
         <EmptyState
           icon={<Store size={26} />}

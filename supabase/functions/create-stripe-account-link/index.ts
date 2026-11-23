@@ -6,7 +6,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Declare Deno locally to prevent TypeScript errors in the editor
 declare const Deno: any;
 
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -38,7 +37,7 @@ Deno.serve(async (req: Request) => {
       .single()
 
     const secretKey = settings?.stripe_secret_key || Deno.env.get('STRIPE_SECRET_KEY') || ''
-    
+
     if (!secretKey) {
       throw new Error('Stripe Secret Key is not configured')
     }
@@ -59,7 +58,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { data: supplier, error: supplierError } = await supabase
+    const { data: supplier, error: supplierError } = await supabaseAdmin
       .from('suppliers')
       .select('stripe_account_id')
       .eq('user_id', user.id)
@@ -72,13 +71,26 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { return_url, refresh_url } = await req.json()
+    let body: { return_url?: string; refresh_url?: string } = {}
+    try {
+      body = await req.json()
+    } catch {
+      body = {}
+    }
 
-    // Create an account link for onboarding
+    const defaultReturn = 'https://sathunglobal.com/supplier/business-settings?stripe=return'
+    const defaultRefresh = 'https://sathunglobal.com/supplier/business-settings?stripe=refresh'
+
+    // Stripe Live mode requires valid https:// URLs (rejects exp:// or localhost)
+    const sanitizeUrl = (url: string | undefined, fallback: string) => {
+      if (!url || !/^https?:\/\//i.test(url)) return fallback
+      return url
+    }
+
     const accountLink = await stripe.accountLinks.create({
       account: supplier.stripe_account_id,
-      refresh_url: refresh_url || 'exp://localhost:8081', // Fallback for dev
-      return_url: return_url || 'exp://localhost:8081',
+      refresh_url: sanitizeUrl(body.refresh_url, defaultRefresh),
+      return_url: sanitizeUrl(body.return_url, defaultReturn),
       type: 'account_onboarding',
     })
 

@@ -3,6 +3,7 @@ import { requireRole } from '@/lib/auth';
 import {
   PaymentSettingsForm,
   type PaymentSettingsView,
+  type AdminPaymentSplitItem,
 } from '@/components/admin/PaymentSettingsForm';
 
 export const dynamic = 'force-dynamic';
@@ -52,11 +53,76 @@ export default async function AdminPaymentSettingsPage() {
   await requireRole(['admin']);
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from('payment_settings')
-    .select('stripe_secret_key, stripe_publishable_key, updated_at')
-    .eq('id', 1)
-    .maybeSingle();
+  const [{ data, error }, { data: splitRows }] = await Promise.all([
+    supabase
+      .from('payment_settings')
+      .select(
+        'stripe_secret_key, stripe_publishable_key, retail_commission_rate, b2b_commission_rate, updated_at'
+      )
+      .eq('id', 1)
+      .maybeSingle(),
+    supabase
+      .from('payment_splits')
+      .select(
+        'id, order_id, supplier_id, split_type, amount, currency, subtotal_amount, commission_amount, shipping_amount, status, payout_reference, failure_reason, created_at, paid_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+
+  const splits = splitRows ?? [];
+  const orderIds = Array.from(new Set(splits.map((s) => s.order_id).filter(Boolean))) as string[];
+  const supplierIds = Array.from(
+    new Set(splits.map((s) => s.supplier_id).filter(Boolean))
+  ) as string[];
+
+  const [ordersRes, suppliersRes] = await Promise.all([
+    orderIds.length
+      ? supabase.from('orders').select('id, order_number').in('id', orderIds)
+      : Promise.resolve({ data: [] as { id: string; order_number: string }[] }),
+    supplierIds.length
+      ? supabase
+          .from('suppliers')
+          .select('id, business_name, stripe_onboarding_complete')
+          .in('id', supplierIds)
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            business_name: string;
+            stripe_onboarding_complete: boolean | null;
+          }[],
+        }),
+  ]);
+
+  const orderMap = new Map((ordersRes.data ?? []).map((o) => [o.id, o.order_number]));
+  const supplierMap = new Map(
+    (suppliersRes.data ?? []).map((s) => [
+      s.id,
+      { name: s.business_name, stripeReady: Boolean(s.stripe_onboarding_complete) },
+    ])
+  );
+
+  const recentSplits: AdminPaymentSplitItem[] = splits.map((s) => ({
+    id: s.id,
+    order_id: s.order_id,
+    order_number: s.order_id ? (orderMap.get(s.order_id) ?? null) : null,
+    supplier_id: s.supplier_id,
+    supplier_name: s.supplier_id ? (supplierMap.get(s.supplier_id)?.name ?? 'Supplier') : null,
+    supplier_stripe_ready: s.supplier_id
+      ? (supplierMap.get(s.supplier_id)?.stripeReady ?? false)
+      : false,
+    split_type: s.split_type,
+    amount: Number(s.amount ?? 0),
+    currency: s.currency ?? 'USD',
+    subtotal_amount: Number(s.subtotal_amount ?? 0),
+    commission_amount: Number(s.commission_amount ?? 0),
+    shipping_amount: Number(s.shipping_amount ?? 0),
+    status: s.status ?? 'pending',
+    payout_reference: s.payout_reference,
+    failure_reason: s.failure_reason,
+    created_at: s.created_at,
+    paid_at: s.paid_at,
+  }));
 
   const storedSecret = data?.stripe_secret_key?.trim() ?? '';
   const masked = storedSecret ? maskSecretKey(storedSecret) : null;
@@ -67,6 +133,8 @@ export default async function AdminPaymentSettingsPage() {
     secretKeyMask: masked?.mask ?? null,
     secretKeyMode: masked?.mode ?? null,
     publishableKey: data?.stripe_publishable_key ?? null,
+    retailCommissionRate: Number(data?.retail_commission_rate ?? 11),
+    b2bCommissionRate: Number(data?.b2b_commission_rate ?? 6),
     updatedAt: data?.updated_at ?? null,
     loadError: error
       ? `${error.message} — the singleton row is readable only by admins.`
@@ -77,14 +145,14 @@ export default async function AdminPaymentSettingsPage() {
     <div className="space-y-4">
       <header>
         <h1 className="text-5xl font-extrabold tracking-[-0.5px] text-content-primary">
-          Payment Settings
+          Payment &amp; Split Settings
         </h1>
         <p className="mt-0.5 text-base text-content-tertiary">
-          Manage the platform&apos;s Stripe API keys
+          Manage Stripe API keys, global Retail/B2B commission rates, and supplier payment splits
         </p>
       </header>
 
-      <PaymentSettingsForm settings={settings} />
+      <PaymentSettingsForm settings={settings} initialSplits={recentSplits} />
     </div>
   );
 }

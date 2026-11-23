@@ -29,6 +29,8 @@ export default function SupplierOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
   const [shipment, setShipment] = useState<any>(null);
+  const [splitInfo, setSplitInfo] = useState<any>(null);
+  const [supplierId, setSupplierId] = useState<string | null>(null);
   const [items, setItems] = useState<any[]>([]);
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [shippingCountry, setShippingCountry] = useState<string | null>(null);
@@ -61,6 +63,8 @@ export default function SupplierOrderDetail() {
         return;
       }
 
+      setSupplierId(supplier.id);
+
       // Load Order & Items
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
@@ -82,15 +86,27 @@ export default function SupplierOrderDetail() {
         setShippingCountry(orderData.shipping_address.country);
       }
 
-      // Load Shipment if exists
-      const { data: shipmentData } = await supabase
-        .from('shipments')
-        .select('*, couriers(name, code, tracking_url_format)')
-        .eq('order_id', orderId)
-        .eq('supplier_id', supplier.id)
-        .maybeSingle();
+      // Load Shipment & Payment Split if exist
+      const [{ data: shipmentData }, { data: splitData }] = await Promise.all([
+        supabase
+          .from('shipments')
+          .select('*, couriers(name, code, tracking_url_format)')
+          .eq('order_id', orderId)
+          .eq('supplier_id', supplier.id)
+          .maybeSingle(),
+        supabase
+          .from('payment_splits')
+          .select('amount, shipping_amount, status, payout_reference, failure_reason')
+          .eq('order_id', orderId)
+          .eq('supplier_id', supplier.id)
+          .eq('split_type', 'supplier_payout')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
       setShipment(shipmentData);
+      setSplitInfo(splitData);
 
       // Load Couriers
       const { data: couriersData } = await supabase.from('couriers').select('*').eq('is_active', true);
@@ -175,7 +191,20 @@ export default function SupplierOrderDetail() {
     );
   }
 
-  const payoutAmount = items.reduce((sum, item) => sum + Number(item.supplier_amount), 0);
+  const itemsSubtotal = items.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+  const itemsNetPayout = items.reduce((sum, item) => sum + Number(item.supplier_amount || 0), 0);
+  const itemsCommission = items.reduce((sum, item) => sum + Number(item.platform_commission || 0), 0);
+  const breakdown = (order?.supplier_shipping_breakdown || {}) as Record<string, number>;
+  const supplierShipping =
+    supplierId && typeof breakdown[supplierId] === 'number'
+      ? Number(breakdown[supplierId])
+      : splitInfo?.shipping_amount != null
+        ? Number(splitInfo.shipping_amount)
+        : Math.abs(itemsSubtotal - Number(order?.subtotal || 0)) < 0.05
+          ? Number(order?.shipping_fee || 0)
+          : 0;
+  const payoutAmount =
+    splitInfo?.amount != null ? Number(splitInfo.amount) : itemsNetPayout + supplierShipping;
   const statusColor = STATUS_COLORS[order.status] || Colors.text.tertiary;
 
   return (
@@ -301,7 +330,7 @@ export default function SupplierOrderDetail() {
           </View>
           {Number(order.vat_amount) > 0 && (
             <View style={styles.finRow}>
-              <Text style={styles.finLabel}>VAT / Tax</Text>
+              <Text style={styles.finLabel}>VAT (Collected by Platform)</Text>
               <Text style={styles.finValue}>{order.currency || 'USD'} {Number(order.vat_amount).toFixed(2)}</Text>
             </View>
           )}
@@ -312,9 +341,30 @@ export default function SupplierOrderDetail() {
           </View>
           <View style={styles.finDivider} />
           <View style={styles.finRow}>
-            <Text style={styles.finLabelPayout}>Your Payout</Text>
+            <Text style={styles.finLabel}>Your Items Subtotal</Text>
+            <Text style={styles.finValue}>{order.currency || 'USD'} {itemsSubtotal.toFixed(2)}</Text>
+          </View>
+          <View style={styles.finRow}>
+            <Text style={[styles.finLabel, { color: '#EF4444' }]}>Platform Commission</Text>
+            <Text style={[styles.finValue, { color: '#EF4444' }]}>- {order.currency || 'USD'} {itemsCommission.toFixed(2)}</Text>
+          </View>
+          <View style={styles.finRow}>
+            <Text style={styles.finLabel}>Your Shipping Fee (100%)</Text>
+            <Text style={styles.finValue}>+ {order.currency || 'USD'} {supplierShipping.toFixed(2)}</Text>
+          </View>
+          <View style={styles.finRow}>
+            <Text style={styles.finLabelPayout}>Your Total Payout</Text>
             <Text style={styles.finValuePayout}>{order.currency || 'USD'} {payoutAmount.toFixed(2)}</Text>
           </View>
+          {splitInfo && (
+            <View style={{ marginTop: 10, padding: 10, borderRadius: 10, backgroundColor: splitInfo.status === 'completed' ? '#ECFDF5' : '#FFFBEB' }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: splitInfo.status === 'completed' ? '#059669' : '#B45309' }}>
+                {splitInfo.status === 'completed'
+                  ? `Transferred via Stripe Connect${splitInfo.payout_reference ? ` (${splitInfo.payout_reference})` : ''}`
+                  : `Payout Pending: ${splitInfo.failure_reason || 'Connect Stripe in Business Settings for instant payouts.'}`}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />

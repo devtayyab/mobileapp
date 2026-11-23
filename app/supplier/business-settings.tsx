@@ -1,12 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Switch, Linking
+  TextInput, ActivityIndicator, Alert, Switch, Linking, AppState
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Save, Store, AlertCircle, CreditCard, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, Save, Store, AlertCircle, CreditCard, CheckCircle, RefreshCw } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { Palette } from '@/constants/Colors';
 
@@ -42,11 +42,50 @@ export default function BusinessSettingsScreen() {
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
   const [stripeOnboardingComplete, setStripeOnboardingComplete] = useState(false);
   const [stripeLoading, setStripeLoading] = useState(false);
+  const [syncingStripe, setSyncingStripe] = useState(false);
   const [stripeError, setStripeError] = useState('');
+
+  const syncStripeStatus = useCallback(async (silent = false) => {
+    try {
+      setSyncingStripe(true);
+      setStripeError('');
+      const { data, error } = await supabase.functions.invoke('sync-stripe-connect-status');
+      if (error) throw new Error(error.message || 'Could not check Stripe status');
+      if (data) {
+        if (data.stripeAccountId) setStripeAccountId(data.stripeAccountId);
+        const complete = Boolean(data.onboardingComplete);
+        setStripeOnboardingComplete(complete);
+        if (!silent) {
+          Alert.alert(
+            complete ? 'Stripe Verified' : 'Setup Incomplete',
+            complete
+              ? 'Your Stripe account is verified! Instant automatic payouts are now active.'
+              : 'Please complete all required bank & identity details on Stripe to activate instant payouts.'
+          );
+        }
+      }
+    } catch (err: any) {
+      if (!silent) {
+        setStripeError(err.message || 'Failed to sync Stripe status');
+      }
+    } finally {
+      setSyncingStripe(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadSupplierData();
   }, [user?.id]);
+
+  // Auto-sync Stripe status whenever supplier returns from browser onboarding
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && stripeAccountId && !stripeOnboardingComplete) {
+        syncStripeStatus(true);
+      }
+    });
+    return () => sub.remove();
+  }, [stripeAccountId, stripeOnboardingComplete, syncStripeStatus]);
 
   const loadSupplierData = async () => {
     if (!user?.id) { setInitializing(false); return; }
@@ -107,8 +146,8 @@ export default function BusinessSettingsScreen() {
       
       const { data: linkData, error: linkError } = await supabase.functions.invoke('create-stripe-account-link', {
         body: {
-          refresh_url: 'exp://localhost:8081', // Fallback for dev
-          return_url: 'exp://localhost:8081',
+          refresh_url: 'https://sathunglobal.com/supplier/business-settings?stripe=refresh',
+          return_url: 'https://sathunglobal.com/supplier/business-settings?stripe=return',
         }
       });
       if (linkError) throw new Error(linkError.message || 'Failed to create Stripe link');
@@ -311,9 +350,27 @@ export default function BusinessSettingsScreen() {
                     {stripeLoading ? (
                       <ActivityIndicator color="#FFF" size="small" />
                     ) : (
-                      <Text style={styles.stripeBtnText}>Set up Payouts</Text>
+                      <Text style={styles.stripeBtnText}>
+                        {stripeAccountId ? 'Continue Payout Setup' : 'Set up Payouts'}
+                      </Text>
                     )}
                   </TouchableOpacity>
+                  {stripeAccountId && (
+                    <TouchableOpacity
+                      style={[styles.stripeBtn, { backgroundColor: '#0F172A', marginTop: 8, flexDirection: 'row', gap: 6 }, syncingStripe && styles.submitBtnDisabled]}
+                      onPress={() => syncStripeStatus(false)}
+                      disabled={syncingStripe}
+                    >
+                      {syncingStripe ? (
+                        <ActivityIndicator color="#FFF" size="small" />
+                      ) : (
+                        <>
+                          <RefreshCw size={15} color="#FFF" />
+                          <Text style={styles.stripeBtnText}>Verify Stripe Status</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  )}
                   {stripeError && (
                     <Text style={{color: 'red', marginTop: 10, fontWeight: 'bold'}}>{stripeError}</Text>
                   )}
@@ -321,7 +378,7 @@ export default function BusinessSettingsScreen() {
               ) : (
                 <View style={styles.completedBadge}>
                   <CheckCircle size={16} color="#10B981" />
-                  <Text style={styles.completedText}>Verified</Text>
+                  <Text style={styles.completedText}>Verified · Instant Payouts Active</Text>
                 </View>
               )}
             </View>

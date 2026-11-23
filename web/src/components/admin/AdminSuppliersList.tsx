@@ -7,11 +7,14 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  CreditCard,
   ExternalLink,
   FileText,
   Mail,
   Percent,
   Phone,
+  RefreshCw,
+  RotateCcw,
   XCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -48,6 +51,10 @@ export type AdminSupplier = {
   website: string | null;
   kyc_status: KycStatus | null;
   commission_rate: number | null;
+  b2b_commission_rate: number | null;
+  custom_commission_enabled: boolean | null;
+  stripe_account_id: string | null;
+  stripe_onboarding_complete: boolean | null;
   created_at: string;
   rejection_reason: string | null;
   reviewed_at: string | null;
@@ -78,7 +85,15 @@ const NO_ROW_MESSAGE =
 const statusMeta = (status: KycStatus | null) =>
   status ? STATUS_META[status] : { label: 'Unknown', tone: 'neutral' as const };
 
-export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: AdminSupplier[] }) {
+export function AdminSuppliersList({
+  initialSuppliers,
+  defaultRetailRate = 11,
+  defaultB2bRate = 6,
+}: {
+  initialSuppliers: AdminSupplier[];
+  defaultRetailRate?: number;
+  defaultB2bRate?: number;
+}) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -87,10 +102,21 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
   const [filter, setFilter] = useState<KycStatus | 'all'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [syncingStripeId, setSyncingStripeId] = useState<string | null>(null);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [editingCommission, setEditingCommission] = useState(false);
   const [commissionValue, setCommissionValue] = useState('');
+  const [b2bCommissionValue, setB2bCommissionValue] = useState('');
+
+  const effectiveRetail = (s: AdminSupplier) =>
+    s.custom_commission_enabled && s.commission_rate != null
+      ? Number(s.commission_rate)
+      : defaultRetailRate;
+  const effectiveB2b = (s: AdminSupplier) =>
+    s.custom_commission_enabled && (s.b2b_commission_rate != null || s.commission_rate != null)
+      ? Number(s.b2b_commission_rate ?? s.commission_rate)
+      : defaultB2bRate;
 
   const selected = suppliers.find((s) => s.id === selectedId) ?? null;
 
@@ -286,11 +312,21 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
   };
 
   const handleSaveCommission = async (supplier: AdminSupplier) => {
-    const rate = Number.parseFloat(commissionValue);
-    if (Number.isNaN(rate) || rate < 0 || rate > 100) {
+    const retailRate = Number.parseFloat(commissionValue);
+    const b2bRate = b2bCommissionValue.trim()
+      ? Number.parseFloat(b2bCommissionValue)
+      : retailRate;
+    if (
+      Number.isNaN(retailRate) ||
+      retailRate < 0 ||
+      retailRate > 100 ||
+      Number.isNaN(b2bRate) ||
+      b2bRate < 0 ||
+      b2bRate > 100
+    ) {
       toast({
         title: 'Invalid rate',
-        message: 'Commission rate must be between 0 and 100.',
+        message: 'Commission rates must be between 0 and 100.',
         kind: 'error',
       });
       return;
@@ -300,7 +336,11 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
     const supabase = createClient();
     const { data: updated, error } = await supabase
       .from('suppliers')
-      .update({ commission_rate: rate })
+      .update({
+        custom_commission_enabled: true,
+        commission_rate: retailRate,
+        b2b_commission_rate: b2bRate,
+      })
       .eq('id', supplier.id)
       .select('id');
 
@@ -316,11 +356,85 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
       return;
     }
 
-    patchLocal(supplier.id, { commission_rate: rate });
+    patchLocal(supplier.id, {
+      custom_commission_enabled: true,
+      commission_rate: retailRate,
+      b2b_commission_rate: b2bRate,
+    });
     setEditingCommission(false);
     setCommissionValue('');
-    toast({ title: 'Commission updated', message: `${rate}% on each sale`, kind: 'success' });
+    setB2bCommissionValue('');
+    toast({
+      title: 'Custom commission saved',
+      message: `Retail: ${retailRate}% · Wholesale (B2B): ${b2bRate}%`,
+      kind: 'success',
+    });
     router.refresh();
+  };
+
+  const handleResetCommissionToDefault = async (supplier: AdminSupplier) => {
+    setBusy(true);
+    const supabase = createClient();
+    const { data: updated, error } = await supabase
+      .from('suppliers')
+      .update({
+        custom_commission_enabled: false,
+        b2b_commission_rate: null,
+      })
+      .eq('id', supplier.id)
+      .select('id');
+
+    setBusy(false);
+
+    if (error || !updated || updated.length === 0) {
+      toast({
+        title: 'Reset failed',
+        message: error?.message ?? NO_ROW_MESSAGE,
+        kind: 'error',
+      });
+      return;
+    }
+
+    patchLocal(supplier.id, {
+      custom_commission_enabled: false,
+      b2b_commission_rate: null,
+    });
+    setEditingCommission(false);
+    toast({
+      title: 'Reset to Platform Default',
+      message: `Now using ${defaultRetailRate}% Retail / ${defaultB2bRate}% B2B`,
+      kind: 'success',
+    });
+    router.refresh();
+  };
+
+  const handleSyncStripe = async (supplier: AdminSupplier) => {
+    setSyncingStripeId(supplier.id);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.functions.invoke('sync-stripe-connect-status', {
+        body: { supplier_id: supplier.id },
+      });
+      if (error) throw new Error(error.message);
+      const complete = Boolean(data?.onboardingComplete);
+      patchLocal(supplier.id, { stripe_onboarding_complete: complete });
+      toast({
+        title: complete ? 'Stripe Ready' : 'Stripe Not Ready',
+        message: complete
+          ? 'Instant payouts are active for this supplier.'
+          : 'Supplier still needs to complete Stripe onboarding.',
+        kind: complete ? 'success' : 'info',
+      });
+      router.refresh();
+    } catch (e) {
+      toast({
+        title: 'Stripe Sync Failed',
+        message: e instanceof Error ? e.message : 'Could not verify Stripe status.',
+        kind: 'error',
+      });
+    } finally {
+      setSyncingStripeId(null);
+    }
   };
 
   const isReviewable = (status: KycStatus | null) =>
@@ -376,7 +490,16 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <Percent size={12} />
-                    {supplier.commission_rate ?? 0}% comm.
+                    {effectiveRetail(supplier)}% / {effectiveB2b(supplier)}% B2B
+                    {supplier.custom_commission_enabled ? ' (Custom)' : ''}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <CreditCard size={12} />
+                    {supplier.stripe_onboarding_complete
+                      ? 'Stripe Ready'
+                      : supplier.stripe_account_id
+                        ? 'Stripe Pending'
+                        : 'No Stripe'}
                   </span>
                   <span className="inline-flex items-center gap-1">
                     <FileText size={12} />
@@ -528,34 +651,58 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
               )}
             </Section>
 
-            <Section title="Commission Rate">
+            <Section title="Commission Rate &amp; Stripe Payouts">
               {editingCommission ? (
                 <div className="space-y-3">
-                  <Input
-                    autoFocus
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
-                    value={commissionValue}
-                    onChange={(e) => setCommissionValue(e.target.value)}
-                    placeholder="e.g. 10"
-                    aria-label="Commission rate percent"
-                  />
-                  <div className="flex gap-2">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Input
+                      autoFocus
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      label="Custom Retail (B2C) %"
+                      value={commissionValue}
+                      onChange={(e) => setCommissionValue(e.target.value)}
+                      placeholder={String(defaultRetailRate)}
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      label="Custom Wholesale (B2B) %"
+                      value={b2bCommissionValue}
+                      onChange={(e) => setB2bCommissionValue(e.target.value)}
+                      placeholder={String(defaultB2bRate)}
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       fullWidth
                       loading={busy}
                       onClick={() => void handleSaveCommission(selected)}
                     >
-                      Save
+                      Save Custom Rate
                     </Button>
+                    {selected.custom_commission_enabled && (
+                      <Button
+                        fullWidth
+                        variant="outline"
+                        loading={busy}
+                        onClick={() => void handleResetCommissionToDefault(selected)}
+                      >
+                        <RotateCcw size={14} />
+                        Use Platform Default ({defaultRetailRate}% / {defaultB2bRate}%)
+                      </Button>
+                    )}
                     <Button
                       fullWidth
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => {
                         setEditingCommission(false);
                         setCommissionValue('');
+                        setB2bCommissionValue('');
                       }}
                     >
                       Cancel
@@ -563,26 +710,66 @@ export function AdminSuppliersList({ initialSuppliers }: { initialSuppliers: Adm
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <Percent size={18} className="text-success" />
-                    <span className="text-5xl font-extrabold text-success">
-                      {selected.commission_rate ?? 0}%
-                    </span>
-                    <span className="text-base text-content-tertiary">
-                      Platform takes {selected.commission_rate ?? 0}% of each sale
-                    </span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <Percent size={18} className="text-success" />
+                      <span className="text-3xl font-extrabold text-success">
+                        {effectiveRetail(selected)}% / {effectiveB2b(selected)}%
+                      </span>
+                      <Badge tone={selected.custom_commission_enabled ? 'info' : 'neutral'}>
+                        {selected.custom_commission_enabled ? 'Custom Rate' : 'Platform Default'}
+                      </Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setEditingCommission(true);
+                        setCommissionValue(String(effectiveRetail(selected)));
+                        setB2bCommissionValue(String(effectiveB2b(selected)));
+                      }}
+                    >
+                      Customize
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setEditingCommission(true);
-                      setCommissionValue(String(selected.commission_rate ?? 0));
-                    }}
-                  >
-                    Edit
-                  </Button>
+                  <p className="text-sm text-content-tertiary">
+                    Platform takes {effectiveRetail(selected)}% (Retail) / {effectiveB2b(selected)}%
+                    (B2B) on product subtotal. Shipping goes 100% to supplier; VAT stays with
+                    platform.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-edge-light pt-2.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CreditCard size={15} className="text-content-tertiary" />
+                      <span className="font-bold text-content-primary">Stripe Connect:</span>
+                      <Badge
+                        tone={
+                          selected.stripe_onboarding_complete
+                            ? 'success'
+                            : selected.stripe_account_id
+                              ? 'warning'
+                              : 'neutral'
+                        }
+                      >
+                        {selected.stripe_onboarding_complete
+                          ? 'Verified · Instant Transfers'
+                          : selected.stripe_account_id
+                            ? 'Onboarding Incomplete'
+                            : 'Not Connected'}
+                      </Badge>
+                    </div>
+                    {selected.stripe_account_id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={syncingStripeId === selected.id}
+                        onClick={() => void handleSyncStripe(selected)}
+                      >
+                        <RefreshCw size={13} />
+                        Sync Stripe
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </Section>

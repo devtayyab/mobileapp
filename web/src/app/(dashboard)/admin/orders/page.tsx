@@ -4,6 +4,7 @@ import {
   AdminOrdersTable,
   type AdminOrderLine,
   type AdminOrderRow,
+  type AdminOrderSplit,
 } from '@/components/admin/AdminOrdersTable';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function AdminOrdersPage() {
     supabase
       .from('orders')
       .select(
-        'id, order_number, status, subtotal, total, platform_commission, currency, created_at, user_id'
+        'id, order_number, status, subtotal, shipping_fee, vat_amount, total, platform_commission, currency, created_at, user_id'
       )
       .order('created_at', { ascending: false })
       .limit(WINDOW),
@@ -43,7 +44,7 @@ export default async function AdminOrdersPage() {
   const orderIds = orders.map((o) => o.id);
   const userIds = Array.from(new Set(orders.map((o) => o.user_id).filter(Boolean)));
 
-  const [profilesRes, itemsRes] = await Promise.all([
+  const [profilesRes, itemsRes, splitsRes] = await Promise.all([
     userIds.length
       ? supabase.from('profiles').select('id, full_name, email').in('id', userIds)
       : Promise.resolve({
@@ -64,7 +65,53 @@ export default async function AdminOrdersPage() {
           }[],
           error: null,
         }),
+    orderIds.length
+      ? supabase
+          .from('payment_splits')
+          .select(
+            'id, order_id, supplier_id, split_type, amount, shipping_amount, status, payout_reference, failure_reason'
+          )
+          .in('order_id', orderIds)
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            order_id: string | null;
+            supplier_id: string | null;
+            split_type: string;
+            amount: number;
+            shipping_amount: number | null;
+            status: string | null;
+            payout_reference: string | null;
+            failure_reason: string | null;
+          }[],
+          error: null,
+        }),
   ]);
+
+  const splitSupplierIds = Array.from(
+    new Set((splitsRes.data ?? []).map((s) => s.supplier_id).filter(Boolean))
+  ) as string[];
+  const { data: splitSuppliers } = splitSupplierIds.length
+    ? await supabase.from('suppliers').select('id, business_name').in('id', splitSupplierIds)
+    : { data: [] as { id: string; business_name: string }[] };
+  const supplierNameMap = new Map((splitSuppliers ?? []).map((s) => [s.id, s.business_name]));
+
+  const splitsByOrder = new Map<string, AdminOrderSplit[]>();
+  for (const s of splitsRes.data ?? []) {
+    if (!s.order_id) continue;
+    const list = splitsByOrder.get(s.order_id) ?? [];
+    list.push({
+      id: s.id,
+      split_type: s.split_type,
+      supplier_name: s.supplier_id ? (supplierNameMap.get(s.supplier_id) ?? 'Supplier') : null,
+      amount: Number(s.amount ?? 0),
+      shipping_amount: Number(s.shipping_amount ?? 0),
+      status: s.status ?? 'pending',
+      payout_reference: s.payout_reference,
+      failure_reason: s.failure_reason,
+    });
+    splitsByOrder.set(s.order_id, list);
+  }
 
   /*
    * A failed read resolves with `data: null`, which used to fall through to the
@@ -99,12 +146,15 @@ export default async function AdminOrdersPage() {
     order_number: o.order_number,
     status: o.status,
     subtotal: o.subtotal ?? 0,
+    shipping_fee: o.shipping_fee ?? 0,
+    vat_amount: o.vat_amount ?? 0,
     total: o.total ?? 0,
     platform_commission: o.platform_commission ?? 0,
     currency: o.currency,
     created_at: o.created_at,
     customer: customerById.get(o.user_id) ?? null,
     items: linesByOrder.get(o.id) ?? [],
+    splits: splitsByOrder.get(o.id) ?? [],
   }));
 
   const total = totalRes.count ?? rows.length;
