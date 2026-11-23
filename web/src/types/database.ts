@@ -61,6 +61,7 @@ type OrderRow = {
   notes: string | null;
   shipping_country_id: string | null;
   vat_amount: number;
+  supplier_shipping_breakdown: Record<string, number> | null;
   created_at: string;
   updated_at: string;
 };
@@ -87,7 +88,28 @@ type PaymentRow = {
   status: string;
   payment_gateway: string | null;
   payment_method: string | null;
+  transaction_id: string | null;
+  payment_details: any;
+  completed_at: string | null;
   created_at: string;
+};
+
+type PaymentSplitRow = {
+  id: string;
+  order_id: string | null;
+  payment_id: string | null;
+  supplier_id: string | null;
+  split_type: string;
+  amount: number;
+  currency: string | null;
+  subtotal_amount: number | null;
+  commission_amount: number | null;
+  shipping_amount: number | null;
+  status: PaymentStatus | null;
+  payout_reference: string | null;
+  failure_reason: string | null;
+  created_at: string;
+  paid_at: string | null;
 };
 
 type CountryRow = {
@@ -261,6 +283,8 @@ type PaymentSettingRow = {
   id: number;
   stripe_secret_key: string | null;
   stripe_publishable_key: string | null;
+  retail_commission_rate: number | null;
+  b2b_commission_rate: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -294,6 +318,8 @@ type SupplierRow = {
   kyc_approved_at: string | null;
   kyc_rejected_reason: string | null;
   commission_rate: number | null;
+  b2b_commission_rate: number | null;
+  custom_commission_enabled: boolean | null;
   bank_account_details: any;
   auto_payout_enabled: boolean | null;
   payout_threshold: number | null;
@@ -373,6 +399,12 @@ export type Database = {
         Row: PaymentRow;
         Insert: Partial<PaymentRow>;
         Update: Partial<PaymentRow>;
+        Relationships: [];
+      };
+      payment_splits: {
+        Row: PaymentSplitRow;
+        Insert: Partial<PaymentSplitRow>;
+        Update: Partial<PaymentSplitRow>;
         Relationships: [];
       };
       countries: {
@@ -492,6 +524,24 @@ export type Database = {
       get_stripe_publishable_key: {
         Args: Record<string, never>;
         Returns: string | null;
+      };
+      /** Returns global default retail & B2B commission rates from payment_settings. */
+      get_platform_commission_rates: {
+        Args: Record<string, never>;
+        Returns: {
+          retail_commission_rate: number;
+          b2b_commission_rate: number;
+        };
+      };
+      /** Resolves effective commission rates per supplier (platform default or custom override). */
+      get_supplier_commission_rates: {
+        Args: { p_supplier_ids: string[] };
+        Returns: {
+          supplier_id: string;
+          retail_rate: number;
+          b2b_rate: number;
+          custom_enabled: boolean;
+        }[];
       };
       /** Deletes the calling user's account (used by profile settings). */
       delete_user: {

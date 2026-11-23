@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
+  ArrowUpRight,
   Calendar,
   ChevronRight,
   Package,
@@ -35,11 +36,24 @@ export type AdminOrderLine = {
   unit_price: number;
 };
 
+export type AdminOrderSplit = {
+  id: string;
+  split_type: string;
+  supplier_name: string | null;
+  amount: number;
+  shipping_amount: number;
+  status: string;
+  payout_reference: string | null;
+  failure_reason: string | null;
+};
+
 export type AdminOrderRow = {
   id: string;
   order_number: string;
   status: string;
   subtotal: number;
+  shipping_fee?: number;
+  vat_amount?: number;
   total: number;
   platform_commission: number;
   /** The currency the order was charged in — never converted (see CONTRIBUTING). */
@@ -47,6 +61,7 @@ export type AdminOrderRow = {
   created_at: string;
   customer: { full_name: string | null; email: string } | null;
   items: AdminOrderLine[];
+  splits?: AdminOrderSplit[];
 };
 
 /** Full `order_status` enum (migration 20260115152126). */
@@ -89,9 +104,44 @@ export function AdminOrdersTable({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [nextStatusChoice, setNextStatusChoice] = useState<OrderStatus | ''>('');
   const [updating, setUpdating] = useState(false);
+  const [releasingSplit, setReleasingSplit] = useState(false);
   const [confirming, setConfirming] = useState<{ order: AdminOrderRow; status: OrderStatus } | null>(
     null
   );
+
+  const releaseOrderSplits = async (orderId: string) => {
+    setReleasingSplit(true);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.functions.invoke('process-order-transfers', {
+        body: { order_id: orderId },
+      });
+      if (error) throw new Error(error.message);
+      const transfers = (data?.transfers ?? []) as Array<{
+        status: string;
+        business_name: string;
+        reason?: string | null;
+      }>;
+      const pending = transfers.filter((t) => t.status !== 'completed');
+      toast({
+        title: pending.length === 0 ? 'Payouts Transferred' : 'Transfer Check Complete',
+        message:
+          pending.length === 0
+            ? 'All supplier splits for this order have been transferred via Stripe.'
+            : pending.map((t) => `${t.business_name}: ${t.reason ?? 'Pending'}`).join(' | '),
+        kind: pending.length === 0 ? 'success' : 'info',
+      });
+      router.refresh();
+    } catch (e) {
+      toast({
+        title: 'Transfer failed',
+        message: e instanceof Error ? e.message : 'Could not run Stripe transfer.',
+        kind: 'error',
+      });
+    } finally {
+      setReleasingSplit(false);
+    }
+  };
 
   // Keep the selection tied to the id so an in-place status update re-renders it.
   const selected = useMemo(
@@ -404,11 +454,27 @@ export function AdminOrdersTable({
 
               <dl className="mt-3 space-y-2 border-t border-edge pt-3">
                 <div className="flex items-center justify-between">
-                  <dt className="text-md text-content-tertiary">Subtotal</dt>
+                  <dt className="text-md text-content-tertiary">Items Subtotal</dt>
                   <dd className="text-md font-bold text-content-primary">
                     {formatOrderAmount(selected.currency, selected.subtotal)}
                   </dd>
                 </div>
+                {Number(selected.shipping_fee ?? 0) > 0 && (
+                  <div className="flex items-center justify-between">
+                    <dt className="text-md text-content-tertiary">Shipping Fee (to Supplier)</dt>
+                    <dd className="text-md font-bold text-content-primary">
+                      {formatOrderAmount(selected.currency, selected.shipping_fee ?? 0)}
+                    </dd>
+                  </div>
+                )}
+                {Number(selected.vat_amount ?? 0) > 0 && (
+                  <div className="flex items-center justify-between">
+                    <dt className="text-md text-content-tertiary">VAT (Platform Admin)</dt>
+                    <dd className="text-md font-bold text-primary">
+                      {formatOrderAmount(selected.currency, selected.vat_amount ?? 0)}
+                    </dd>
+                  </div>
+                )}
                 {selected.platform_commission > 0 && (
                   <div className="flex items-center justify-between">
                     <dt className="text-md text-content-tertiary">Platform Commission</dt>
@@ -424,6 +490,63 @@ export function AdminOrdersTable({
                   </dd>
                 </div>
               </dl>
+
+              {selected.splits && selected.splits.length > 0 && (
+                <div className="mt-4 space-y-2 border-t border-edge pt-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold uppercase tracking-[0.5px] text-content-tertiary">
+                      Payment Splits
+                    </h4>
+                    {selected.splits.some(
+                      (s) => s.split_type === 'supplier_payout' && s.status !== 'completed'
+                    ) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={releasingSplit}
+                        onClick={() => void releaseOrderSplits(selected.id)}
+                      >
+                        <ArrowUpRight size={14} />
+                        Release Pending Payouts
+                      </Button>
+                    )}
+                  </div>
+                  <ul className="space-y-1.5">
+                    {selected.splits.map((sp) => (
+                      <li
+                        key={sp.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface px-3 py-2 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <span className="font-bold text-content-primary">
+                            {sp.split_type === 'platform_commission'
+                              ? 'Platform Commission'
+                              : sp.split_type === 'platform_vat'
+                                ? 'Platform VAT'
+                                : sp.supplier_name || 'Supplier Payout'}
+                          </span>
+                          {sp.payout_reference && (
+                            <span className="ml-2 font-mono text-xs text-content-tertiary">
+                              {sp.payout_reference}
+                            </span>
+                          )}
+                          {sp.status !== 'completed' && sp.failure_reason && (
+                            <p className="text-xs text-warning">{sp.failure_reason}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-content-primary">
+                            {formatOrderAmount(selected.currency, sp.amount)}
+                          </span>
+                          <Badge tone={sp.status === 'completed' ? 'success' : 'warning'}>
+                            {sp.status === 'completed' ? 'Transferred' : 'Pending'}
+                          </Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </section>
 
             <section className="space-y-2.5 rounded-2xl border border-edge bg-surface-page p-4">

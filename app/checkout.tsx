@@ -314,21 +314,104 @@ export default function CheckoutScreen() {
     try {
       const orderNumber = `ORD-${Date.now()}`;
       const isB2B = profile?.role === 'b2b';
-      const commissionRate = isB2B ? 0.06 : 0.11;
-      const supplierRate = 1 - commissionRate; // 0.94 for wholesale (B2B), 0.89 for retail
+      const defaultFallbackRate = isB2B ? 0.06 : 0.11;
+      let globalDefaultRate = defaultFallbackRate;
+      const supplierCommissionMap = new Map<string, number>();
+
+      try {
+        const cartSupplierIds = Array.from(
+          new Set(cartItems.map((item) => item.products?.supplier_id).filter(Boolean))
+        ) as string[];
+
+        const [{ data: globalRates }, { data: suppRates }] = await Promise.all([
+          (supabase.rpc as any)('get_platform_commission_rates'),
+          cartSupplierIds.length > 0
+            ? (supabase.rpc as any)('get_supplier_commission_rates', {
+                p_supplier_ids: cartSupplierIds,
+              })
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        if (globalRates) {
+          const pct = isB2B
+            ? Number(globalRates.b2b_commission_rate)
+            : Number(globalRates.retail_commission_rate);
+          if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+            globalDefaultRate = pct / 100;
+          }
+        }
+
+        if (Array.isArray(suppRates)) {
+          for (const r of suppRates) {
+            const pct = isB2B ? Number(r.b2b_rate) : Number(r.retail_rate);
+            if (r.supplier_id && Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+              supplierCommissionMap.set(r.supplier_id, pct / 100);
+            }
+          }
+        }
+      } catch (rateErr) {
+        console.warn('Using fallback commission rates:', rateErr);
+      }
+
+      const rateForSupplier = (suppId: string | undefined) =>
+        (suppId ? supplierCommissionMap.get(suppId) : undefined) ?? globalDefaultRate;
+
+      const packages = getSupplierPackages();
+      const supplierShippingBreakdown: Record<string, number> = {};
+      for (const pkg of packages) {
+        if (pkg.supplierId && pkg.supplierId !== 'unknown') {
+          supplierShippingBreakdown[pkg.supplierId] =
+            Math.round(pkg.shippingFee * 100) / 100;
+        }
+      }
+
       const subtotal = calculateSubtotal();
       const shippingFee = calculateTotalShipping();
       const vatAmount = calculateVat(subtotal);
-      const platformCommission = subtotal * commissionRate;
       const total = calculateTotal();
       const currency = cartItems[0]?.products?.currency || 'USD';
 
+      const draftOrderItems = cartItems
+        .filter((item) => item.products)
+        .map((item) => {
+          const lineSubtotal = Math.round(getPrice(item) * item.quantity * 100) / 100;
+          const commRate = rateForSupplier(item.products.supplier_id);
+          const lineComm = Math.round(lineSubtotal * commRate * 100) / 100;
+          const lineSupplierNet = Math.round((lineSubtotal - lineComm) * 100) / 100;
+          return {
+            product_id: item.product_id,
+            supplier_id: item.products.supplier_id,
+            product_name: item.products.name,
+            quantity: item.quantity,
+            unit_price: getPrice(item),
+            subtotal: lineSubtotal,
+            supplier_amount: lineSupplierNet,
+            platform_commission: lineComm,
+          };
+        });
+
+      const platformCommission =
+        Math.round(
+          draftOrderItems.reduce((sum, it) => sum + it.platform_commission, 0) * 100
+        ) / 100;
+
+      let confirmedPaymentIntentId: string | null = null;
+
       if (paymentMethod === 'card') {
-        // Stripe Payment Flow
-        const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
+        // Stripe Payment Flow (Separate Charges & Transfers via transfer_group)
+        const uniqueSuppIds = Array.from(
+          new Set(cartItems.map((i) => i.products?.supplier_id).filter(Boolean))
+        );
+        const supplierId = uniqueSuppIds.length === 1 ? uniqueSuppIds[0] : undefined;
 
         const { data: paymentIntentData, error: paymentIntentError } = await supabase.functions.invoke('create-payment-intent', {
-          body: { amount: total, currency: currency.toLowerCase(), supplier_id: supplierId, is_b2b: isB2B },
+          body: {
+            amount: total,
+            currency: currency.toLowerCase(),
+            supplier_id: supplierId,
+            is_b2b: isB2B,
+            order_number: orderNumber,
+          },
         });
 
         if (paymentIntentError) {
@@ -344,6 +427,8 @@ export default function CheckoutScreen() {
         if (!paymentIntentData?.clientSecret) {
           throw new Error('Failed to initialize payment.');
         }
+
+        confirmedPaymentIntentId = paymentIntentData.paymentIntentId || null;
 
         const { error: initError } = await initPaymentSheet({
           merchantDisplayName: 'Sathun Global Marketplace',
@@ -365,41 +450,47 @@ export default function CheckoutScreen() {
         }
       }
 
-      const { data: order, error: orderError } = await supabase
+      const baseOrderPayload = {
+        order_number: orderNumber,
+        user_id: user?.id,
+        status: 'pending',
+        subtotal,
+        tax: 0,
+        shipping_fee: shippingFee,
+        vat_amount: vatAmount,
+        shipping_country_id: selectedCountry?.id,
+        platform_commission: platformCommission,
+        total,
+        currency,
+        shipping_address: address,
+        billing_address: address,
+      };
+
+      let { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          order_number: orderNumber,
-          user_id: user?.id,
-          status: 'pending',
-          subtotal,
-          tax: 0,
-          shipping_fee: shippingFee,
-          vat_amount: vatAmount,
-          shipping_country_id: selectedCountry?.id,
-          platform_commission: platformCommission,
-          total,
-          currency,
-          shipping_address: address,
-          billing_address: address,
+          ...baseOrderPayload,
+          supplier_shipping_breakdown: supplierShippingBreakdown,
         })
         .select()
         .single();
 
+      if (orderError && orderError.message?.includes('supplier_shipping_breakdown')) {
+        const retry = await supabase
+          .from('orders')
+          .insert(baseOrderPayload)
+          .select()
+          .single();
+        order = retry.data;
+        orderError = retry.error;
+      }
+
       if (orderError) throw orderError;
 
-      const orderItems = cartItems
-        .filter(item => item.products)
-        .map(item => ({
-          order_id: order.id,
-          product_id: item.product_id,
-          supplier_id: item.products.supplier_id,
-          product_name: item.products.name,
-          quantity: item.quantity,
-          unit_price: getPrice(item),
-          subtotal: getPrice(item) * item.quantity,
-          supplier_amount: getPrice(item) * item.quantity * supplierRate,
-          platform_commission: getPrice(item) * item.quantity * commissionRate,
-        }));
+      const orderItems = draftOrderItems.map((item) => ({
+        ...item,
+        order_id: order.id,
+      }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw itemsError;
@@ -472,11 +563,31 @@ export default function CheckoutScreen() {
       await supabase.from('payments').insert({
         order_id: order.id,
         payment_gateway: paymentMethod === 'card' ? 'stripe' : 'cash',
+        transaction_id: confirmedPaymentIntentId,
         amount: total,
         currency,
         status: paymentMethod === 'card' ? 'completed' : 'pending',
         payment_method: paymentMethod,
+        completed_at: paymentMethod === 'card' ? new Date().toISOString() : null,
       });
+
+      // Trigger instant Stripe Connect split (Platform retains Commission + VAT;
+      // each Supplier receives Items Net + Shipping Fee immediately).
+      if (paymentMethod === 'card' && confirmedPaymentIntentId) {
+        try {
+          const { error: splitError } = await supabase.functions.invoke('process-order-transfers', {
+            body: {
+              order_id: order.id,
+              payment_intent_id: confirmedPaymentIntentId,
+            },
+          });
+          if (splitError) {
+            console.warn('Instant split transfer warning:', splitError);
+          }
+        } catch (splitErr) {
+          console.warn('Could not trigger process-order-transfers:', splitErr);
+        }
+      }
 
       const { error: deleteError } = await supabase
         .from('cart_items')

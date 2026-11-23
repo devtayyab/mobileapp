@@ -19,6 +19,7 @@ type EmbeddedOrder = {
   vat_amount: number | null;
   tax: number | null;
   total: number;
+  supplier_shipping_breakdown: Record<string, number> | null;
   shipping_address: Record<string, string> | null;
   countries: { name: string } | null;
 };
@@ -94,7 +95,7 @@ export default async function SupplierOrderDetailPage({
       `id, product_name, quantity, unit_price, subtotal, supplier_amount, platform_commission,
        orders (
          id, order_number, status, created_at, currency, subtotal, shipping_fee, vat_amount,
-         tax, total, shipping_address, countries (name)
+         tax, total, supplier_shipping_breakdown, shipping_address, countries (name)
        )`
     )
     .eq('order_id', orderId)
@@ -107,7 +108,7 @@ export default async function SupplierOrderDetailPage({
     return <NotFoundShell message="Order not found, or it contains none of your products." />;
   }
 
-  const [{ data: shipmentRow }, { data: courierRows }] = await Promise.all([
+  const [{ data: shipmentRow }, { data: courierRows }, { data: splitRow }] = await Promise.all([
     supabase
       .from('shipments')
       .select(
@@ -129,6 +130,15 @@ export default async function SupplierOrderDetailPage({
       // NULL row is active-by-default — `.eq(true)` would hide it.
       .not('is_active', 'is', false)
       .order('name'),
+    supabase
+      .from('payment_splits')
+      .select('amount, shipping_amount, status, payout_reference, failure_reason, paid_at')
+      .eq('order_id', orderId)
+      .eq('supplier_id', supplier.id)
+      .eq('split_type', 'supplier_payout')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const address = order.shipping_address;
@@ -144,8 +154,19 @@ export default async function SupplierOrderDetailPage({
     .join(', ');
 
   const yourSubtotal = items.reduce((sum, i) => sum + Number(i.subtotal ?? 0), 0);
-  const payout = items.reduce((sum, i) => sum + Number(i.supplier_amount ?? 0), 0);
+  const itemsNetPayout = items.reduce((sum, i) => sum + Number(i.supplier_amount ?? 0), 0);
   const commission = items.reduce((sum, i) => sum + Number(i.platform_commission ?? 0), 0);
+  const shippingBreakdown = order.supplier_shipping_breakdown ?? {};
+  const yourShipping =
+    typeof shippingBreakdown[supplier.id] === 'number'
+      ? Number(shippingBreakdown[supplier.id])
+      : splitRow?.shipping_amount != null
+        ? Number(splitRow.shipping_amount)
+        : Math.abs(yourSubtotal - Number(order.subtotal ?? 0)) < 0.05
+          ? Number(order.shipping_fee ?? 0)
+          : 0;
+  const totalPayout =
+    splitRow?.amount != null ? Number(splitRow.amount) : itemsNetPayout + yourShipping;
   const money = (amount: number | null | undefined) => formatOrderAmount(order.currency, amount);
 
   return (
@@ -227,31 +248,54 @@ export default async function SupplierOrderDetailPage({
           ))}
         </ul>
         <p className="mt-2.5 text-sm text-content-tertiary">
-          Line totals are the buyer&rsquo;s prices. Your 90% share of them is the
-          &ldquo;Your Payout&rdquo; figure below.
+          Line totals are the buyer&rsquo;s prices. Your net share (after platform commission) plus
+          your shipping fee is shown under &ldquo;Your Total Payout&rdquo; below.
         </p>
       </section>
 
       {/* Financial summary */}
       <section className="rounded-2xl border border-edge bg-surface p-4">
-        <div className="mb-3.5 flex items-center gap-2">
-          <Receipt size={18} className="text-primary" />
-          <h2 className="text-lg font-bold text-content-primary">Order Financial Summary</h2>
+        <div className="mb-3.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Receipt size={18} className="text-primary" />
+            <h2 className="text-lg font-bold text-content-primary">Order Financial Summary</h2>
+          </div>
+          {splitRow && (
+            <StatusBadge status={splitRow.status === 'completed' ? 'delivered' : 'pending'} />
+          )}
         </div>
 
         <dl>
-          <FinRow label="Subtotal" value={money(order.subtotal)} />
-          <FinRow label="Shipping Fee" value={money(order.shipping_fee)} />
+          <FinRow label="Order Subtotal" value={money(order.subtotal)} />
+          <FinRow label="Order Shipping Fee" value={money(order.shipping_fee)} />
           {Number(order.vat_amount ?? 0) > 0 && (
-            <FinRow label="VAT / Tax" value={money(order.vat_amount)} />
+            <FinRow label="VAT (Collected by Platform)" value={money(order.vat_amount)} />
           )}
           <div className="my-1 h-px bg-edge" />
           <FinRow label="Order Total" value={money(order.total)} strong />
           <div className="my-1 h-px bg-edge" />
           <FinRow label="Your Items Subtotal" value={money(yourSubtotal)} />
           <FinRow label="Platform Commission" value={`- ${money(commission)}`} tone="error" />
-          <FinRow label="Your Payout" value={money(payout)} strong tone="success" />
+          <FinRow label="Your Shipping Fee (100%)" value={`+ ${money(yourShipping)}`} />
+          <FinRow label="Your Total Payout" value={money(totalPayout)} strong tone="success" />
         </dl>
+
+        {splitRow && (
+          <div className="mt-3 rounded-xl border border-edge-light bg-surface-page p-3 text-sm">
+            {splitRow.status === 'completed' ? (
+              <p className="font-bold text-success">
+                Transferred via Stripe Connect
+                {splitRow.payout_reference ? ` (${splitRow.payout_reference})` : ''}
+              </p>
+            ) : (
+              <p className="font-semibold text-warning">
+                Payout Pending:{' '}
+                {splitRow.failure_reason ||
+                  'Complete Stripe payout setup in Business Settings to receive automatic transfers.'}
+              </p>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

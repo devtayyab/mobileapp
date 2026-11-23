@@ -21,17 +21,25 @@ export default async function AdminSuppliersPage() {
   await requireRole(['admin']);
   const supabase = await createClient();
 
-  const { data: supplierRows, error: suppliersError } = await supabase
-    .from('suppliers')
-    // Must stay a single string literal — concatenation widens to `string` and
-    // PostgREST loses the per-column row typing.
-    .select(
-      `id, user_id, business_name, business_registration_number, business_type,
-       business_description, business_email, business_phone, business_address, website,
-       kyc_status, commission_rate, created_at, rejection_reason, reviewed_at`
-    )
-    .order('created_at', { ascending: false })
-    .limit(500);
+  const [{ data: supplierRows, error: suppliersError }, { data: ratesData }] = await Promise.all([
+    supabase
+      .from('suppliers')
+      // Must stay a single string literal — concatenation widens to `string` and
+      // PostgREST loses the per-column row typing.
+      .select(
+        `id, user_id, business_name, business_registration_number, business_type,
+         business_description, business_email, business_phone, business_address, website,
+         kyc_status, commission_rate, b2b_commission_rate, custom_commission_enabled,
+         stripe_account_id, stripe_onboarding_complete,
+         created_at, rejection_reason, reviewed_at`
+      )
+      .order('created_at', { ascending: false })
+      .limit(500),
+    (supabase.rpc as any)('get_platform_commission_rates'),
+  ]);
+
+  const defaultRetailRate = Number(ratesData?.retail_commission_rate ?? 11);
+  const defaultB2bRate = Number(ratesData?.b2b_commission_rate ?? 6);
 
   const rows = supplierRows ?? [];
   const userIds = Array.from(new Set(rows.map((s) => s.user_id).filter(Boolean)));
@@ -125,7 +133,11 @@ export default async function AdminSuppliersPage() {
         </p>
       )}
 
-      <AdminSuppliersList initialSuppliers={suppliers} />
+      <AdminSuppliersList
+        initialSuppliers={suppliers}
+        defaultRetailRate={defaultRetailRate}
+        defaultB2bRate={defaultB2bRate}
+      />
     </div>
   );
 }

@@ -419,15 +419,75 @@ function CheckoutInner({
       if (!user) throw new Error('Not signed in');
 
       const orderNumber = `ORD-${Date.now()}`;
-      const commissionRate = isB2B ? 0.06 : 0.11;
-      const supplierRate = 1 - commissionRate; // 0.94 wholesale (B2B), 0.89 retail
       const activeRate = activeCurrency?.rate ?? 1;
+
+      // Resolve effective per-supplier commission rates (default: 11% retail / 6% B2B,
+      // or Super Admin's global / per-supplier custom rates).
+      const defaultFallbackRate = isB2B ? 0.06 : 0.11;
+      const supplierCommissionMap = new Map<string, number>();
+      let globalDefaultRate = defaultFallbackRate;
+
+      try {
+        const supplierIds = Array.from(
+          new Set(
+            cartItems
+              .map((row) => row.products?.supplier_id)
+              .filter((id): id is string => Boolean(id))
+          )
+        );
+        const [{ data: globalRates }, { data: suppRates }] = await Promise.all([
+          (supabase.rpc as any)('get_platform_commission_rates'),
+          supplierIds.length > 0
+            ? (supabase.rpc as any)('get_supplier_commission_rates', {
+                p_supplier_ids: supplierIds,
+              })
+            : Promise.resolve({ data: [] }),
+        ]);
+
+        if (globalRates) {
+          const pct = isB2B
+            ? Number(globalRates.b2b_commission_rate)
+            : Number(globalRates.retail_commission_rate);
+          if (Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+            globalDefaultRate = pct / 100;
+          }
+        }
+
+        if (Array.isArray(suppRates)) {
+          for (const r of suppRates) {
+            const pct = isB2B ? Number(r.b2b_rate) : Number(r.retail_rate);
+            if (r.supplier_id && Number.isFinite(pct) && pct >= 0 && pct <= 100) {
+              supplierCommissionMap.set(r.supplier_id, pct / 100);
+            }
+          }
+        }
+      } catch (rateErr) {
+        console.warn('Using fallback commission rates:', rateErr);
+      }
+
+      const rateForSupplier = (suppId: string | undefined) =>
+        (suppId ? supplierCommissionMap.get(suppId) : undefined) ?? globalDefaultRate;
+
       const convertedTotal = Math.round(total * activeRate * 100) / 100;
       const convertedSubtotal = Math.round(subtotal * activeRate * 100) / 100;
       const convertedShippingFee = Math.round(shippingFee * activeRate * 100) / 100;
       const convertedVatAmount = Math.round(vatAmount * activeRate * 100) / 100;
-      const convertedCommission = Math.round(subtotal * commissionRate * activeRate * 100) / 100;
-      const supplierId = cartItems.length === 1 ? cartItems[0]?.products?.supplier_id : undefined;
+
+      // Exact per-supplier shipping breakdown (in order currency) so instant Stripe
+      // transfers send each supplier their exact shipping fee.
+      const supplierShippingBreakdown: Record<string, number> = {};
+      for (const pkg of packages) {
+        if (pkg.supplierId && pkg.supplierId !== 'unknown') {
+          supplierShippingBreakdown[pkg.supplierId] =
+            Math.round(pkg.shippingFee * activeRate * 100) / 100;
+        }
+      }
+
+      const uniqueCartSupplierIds = Array.from(
+        new Set(cartItems.map((r) => r.products?.supplier_id).filter(Boolean))
+      );
+      const singleSupplierId =
+        uniqueCartSupplierIds.length === 1 ? uniqueCartSupplierIds[0] : undefined;
 
       const { data: intentData, error: intentError } = await supabase.functions.invoke(
         'create-payment-intent',
@@ -435,8 +495,9 @@ function CheckoutInner({
           body: {
             amount: convertedTotal,
             currency: currency.toLowerCase(),
-            supplier_id: supplierId,
+            supplier_id: singleSupplierId,
             is_b2b: isB2B,
+            order_number: orderNumber,
           },
         }
       );
@@ -445,13 +506,19 @@ function CheckoutInner({
         throw new Error(intentError?.message ?? 'Failed to initialize payment');
       }
 
-      const { error: confirmError } = await stripe.confirmCardPayment(intentData.clientSecret, {
-        payment_method: { card: cardElement },
-      });
+      const { paymentIntent, error: confirmError } = await stripe.confirmCardPayment(
+        intentData.clientSecret,
+        {
+          payment_method: { card: cardElement },
+        }
+      );
 
       if (confirmError) {
         throw new Error(confirmError.message ?? 'Payment failed');
       }
+
+      const confirmedPaymentIntentId: string | null =
+        paymentIntent?.id ?? intentData.paymentIntentId ?? null;
 
       const fullAddress = { ...address, country: selectedCountry.name };
 
@@ -473,34 +540,15 @@ function CheckoutInner({
         })
         .join(' | ');
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          order_number: orderNumber,
-          user_id: user.id,
-          status: 'pending',
-          subtotal: convertedSubtotal,
-          tax: 0,
-          shipping_fee: convertedShippingFee,
-          vat_amount: convertedVatAmount,
-          shipping_country_id: selectedCountry.id,
-          platform_commission: convertedCommission,
-          total: convertedTotal,
-          currency,
-          shipping_address: fullAddress,
-          billing_address: fullAddress,
-          notes: orderSummaryNotes || null,
-        })
-        .select()
-        .single();
-
-      if (orderError || !order) throw new Error(orderError?.message ?? 'Failed to create order');
-
-      const orderItems = cartItems
+      // Pre-compute line items so order.platform_commission matches the exact
+      // sum of per-supplier commissions (supporting custom per-supplier rates).
+      const draftOrderItems = cartItems
         .filter((row) => row.products)
         .flatMap((row) => {
           const variants = getVariantsForProduct(row.product_id);
           const convertedUnitPrice = Math.round(unitPrice(row) * activeRate * 100) / 100;
+          const itemCommRate = rateForSupplier(row.products!.supplier_id);
+          const itemSuppRate = 1 - itemCommRate;
 
           if (variants.length > 0) {
             return variants.map((v) => {
@@ -515,35 +563,86 @@ function CheckoutInner({
                 : row.products!.name;
 
               const lineSubtotal = Math.round(convertedUnitPrice * v.quantity * 100) / 100;
+              const lineCommission = Math.round(lineSubtotal * itemCommRate * 100) / 100;
+              const lineSupplierAmount = Math.round((lineSubtotal - lineCommission) * 100) / 100;
               return {
-                order_id: order.id,
                 product_id: row.product_id,
                 supplier_id: row.products!.supplier_id,
                 product_name: fullProductName,
                 quantity: v.quantity,
                 unit_price: convertedUnitPrice,
                 subtotal: lineSubtotal,
-                supplier_amount: Math.round(lineSubtotal * supplierRate * 100) / 100,
-                platform_commission: Math.round(lineSubtotal * commissionRate * 100) / 100,
+                supplier_amount: lineSupplierAmount,
+                platform_commission: lineCommission,
               };
             });
           }
 
           const lineSubtotal = Math.round(convertedUnitPrice * row.quantity * 100) / 100;
+          const lineCommission = Math.round(lineSubtotal * itemCommRate * 100) / 100;
+          const lineSupplierAmount = Math.round(lineSubtotal * itemSuppRate * 100) / 100;
           return [
             {
-              order_id: order.id,
               product_id: row.product_id,
               supplier_id: row.products!.supplier_id,
               product_name: row.products!.name,
               quantity: row.quantity,
               unit_price: convertedUnitPrice,
               subtotal: lineSubtotal,
-              supplier_amount: Math.round(lineSubtotal * supplierRate * 100) / 100,
-              platform_commission: Math.round(lineSubtotal * commissionRate * 100) / 100,
+              supplier_amount: Math.round((lineSubtotal - lineCommission) * 100) / 100 || lineSupplierAmount,
+              platform_commission: lineCommission,
             },
           ];
         });
+
+      const convertedCommission =
+        Math.round(
+          draftOrderItems.reduce((sum, item) => sum + item.platform_commission, 0) * 100
+        ) / 100;
+
+      const baseOrderPayload = {
+        order_number: orderNumber,
+        user_id: user.id,
+        status: 'pending',
+        subtotal: convertedSubtotal,
+        tax: 0,
+        shipping_fee: convertedShippingFee,
+        vat_amount: convertedVatAmount,
+        shipping_country_id: selectedCountry.id,
+        platform_commission: convertedCommission,
+        total: convertedTotal,
+        currency,
+        shipping_address: fullAddress,
+        billing_address: fullAddress,
+        notes: orderSummaryNotes || null,
+      };
+
+      let { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          ...baseOrderPayload,
+          supplier_shipping_breakdown: supplierShippingBreakdown,
+        })
+        .select()
+        .single();
+
+      // Fallback if supplier_shipping_breakdown migration hasn't been applied yet
+      if (orderError && orderError.message?.includes('supplier_shipping_breakdown')) {
+        const retry = await supabase
+          .from('orders')
+          .insert(baseOrderPayload)
+          .select()
+          .single();
+        order = retry.data;
+        orderError = retry.error;
+      }
+
+      if (orderError || !order) throw new Error(orderError?.message ?? 'Failed to create order');
+
+      const orderItems = draftOrderItems.map((item) => ({
+        ...item,
+        order_id: order.id,
+      }));
 
       const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
       if (itemsError) throw new Error(itemsError.message);
@@ -620,9 +719,11 @@ function CheckoutInner({
           order_id: order.id,
           payment_gateway: 'stripe',
           payment_method: 'card',
+          transaction_id: confirmedPaymentIntentId,
           amount: convertedTotal,
           currency,
           status: 'completed',
+          completed_at: new Date().toISOString(),
         })
         .select('id');
 
@@ -633,6 +734,27 @@ function CheckoutInner({
           paymentError ?? 'no row was inserted'
         );
         issues.push('the payment receipt could not be recorded');
+      }
+
+      // Trigger instant Stripe Connect payment split (Separate Charges & Transfers):
+      // Platform retains Commission + VAT; each Supplier receives (Items Net + Shipping Fee).
+      if (confirmedPaymentIntentId) {
+        try {
+          const { error: splitError } = await supabase.functions.invoke(
+            'process-order-transfers',
+            {
+              body: {
+                order_id: order.id,
+                payment_intent_id: confirmedPaymentIntentId,
+              },
+            }
+          );
+          if (splitError) {
+            console.error('Instant split transfer warning:', splitError);
+          }
+        } catch (splitErr) {
+          console.error('Failed to invoke process-order-transfers:', splitErr);
+        }
       }
 
       const { data: clearedRows, error: cartError } = await supabase

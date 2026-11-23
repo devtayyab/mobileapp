@@ -2,16 +2,47 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Save, ShieldAlert, ShieldCheck } from 'lucide-react';
+import {
+  ArrowUpRight,
+  CheckCircle2,
+  Clock,
+  KeyRound,
+  Percent,
+  RefreshCw,
+  Save,
+  ShieldAlert,
+  ShieldCheck,
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/providers/ToastProvider';
-import { Button, ConfirmDialog, Input } from '@/components/ui';
+import { Badge, Button, ConfirmDialog, Input } from '@/components/ui';
+import { formatOrderAmount } from '@/components/orders/types';
 
 /**
  * `payment_settings` is an INT singleton pinned to `id = 1` (NOT a uuid) —
  * see 20260709191500_add_payment_settings.sql and CONTRIBUTING.md.
  */
 const SETTINGS_ID = 1;
+
+export type AdminPaymentSplitItem = {
+  id: string;
+  order_id: string | null;
+  order_number: string | null;
+  supplier_id: string | null;
+  supplier_name: string | null;
+  supplier_stripe_ready: boolean;
+  split_type: string;
+  amount: number;
+  currency: string;
+  subtotal_amount: number;
+  commission_amount: number;
+  shipping_amount: number;
+  status: string;
+  payout_reference: string | null;
+  failure_reason: string | null;
+  created_at: string;
+  paid_at: string | null;
+};
 
 export type PaymentSettingsView = {
   /**
@@ -29,24 +60,46 @@ export type PaymentSettingsView = {
    * `get_stripe_publishable_key()` SECURITY DEFINER RPC (20260713120000).
    */
   publishableKey: string | null;
+  /** Default platform commission % on retail (B2C) product subtotal. */
+  retailCommissionRate: number;
+  /** Default platform commission % on wholesale (B2B) product subtotal. */
+  b2bCommissionRate: number;
   updatedAt: string | null;
   /** Set when the singleton row could not be read (RLS or missing row). */
   loadError?: string | null;
 };
 
-export function PaymentSettingsForm({ settings }: { settings: PaymentSettingsView }) {
+export function PaymentSettingsForm({
+  settings,
+  initialSplits = [],
+}: {
+  settings: PaymentSettingsView;
+  initialSplits?: AdminPaymentSplitItem[];
+}) {
   const router = useRouter();
   const { toast } = useToast();
 
   const [publishableKey, setPublishableKey] = useState(settings.publishableKey ?? '');
   const [replacingSecret, setReplacingSecret] = useState(false);
   const [secretDraft, setSecretDraft] = useState('');
+  const [retailRateDraft, setRetailRateDraft] = useState(String(settings.retailCommissionRate));
+  const [b2bRateDraft, setB2bRateDraft] = useState(String(settings.b2bCommissionRate));
   const [saving, setSaving] = useState(false);
+  const [savingRates, setSavingRates] = useState(false);
+  const [retryingOrderId, setRetryingOrderId] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const [errors, setErrors] = useState<{ secret?: string; publishable?: string }>({});
+  const [errors, setErrors] = useState<{
+    secret?: string;
+    publishable?: string;
+    retailRate?: string;
+    b2bRate?: string;
+  }>({});
 
   const publishableDirty = publishableKey.trim() !== (settings.publishableKey ?? '').trim();
   const secretDirty = replacingSecret && secretDraft.trim().length > 0;
+  const ratesDirty =
+    Number(retailRateDraft) !== settings.retailCommissionRate ||
+    Number(b2bRateDraft) !== settings.b2bCommissionRate;
 
   /**
    * Writes the singleton row. Only the fields the admin actually changed are
@@ -60,6 +113,8 @@ export function PaymentSettingsForm({ settings }: { settings: PaymentSettingsVie
   const persist = async (patch: {
     stripe_secret_key?: string | null;
     stripe_publishable_key?: string | null;
+    retail_commission_rate?: number;
+    b2b_commission_rate?: number;
   }) => {
     const supabase = createClient();
     const payload = { ...patch, updated_at: new Date().toISOString() };
@@ -134,6 +189,91 @@ export function PaymentSettingsForm({ settings }: { settings: PaymentSettingsVie
       kind: 'success',
     });
     router.refresh();
+  };
+
+  const handleSaveRates = async () => {
+    const retail = Number.parseFloat(retailRateDraft);
+    const b2b = Number.parseFloat(b2bRateDraft);
+    const nextErrors: { retailRate?: string; b2bRate?: string } = {};
+
+    if (Number.isNaN(retail) || retail < 0 || retail > 100) {
+      nextErrors.retailRate = 'Enter a percentage between 0 and 100.';
+    }
+    if (Number.isNaN(b2b) || b2b < 0 || b2b > 100) {
+      nextErrors.b2bRate = 'Enter a percentage between 0 and 100.';
+    }
+
+    setErrors((prev) => ({ ...prev, ...nextErrors }));
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setSavingRates(true);
+    const message = await persist({
+      retail_commission_rate: Math.round(retail * 100) / 100,
+      b2b_commission_rate: Math.round(b2b * 100) / 100,
+    });
+    setSavingRates(false);
+
+    if (message) {
+      toast({ title: 'Save failed', message, kind: 'error' });
+      return;
+    }
+
+    toast({
+      title: 'Commission rates updated',
+      message: `Retail: ${retail}% · Wholesale (B2B): ${b2b}%`,
+      kind: 'success',
+    });
+    router.refresh();
+  };
+
+  const handleReleaseSplit = async (orderId: string) => {
+    setRetryingOrderId(orderId);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.functions.invoke('process-order-transfers', {
+        body: { order_id: orderId },
+      });
+
+      if (error) {
+        let msg = error.message;
+        const ctx = (error as { context?: { json?: () => Promise<any> } }).context;
+        if (ctx?.json) {
+          try {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          } catch {
+            /* ignore */
+          }
+        }
+        throw new Error(msg);
+      }
+
+      const transfers = (data?.transfers ?? []) as Array<{
+        status: string;
+        business_name: string;
+        reason?: string | null;
+      }>;
+      const completed = transfers.filter((t) => t.status === 'completed').length;
+      const stillPending = transfers.filter((t) => t.status !== 'completed');
+
+      toast({
+        title: stillPending.length === 0 ? 'Payout Released' : 'Payout Check Complete',
+        message:
+          stillPending.length === 0
+            ? `Successfully transferred payout for ${completed} supplier${completed === 1 ? '' : 's'}.`
+            : stillPending.map((t) => `${t.business_name}: ${t.reason ?? 'Pending'}`).join(' | '),
+        kind: stillPending.length === 0 ? 'success' : 'info',
+      });
+      router.refresh();
+    } catch (e) {
+      toast({
+        title: 'Transfer failed',
+        message: e instanceof Error ? e.message : 'Could not trigger Stripe transfer.',
+        kind: 'error',
+      });
+    } finally {
+      setRetryingOrderId(null);
+    }
   };
 
   const handleRemoveSecret = async () => {
@@ -296,6 +436,157 @@ export function PaymentSettingsForm({ settings }: { settings: PaymentSettingsVie
               </span>
             )}
           </div>
+        )}
+      </section>
+
+      {/* ── Global Platform Commission Rates ───────────────────────────── */}
+      <section className="rounded-2xl border border-edge bg-surface p-4">
+        <div className="flex items-center gap-2">
+          <Percent size={16} className="text-primary" />
+          <h2 className="text-sm font-bold uppercase tracking-[1px] text-content-tertiary">
+            Platform Commission Rates (Instant Split Rules)
+          </h2>
+        </div>
+        <p className="mt-1.5 text-sm leading-5 text-content-secondary">
+          Applied to <strong>Product Subtotal</strong> only. Suppliers automatically receive{' '}
+          <strong>(Subtotal − Commission) + 100% of Shipping Fee</strong> immediately via Stripe
+          Connect. <strong>Platform Commission + VAT</strong> stay on the Platform Stripe account
+          for tax remittance. You can also set custom per-supplier rates under{' '}
+          <strong>Admin → Suppliers</strong>.
+        </p>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            step="0.01"
+            label="Retail (B2C) Commission %"
+            value={retailRateDraft}
+            onChange={(e) => setRetailRateDraft(e.target.value)}
+            error={errors.retailRate}
+          />
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            step="0.01"
+            label="Wholesale (B2B) Commission %"
+            value={b2bRateDraft}
+            onChange={(e) => setB2bRateDraft(e.target.value)}
+            error={errors.b2bRate}
+          />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-edge-light pt-4">
+          <Button
+            loading={savingRates}
+            disabled={!ratesDirty}
+            onClick={() => void handleSaveRates()}
+          >
+            <Save size={17} />
+            Save Commission Rates
+          </Button>
+          <span className="text-xs text-content-tertiary">
+            Default: 11% Retail / 6% Wholesale (B2B)
+          </span>
+        </div>
+      </section>
+
+      {/* ── Payment Splits & Supplier Payouts Ledger ───────────────────── */}
+      <section className="rounded-2xl border border-edge bg-surface p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-bold uppercase tracking-[1px] text-content-tertiary">
+              Recent Payment Splits &amp; Supplier Transfers
+            </h2>
+            <p className="mt-0.5 text-xs text-content-tertiary">
+              Every paid order splits instantly. Pending supplier payouts (e.g. awaiting Stripe
+              onboarding) can be released with 1 click once connected.
+            </p>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => router.refresh()}>
+            <RefreshCw size={14} />
+            Refresh
+          </Button>
+        </div>
+
+        {initialSplits.length === 0 ? (
+          <p className="mt-4 rounded-xl border border-dashed border-edge py-6 text-center text-sm text-content-tertiary">
+            No payment split records yet — new card orders will appear here automatically.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-edge-light">
+            {initialSplits.map((split) => {
+              const isSupplierPayout = split.split_type === 'supplier_payout';
+              const isCompleted = split.status === 'completed';
+              const splitLabel =
+                split.split_type === 'platform_commission'
+                  ? 'Platform Commission'
+                  : split.split_type === 'platform_vat'
+                    ? 'Platform VAT (Tax Remittance)'
+                    : split.supplier_name || 'Supplier Payout';
+
+              return (
+                <li
+                  key={split.id}
+                  className="flex flex-wrap items-center justify-between gap-3 py-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-md font-bold text-content-primary">{splitLabel}</span>
+                      {split.order_number && (
+                        <span className="rounded-md bg-surface-page px-2 py-0.5 font-mono text-xs text-content-tertiary">
+                          #{split.order_number}
+                        </span>
+                      )}
+                      <Badge tone={isCompleted ? 'success' : 'warning'}>
+                        {isCompleted ? (
+                          <span className="inline-flex items-center gap-1">
+                            <CheckCircle2 size={11} />
+                            Transferred
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={11} />
+                            Pending
+                          </span>
+                        )}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 text-xs text-content-tertiary">
+                      {isSupplierPayout
+                        ? `Items: ${formatOrderAmount(split.currency, split.subtotal_amount)} · Comm: -${formatOrderAmount(split.currency, split.commission_amount)} · Shipping: +${formatOrderAmount(split.currency, split.shipping_amount)}`
+                        : `Retained on Platform Stripe account`}
+                      {split.payout_reference ? ` · Ref: ${split.payout_reference}` : ''}
+                    </p>
+                    {!isCompleted && split.failure_reason && (
+                      <p className="mt-1 text-xs font-semibold text-warning">
+                        {split.failure_reason}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-extrabold text-content-primary">
+                      {formatOrderAmount(split.currency, split.amount)}
+                    </span>
+                    {isSupplierPayout && !isCompleted && split.order_id && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        loading={retryingOrderId === split.order_id}
+                        onClick={() => void handleReleaseSplit(split.order_id!)}
+                      >
+                        <ArrowUpRight size={14} />
+                        Release Payout
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
 

@@ -18,9 +18,9 @@
  * are this page's own URL, so Stripe returns the supplier straight back here.
  */
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { CheckCircle2, CreditCard, Save } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CheckCircle2, CreditCard, Percent, RefreshCw, Save } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button, Input, Textarea } from '@/components/ui';
 import { SupplierToggle } from '@/components/supplier/SupplierToggle';
@@ -36,6 +36,9 @@ export type BusinessSettingsValues = {
   business_address: string | null;
   website: string | null;
   is_active: boolean | null;
+  commission_rate?: number | null;
+  b2b_commission_rate?: number | null;
+  custom_commission_enabled?: boolean | null;
   stripe_account_id: string | null;
   stripe_onboarding_complete: boolean | null;
 };
@@ -54,8 +57,17 @@ async function readFunctionError(err: unknown, fallback: string) {
   return withContext?.message ?? fallback;
 }
 
-export function BusinessSettingsForm({ supplier }: { supplier: BusinessSettingsValues }) {
+export function BusinessSettingsForm({
+  supplier,
+  defaultRetailRate = 11,
+  defaultB2bRate = 6,
+}: {
+  supplier: BusinessSettingsValues;
+  defaultRetailRate?: number;
+  defaultB2bRate?: number;
+}) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { t } = useLanguage();
 
@@ -73,9 +85,78 @@ export function BusinessSettingsForm({ supplier }: { supplier: BusinessSettingsV
   const [nameError, setNameError] = useState<string | null>(null);
 
   const [stripeAccountId, setStripeAccountId] = useState(supplier.stripe_account_id);
-  const stripeComplete = supplier.stripe_onboarding_complete ?? false;
+  const [stripeComplete, setStripeComplete] = useState(supplier.stripe_onboarding_complete ?? false);
   const [stripeLoading, setStripeLoading] = useState(false);
+  const [syncingStripe, setSyncingStripe] = useState(false);
   const [stripeError, setStripeError] = useState('');
+  const [requirementsDue, setRequirementsDue] = useState<string[]>([]);
+
+  const effectiveRetail =
+    supplier.custom_commission_enabled && supplier.commission_rate != null
+      ? Number(supplier.commission_rate)
+      : defaultRetailRate;
+  const effectiveB2b =
+    supplier.custom_commission_enabled &&
+    (supplier.b2b_commission_rate != null || supplier.commission_rate != null)
+      ? Number(supplier.b2b_commission_rate ?? supplier.commission_rate)
+      : defaultB2bRate;
+
+  const syncStripeStatus = useCallback(
+    async (silent = false) => {
+      setSyncingStripe(true);
+      setStripeError('');
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.functions.invoke<{
+          connected?: boolean;
+          stripeAccountId?: string | null;
+          onboardingComplete?: boolean;
+          requirementsDue?: string[];
+        }>('sync-stripe-connect-status');
+
+        if (error) {
+          throw new Error(await readFunctionError(error, 'Could not verify Stripe status'));
+        }
+
+        if (data) {
+          if (data.stripeAccountId) setStripeAccountId(data.stripeAccountId);
+          setStripeComplete(Boolean(data.onboardingComplete));
+          setRequirementsDue(Array.isArray(data.requirementsDue) ? data.requirementsDue : []);
+
+          if (!silent) {
+            toast({
+              title: data.onboardingComplete ? 'Stripe Account Verified' : 'Onboarding Incomplete',
+              message: data.onboardingComplete
+                ? 'Instant payouts are active — your share of every paid order will transfer automatically.'
+                : 'Stripe still needs additional verification details before instant payouts activate.',
+              kind: data.onboardingComplete ? 'success' : 'info',
+            });
+          }
+          router.refresh();
+        }
+      } catch (e) {
+        if (!silent) {
+          const message = e instanceof Error ? e.message : 'Status check failed.';
+          setStripeError(message);
+          toast({ title: 'Stripe Check Failed', message, kind: 'error' });
+        }
+      } finally {
+        setSyncingStripe(false);
+      }
+    },
+    [router, toast]
+  );
+
+  // Auto-verify Stripe onboarding whenever supplier returns from Stripe or has an unverified account
+  useEffect(() => {
+    const stripeParam = searchParams?.get('stripe');
+    if (stripeParam === 'return' || stripeParam === 'refresh') {
+      void syncStripeStatus(false);
+    } else if (stripeAccountId && !stripeComplete) {
+      void syncStripeStatus(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const save = async () => {
     if (!businessName.trim()) {
@@ -226,28 +307,69 @@ export function BusinessSettingsForm({ supplier }: { supplier: BusinessSettingsV
             <p className="text-lg font-bold text-content-primary">Stripe Connected Account</p>
             <p className="mt-0.5 text-sm text-content-tertiary">
               {stripeComplete
-                ? 'Your account is verified and ready to receive payouts.'
-                : 'Set up your bank details to receive payouts securely.'}
+                ? 'Your account is verified and ready for instant automatic payouts on every paid order.'
+                : 'Set up your bank details with Stripe to receive instant automatic payouts.'}
             </p>
             {stripeAccountId && !stripeComplete && (
               <p className="mt-1 text-sm text-content-tertiary">
                 Account <span className="font-bold">{stripeAccountId}</span> — onboarding not
-                finished.
+                finished
+                {requirementsDue.length > 0
+                  ? ` (${requirementsDue.length} requirement${requirementsDue.length === 1 ? '' : 's'} pending)`
+                  : '.'}
               </p>
             )}
           </div>
         </div>
 
+        <div className="rounded-xl border border-edge-light bg-surface-page p-3 text-sm text-content-secondary">
+          <div className="flex items-center gap-2 font-bold text-content-primary">
+            <Percent size={15} className="text-primary" />
+            <span>
+              Your Platform Commission: {effectiveRetail}% Retail (B2C) · {effectiveB2b}% Wholesale (B2B)
+              {supplier.custom_commission_enabled ? ' (Custom)' : ' (Standard)'}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-content-tertiary">
+            You receive {100 - effectiveRetail}% (Retail) / {100 - effectiveB2b}% (Wholesale) of
+            product subtotal plus 100% of your shipping fee immediately upon payment. VAT is
+            collected and remitted by the platform.
+          </p>
+        </div>
+
         {stripeComplete ? (
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-success/15 px-3 py-1.5 text-base font-bold text-success">
-            <CheckCircle2 size={16} />
-            Verified
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-md bg-success/15 px-3 py-1.5 text-base font-bold text-success">
+              <CheckCircle2 size={16} />
+              Verified · Instant Payouts Active
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              loading={syncingStripe}
+              onClick={() => void syncStripeStatus(false)}
+            >
+              <RefreshCw size={14} />
+              Refresh Status
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <Button className="w-fit" loading={stripeLoading} onClick={setUpStripe}>
-              {stripeAccountId ? 'Continue Payout Setup' : 'Set up Payouts'}
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button className="w-fit" loading={stripeLoading} onClick={setUpStripe}>
+                {stripeAccountId ? 'Continue Payout Setup' : 'Set up Payouts'}
+              </Button>
+              {stripeAccountId && (
+                <Button
+                  variant="outline"
+                  loading={syncingStripe}
+                  onClick={() => void syncStripeStatus(false)}
+                >
+                  <RefreshCw size={15} />
+                  Verify Status
+                </Button>
+              )}
+            </div>
             {stripeError && <p className="text-base font-bold text-error">{stripeError}</p>}
           </div>
         )}
