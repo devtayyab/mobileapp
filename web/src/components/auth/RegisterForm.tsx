@@ -13,28 +13,32 @@
  * Phone is assembled the mobile way: `${dialCode}${phone.replace(/^0+/, '')}`.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
+  Check,
   CheckCircle2,
+  ChevronDown,
   CreditCard,
   Globe,
   Lock,
   Mail,
   Package,
   Phone,
+  Search,
   ShieldCheck,
   ShoppingBag,
   Sparkles,
   Store,
   User,
+  X,
 } from 'lucide-react';
-import { countryCodes } from '@shared/constants/Countries';
+import { countryCodes, type CountryCode } from '@shared/constants/Countries';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/providers/LanguageProvider';
-import { BrandLogo, Button, Input, Select } from '@/components/ui';
+import { BrandLogo, Button, Input } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 type UserRole = 'customer' | 'b2b' | 'supplier';
@@ -127,21 +131,16 @@ export function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Clean ISO/dial format avoids broken flag tofu on desktop browsers.
-  const dialOptions = useMemo(
-    () =>
-      countryCodes.map((c) => ({
-        value: c.code,
-        dial: c.dial_code,
-        label: `${c.code} (${c.dial_code}) — ${c.name}`,
-      })),
-    []
-  );
   const [countryIso, setCountryIso] = useState(
     () =>
       countryCodes.find((c) => c.code === 'US')?.code ??
       countryCodes.find((c) => c.dial_code === '+1')?.code ??
       countryCodes[0].code
+  );
+
+  const selectedCountry = useMemo(
+    () => countryCodes.find((c) => c.code === countryIso) ?? countryCodes[0],
+    [countryIso]
   );
 
   const selectedRole = useMemo(
@@ -483,23 +482,14 @@ export function RegisterForm() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)]">
-                  <Select
-                    label="Country Code *"
-                    value={countryIso}
-                    onChange={(e) => {
-                      const iso = e.target.value;
-                      setCountryIso(iso);
-                      const match = countryCodes.find((c) => c.code === iso);
-                      if (match) setDialCode(match.dial_code);
+                <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[minmax(0,0.46fr)_minmax(0,0.54fr)]">
+                  <CountryCodeDropdown
+                    selected={selectedCountry}
+                    onSelect={(country) => {
+                      setCountryIso(country.code);
+                      setDialCode(country.dial_code);
                     }}
-                  >
-                    {dialOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
+                  />
 
                   <Input
                     label="Phone Number *"
@@ -526,7 +516,11 @@ export function RegisterForm() {
                   <Input
                     label={`${t.confirmPassword ?? 'Confirm Password'} *`}
                     type="password"
-                    placeholder={t.reEnterPassword ?? 'Re-enter password'}
+                    placeholder={
+                      language.code === 'en'
+                        ? 'Confirm password'
+                        : (t.reEnterPassword ?? 'Confirm password')
+                    }
                     icon={<Lock size={16} />}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -585,6 +579,167 @@ export function RegisterForm() {
           </form>
         </div>
       </main>
+    </div>
+  );
+}
+
+/**
+ * Searchable, bounded country-code popover so 190+ dial codes never spawn a
+ * giant native OS select overlay covering the screen.
+ */
+function CountryCodeDropdown({
+  selected,
+  onSelect,
+}: {
+  selected: CountryCode;
+  onSelect: (country: CountryCode) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    const focusTimer = window.setTimeout(() => searchRef.current?.focus(), 20);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.clearTimeout(focusTimer);
+    };
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return countryCodes;
+    const normalizedDial = q.replace(/^\+/, '');
+    return countryCodes.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        c.dial_code.toLowerCase().includes(q) ||
+        c.dial_code.replace(/^\+/, '').includes(normalizedDial)
+    );
+  }, [query]);
+
+  return (
+    <div ref={containerRef} className="relative flex flex-col gap-1.5">
+      <span className="text-md font-bold text-content-primary">Country Code *</span>
+
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((prev) => !prev);
+          if (open) setQuery('');
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={cn(
+          'flex h-[50px] w-full items-center justify-between gap-2 rounded-xl border-[1.5px] bg-surface-page px-3 text-left transition-colors outline-none',
+          open ? 'border-secondary ring-2 ring-secondary/15' : 'border-edge hover:border-edge-dark'
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0 rounded-md border border-edge bg-surface px-1.5 py-0.5 font-mono text-xs font-extrabold text-content-primary">
+            {selected.code}
+          </span>
+          <span className="shrink-0 text-md font-bold text-content-primary">
+            {selected.dial_code}
+          </span>
+          <span className="truncate text-xs text-content-tertiary">{selected.name}</span>
+        </span>
+        <ChevronDown
+          size={16}
+          className={cn('shrink-0 text-content-tertiary transition-transform', open && 'rotate-180')}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Select country code"
+          className="absolute left-0 top-full z-50 mt-1.5 w-full min-w-[270px] overflow-hidden rounded-2xl border border-edge bg-surface shadow-float sm:w-[320px]"
+        >
+          <div className="border-b border-edge-light bg-surface-page/70 p-2">
+            <div className="relative flex items-center">
+              <Search size={15} className="pointer-events-none absolute left-3 text-content-tertiary" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search country, US, +92..."
+                className="h-9 w-full rounded-lg border border-edge bg-surface pl-8 pr-8 text-sm text-content-primary placeholder:text-content-tertiary outline-none focus:border-secondary"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Clear search"
+                  className="absolute right-2 rounded p-0.5 text-content-tertiary hover:text-content-primary"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="max-h-[220px] overflow-y-auto p-1.5">
+            {filtered.length === 0 ? (
+              <p className="py-5 text-center text-sm text-content-tertiary">
+                No matching countries found
+              </p>
+            ) : (
+              filtered.map((c) => {
+                const isSelected = c.code === selected.code;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => {
+                      onSelect(c);
+                      setOpen(false);
+                      setQuery('');
+                    }}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                      isSelected
+                        ? 'bg-surface-tint font-bold text-primary'
+                        : 'text-content-primary hover:bg-surface-page'
+                    )}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="w-7 shrink-0 rounded bg-surface-page px-1 py-0.5 text-center font-mono text-2xs font-bold text-content-tertiary">
+                        {c.code}
+                      </span>
+                      <span className="truncate">{c.name}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 font-mono text-xs font-bold text-content-secondary">
+                      {c.dial_code}
+                      {isSelected && <Check size={14} className="text-primary" />}
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
