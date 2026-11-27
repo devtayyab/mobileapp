@@ -16,6 +16,7 @@ import { useCurrency } from '@/providers/CurrencyProvider';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { useNotifications } from '@/providers/NotificationProvider';
 import { Avatar } from '@/components/ui/Avatar';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import type { Role } from '@/types/database';
 
 type NavItem = { href: string; label: string; icon: React.ElementType };
@@ -105,13 +106,16 @@ export function DashboardSidebar({
     <div className="flex h-full flex-col gap-1 overflow-y-auto p-3">
       {/* Wordmark stacks above the role chip so the longer brand name doesn't
           overflow the 248px sidebar. */}
-      <div className="mb-2 flex flex-col items-start gap-1 px-2 py-1">
-        <span className="text-2xl font-extrabold leading-tight tracking-[-0.5px] text-[#0066CC] dark:text-[#38BDF8]">
-          SATHUN GLOBAL
-        </span>
-        <span className="rounded-md bg-surface-tint px-1.5 py-0.5 text-2xs font-extrabold uppercase tracking-[0.5px] text-primary">
-          {role}
-        </span>
+      <div className="mb-2 flex items-center gap-2.5 px-2 py-1">
+        <BrandLogo size="sm" showText={false} asLink={false} />
+        <div className="flex min-w-0 flex-col items-start gap-0.5">
+          <span className="truncate text-xl font-extrabold leading-tight tracking-[-0.5px] text-[#0066CC] dark:text-[#38BDF8]">
+            SATHUN GLOBAL
+          </span>
+          <span className="rounded-md bg-surface-tint px-1.5 py-0.5 text-2xs font-extrabold uppercase tracking-[0.5px] text-primary">
+            {role}
+          </span>
+        </div>
       </div>
 
       {nav.map((group) => (
@@ -266,9 +270,12 @@ export function DashboardSidebar({
         </button>
         {/* Nowrap: at 320px the wordmark otherwise wraps to two lines and
             doubles the height of the bar. */}
-        <span className="truncate whitespace-nowrap text-xl font-extrabold text-[#0066CC] dark:text-[#38BDF8] sm:text-2xl">
-          SATHUN GLOBAL
-        </span>
+        <Link href="/" className="inline-flex min-w-0 items-center gap-2">
+          <BrandLogo size="sm" showText={false} asLink={false} />
+          <span className="truncate whitespace-nowrap text-lg font-extrabold text-[#0066CC] dark:text-[#38BDF8] sm:text-xl">
+            SATHUN GLOBAL
+          </span>
+        </Link>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <span className="flex items-center gap-1 text-sm font-bold uppercase text-content-tertiary">
             <ShieldCheck size={14} />

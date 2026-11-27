@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/cn';
 
@@ -12,10 +11,10 @@ interface BrandLogoProps {
 }
 
 const SIZES = {
-  sm: { image: 32, text: 'text-lg', subtext: 'text-2xs' },
-  md: { image: 42, text: 'text-2xl', subtext: 'text-xs' },
-  lg: { image: 52, text: 'text-3xl', subtext: 'text-xs' },
-  xl: { image: 68, text: 'text-4xl', subtext: 'text-sm' },
+  sm: { box: 'h-9 w-9', image: 36, text: 'text-lg', subtext: 'text-2xs' },
+  md: { box: 'h-11 w-11', image: 44, text: 'text-xl sm:text-2xl', subtext: 'text-[10px]' },
+  lg: { box: 'h-14 w-14', image: 56, text: 'text-3xl', subtext: 'text-xs' },
+  xl: { box: 'h-[76px] w-[76px]', image: 76, text: 'text-4xl', subtext: 'text-sm' },
 };
 
 export function BrandLogo({
@@ -28,16 +27,20 @@ export function BrandLogo({
 
   const content = (
     <div className={cn('inline-flex items-center gap-2.5 select-none', className)}>
-      <div className="relative shrink-0 overflow-hidden rounded-xl bg-black/5 dark:bg-white/5 p-0.5 transition-transform group-hover:scale-105 shadow-2xs">
+      <div
+        className={cn(
+          'relative shrink-0 overflow-hidden rounded-full bg-[#04050A] border border-[#D4AF37]/75 ring-2 ring-[#0066CC]/15 shadow-sm transition-transform duration-200 group-hover:scale-105',
+          currentSize.box
+        )}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/logo.png"
+          src="/images/logo-circle.png"
           alt="Sathun Global Marketplace Logo"
           width={currentSize.image}
           height={currentSize.image}
-          className="h-11 w-auto object-contain max-h-[48px] rounded-lg"
+          className="h-full w-full rounded-full object-cover"
           onError={(e) => {
-            // Fallback to icon if logo fails to load
             (e.target as HTMLImageElement).src = '/images/icon.png';
           }}
         />

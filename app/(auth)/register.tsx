@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  View, Text, StyleSheet, TextInput, TouchableOpacity, Image,
   Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Dimensions, Modal, FlatList
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -43,11 +43,11 @@ export default function RegisterScreen() {
     );
   }, [searchQuery]);
 
-  const ROLES: Array<{ key: UserRole; title: string; subtitle: string; icon: any }> = [
-    // Each role shows its own theme's brand color (Customer=green, B2B=pink, Supplier=blue).
-    { key: 'customer', title: 'Buy for myself', subtitle: 'Shop products for personal use', icon: ShoppingBag },
-    { key: 'b2b', title: 'Buy in bulk', subtitle: 'Wholesale prices for my business', icon: Package },
-    { key: 'supplier', title: 'Sell my products', subtitle: 'Open a shop and reach buyers', icon: Store },
+  const ROLES: Array<{ key: UserRole; title: string; subtitle: string; icon: any; accent: string }> = [
+    // Each role matches the visual banner colors (Shop=green, Business=pink, Supplier=blue).
+    { key: 'customer', title: 'Buy for myself', subtitle: 'Shop products for personal use', icon: ShoppingBag, accent: '#22C55E' },
+    { key: 'b2b', title: 'Buy in bulk', subtitle: 'Wholesale prices for my business', icon: Package, accent: '#EC4899' },
+    { key: 'supplier', title: 'Sell my products', subtitle: 'Open a shop and reach buyers', icon: Store, accent: '#2563EB' },
   ];
 
   const handleRegister = async () => {
@@ -88,43 +88,59 @@ export default function RegisterScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.topSection}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
-            <ArrowLeft size={22} color={Colors.text.primary} />
-          </TouchableOpacity>
-          <View style={styles.topContent}>
-            <View style={styles.iconWrap}>
-              <User size={24} color={Colors.secondary} />
+          <View style={styles.topBar}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+              <ArrowLeft size={22} color={Colors.text.primary} />
+            </TouchableOpacity>
+            <View style={styles.topTitleWrap}>
+              <Text style={styles.welcomeTitle}>Create Account</Text>
+              <Text style={styles.welcomeSub}>Join our marketplace today</Text>
             </View>
-            <Text style={styles.welcomeTitle}>Create Account</Text>
-            <Text style={styles.welcomeSub}>Join our marketplace today</Text>
+            <View style={{ width: 44 }} />
           </View>
+        </View>
+
+        <View style={styles.bannerCard}>
+          <Image
+            source={require('@/assets/images/signup-banner.jpg')}
+            style={styles.bannerImage}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.formCard}>
           <View style={styles.roleSection}>
             <Text style={styles.roleSectionTitle}>What do you want to do?</Text>
             <View style={styles.roleList}>
-              {ROLES.map(({ key, title, subtitle, icon: Icon }) => {
+              {ROLES.map(({ key, title, subtitle, icon: Icon, accent }) => {
                 const isSelected = role === key;
                 return (
                   <TouchableOpacity
                     key={key}
-                    style={[styles.roleCard, isSelected && styles.roleCardSelected]}
+                    style={[
+                      styles.roleCard,
+                      isSelected && { borderColor: accent, backgroundColor: `${accent}12` },
+                    ]}
                     onPress={() => setRole(key)}
                     activeOpacity={0.8}
                   >
-                    <View style={[styles.roleIconWrap, isSelected && styles.roleIconWrapSelected]}>
-                      <Icon size={20} color={isSelected ? '#22C55E' : Colors.text.tertiary} />
+                    <View
+                      style={[
+                        styles.roleIconWrap,
+                        isSelected && { backgroundColor: `${accent}20` },
+                      ]}
+                    >
+                      <Icon size={20} color={isSelected ? accent : Colors.text.tertiary} />
                     </View>
                     <View style={styles.roleTextWrap}>
-                      <Text style={[styles.roleTitle, isSelected && styles.roleTitleSelected]}>
+                      <Text style={[styles.roleTitle, isSelected && { color: accent }]}>
                         {title}
                       </Text>
                       <Text style={styles.roleSubtitle}>{subtitle}</Text>
                     </View>
                     <View style={styles.roleRadio}>
                       {isSelected ? (
-                        <CheckCircle2 size={22} color="#22C55E" />
+                        <CheckCircle2 size={22} color={accent} />
                       ) : (
                         <View style={styles.radioCircle} />
                       )}
@@ -316,16 +332,43 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   topSection: {
     paddingTop: 10,
-    paddingBottom: 16,
-    paddingHorizontal: 24,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  topTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
   },
   backBtn: {
     width: 44, height: 44, borderRadius: 14,
     backgroundColor: Colors.background.secondary,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 10,
     borderWidth: 1,
     borderColor: Colors.border.medium,
+  },
+  bannerCard: {
+    marginHorizontal: 20,
+    marginBottom: 14,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#F4F8FF',
+    borderWidth: 1,
+    borderColor: Colors.border.medium,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  bannerImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 935 / 1024,
   },
   topContent: { alignItems: 'center', gap: 6 },
   iconWrap: {
@@ -334,8 +377,8 @@ const createStyles = (Colors: Palette) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     marginBottom: 6,
   },
-  welcomeTitle: { fontSize: 24, fontWeight: '800', color: Colors.text.primary, letterSpacing: -1 },
-  welcomeSub: { fontSize: 14, color: Colors.text.tertiary, textAlign: 'center' },
+  welcomeTitle: { fontSize: 22, fontWeight: '800', color: Colors.text.primary, letterSpacing: -0.6 },
+  welcomeSub: { fontSize: 13, color: Colors.text.tertiary, textAlign: 'center' },
   formCard: {
     backgroundColor: Colors.background.secondary,
     marginHorizontal: 20,

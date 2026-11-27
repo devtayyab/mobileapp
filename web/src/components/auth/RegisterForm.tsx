@@ -29,11 +29,42 @@ import { cn } from '@/lib/cn';
 
 type UserRole = 'customer' | 'b2b' | 'supplier';
 
-/** Mobile's three role cards, labels and sub-labels included. */
-const ROLES: { key: UserRole; title: string; subtitle: string; icon: typeof ShoppingBag }[] = [
-  { key: 'customer', title: 'Buy for myself', subtitle: 'Shop products for personal use', icon: ShoppingBag },
-  { key: 'b2b', title: 'Buy in bulk', subtitle: 'Wholesale prices for my business', icon: Package },
-  { key: 'supplier', title: 'Sell my products', subtitle: 'Open a shop and reach buyers', icon: Store },
+const ROLES: {
+  key: UserRole;
+  title: string;
+  subtitle: string;
+  icon: typeof ShoppingBag;
+  borderActive: string;
+  bgActive: string;
+  textActive: string;
+}[] = [
+  {
+    key: 'customer',
+    title: 'Buy for myself',
+    subtitle: 'Shop products for personal use',
+    icon: ShoppingBag,
+    borderActive: 'border-emerald-500',
+    bgActive: 'bg-emerald-500/5',
+    textActive: 'text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    key: 'b2b',
+    title: 'Buy in bulk',
+    subtitle: 'Wholesale prices for my business',
+    icon: Package,
+    borderActive: 'border-pink-500',
+    bgActive: 'bg-pink-500/5',
+    textActive: 'text-pink-600 dark:text-pink-400',
+  },
+  {
+    key: 'supplier',
+    title: 'Sell my products',
+    subtitle: 'Open a shop and reach buyers',
+    icon: Store,
+    borderActive: 'border-blue-600',
+    bgActive: 'bg-blue-600/5',
+    textActive: 'text-blue-600 dark:text-blue-400',
+  },
 ];
 
 export function RegisterForm() {
@@ -144,77 +175,97 @@ export function RegisterForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-page px-4 py-10">
-      <form onSubmit={handleSubmit} className="w-full max-w-md">
-        <div className="mb-5 flex flex-col items-center gap-1.5 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-tint text-secondary">
-            <User size={24} />
-          </span>
-          <h1 className="text-5xl font-extrabold tracking-[-0.4px] text-content-primary">
-            Create account
-          </h1>
-          <p className="text-md text-content-tertiary">
-            {t.joinMarketplace ?? 'Join our marketplace today'}
-          </p>
+    <div className="flex min-h-screen items-center justify-center bg-surface-page px-4 py-8 sm:py-10">
+      <div className="mx-auto grid w-full max-w-5xl grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-10">
+        {/* Visual Marketplace Guide Banner */}
+        <div className="mx-auto w-full max-w-md lg:sticky lg:top-8 lg:max-w-none">
+          <div className="overflow-hidden rounded-3xl border border-edge bg-[#F4F8FF] shadow-card">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/signup-banner.jpg"
+              alt="Sathun Global Marketplace — Shop, Business, or Become a Supplier"
+              width={935}
+              height={1024}
+              className="block h-auto w-full object-contain"
+            />
+          </div>
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-edge bg-surface p-5">
-          <fieldset className="space-y-2.5">
-            <legend className="mb-2 text-md font-bold text-content-primary">
-              What do you want to do?
-            </legend>
-            <div className="flex flex-col gap-2.5">
-              {ROLES.map(({ key, title, subtitle, icon: Icon }) => {
-                const active = role === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setRole(key)}
-                    aria-pressed={active}
-                    className={cn(
-                      'flex items-center gap-3 rounded-2xl border-[1.5px] p-3 text-left transition-all',
-                      active
-                        ? 'border-emerald-500 bg-emerald-500/5 shadow-xs'
-                        : 'border-edge bg-surface-page/50 hover:bg-surface-page'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
-                        active ? 'bg-surface text-emerald-500' : 'bg-surface text-content-tertiary'
-                      )}
-                    >
-                      <Icon size={20} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
+        {/* Signup Form */}
+        <form onSubmit={handleSubmit} className="mx-auto w-full max-w-md lg:max-w-none">
+          <div className="mb-4 flex flex-col items-center gap-1.5 text-center lg:items-start lg:text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface-tint text-secondary">
+                <User size={22} />
+              </span>
+              <div>
+                <h1 className="text-4xl font-extrabold tracking-[-0.4px] text-content-primary sm:text-5xl">
+                  Create account
+                </h1>
+                <p className="text-md text-content-tertiary">
+                  {t.joinMarketplace ?? 'Join our marketplace today'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 rounded-2xl border border-edge bg-surface p-5">
+            <fieldset className="space-y-2.5">
+              <legend className="mb-2 text-md font-bold text-content-primary">
+                What do you want to do?
+              </legend>
+              <div className="flex flex-col gap-2.5">
+                {ROLES.map(
+                  ({ key, title, subtitle, icon: Icon, borderActive, bgActive, textActive }) => {
+                    const active = role === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setRole(key)}
+                        aria-pressed={active}
                         className={cn(
-                          'block text-md font-bold',
-                          active ? 'text-emerald-500' : 'text-content-primary'
+                          'flex items-center gap-3 rounded-2xl border-[1.5px] p-3 text-left transition-all',
+                          active
+                            ? `${borderActive} ${bgActive} shadow-xs`
+                            : 'border-edge bg-surface-page/50 hover:bg-surface-page'
                         )}
                       >
-                        {title}
-                      </span>
-                      <span className="block text-xs text-content-tertiary">
-                        {subtitle}
-                      </span>
-                    </span>
-                    <span className="shrink-0">
-                      {active ? (
-                        <CheckCircle2 size={20} className="text-emerald-500" />
-                      ) : (
-                        <span className="block h-5 w-5 rounded-full border-[1.5px] border-content-tertiary/40" />
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-1 text-xs text-content-tertiary">
-              You can change this later. Business details are only asked if you choose bulk buying or selling.
-            </p>
-          </fieldset>
+                        <span
+                          className={cn(
+                            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface',
+                            active ? textActive : 'text-content-tertiary'
+                          )}
+                        >
+                          <Icon size={20} />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span
+                            className={cn(
+                              'block text-md font-bold',
+                              active ? textActive : 'text-content-primary'
+                            )}
+                          >
+                            {title}
+                          </span>
+                          <span className="block text-xs text-content-tertiary">{subtitle}</span>
+                        </span>
+                        <span className="shrink-0">
+                          {active ? (
+                            <CheckCircle2 size={20} className={textActive} />
+                          ) : (
+                            <span className="block h-5 w-5 rounded-full border-[1.5px] border-content-tertiary/40" />
+                          )}
+                        </span>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+              <p className="mt-1 text-xs text-content-tertiary">
+                You can change this later. Business details are only asked if you choose bulk buying or selling.
+              </p>
+            </fieldset>
 
           <Input
             label={`${t.fullName ?? 'Full Name'} *`}
@@ -313,6 +364,7 @@ export function RegisterForm() {
           </Link>
         </p>
       </form>
+      </div>
     </div>
   );
 }
